@@ -290,7 +290,7 @@
   "litematica-printer-autyism.config.pauseOnContainer": "Pause While Using Containers",
   "litematica-printer-autyism.config.pauseOnContainer.desc": "Pause the printer from the moment you right-click a chest/shulker/entity container until shortly after the container is closed. Prevents the client and server from disagreeing about your inventory (which made the printer place wrong blocks while you took materials).",
   "litematica-printer-autyism.config.bedrockBackend": "Bedrock Miner Backend",
-  "litematica-printer-autyism.config.bedrockBackend.desc": "Which bedrock breaking mod the bedrock mode drives. Auto: bedrockminer (bunnyi116) > bedrock-miner (lxyan2333) > blockminer.",
+  "litematica-printer-autyism.config.bedrockBackend.desc": "Which bedrock-breaking mod the bedrock mode uses. Auto: bedrock-miner (lxyan2333) first, then bedrockminer (bunnyi116), then blockminer.",
   "litematica-printer-autyism.bedrockBackend.auto": "Auto",
   "litematica-printer-autyism.bedrockBackend.bunnyi": "bedrockminer (bunnyi116)",
   "litematica-printer-autyism.bedrockBackend.lxyan": "bedrock-miner (lxyan2333)",

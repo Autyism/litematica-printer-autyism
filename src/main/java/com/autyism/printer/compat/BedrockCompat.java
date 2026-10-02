@@ -65,7 +65,8 @@ public class BedrockCompat {
             case BUNNYI -> bunnyiLoaded() ? Impl.BUNNYI : Impl.NONE;
             case LXYAN -> lxyanLoaded() ? Impl.LXYAN : Impl.NONE;
             case BLOCKMINER -> blockMinerLoaded() ? Impl.BLOCKMINER : Impl.NONE;
-            case AUTO -> bunnyiLoaded() ? Impl.BUNNYI : lxyanLoaded() ? Impl.LXYAN : blockMinerLoaded() ? Impl.BLOCKMINER : Impl.NONE;
+            // 自动：优先 lxyan2333（在用户真实实例里测试最快最稳），其次 bunnyi116、blockminer
+            case AUTO -> lxyanLoaded() ? Impl.LXYAN : bunnyiLoaded() ? Impl.BUNNYI : blockMinerLoaded() ? Impl.BLOCKMINER : Impl.NONE;
         };
         boolean ok = switch (choice) {
             case BUNNYI -> resolveBunnyi();

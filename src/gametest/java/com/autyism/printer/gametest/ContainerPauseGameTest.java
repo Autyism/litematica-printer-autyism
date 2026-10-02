@@ -124,6 +124,12 @@ public final class ContainerPauseGameTest implements FabricClientGameTest {
         try {
             GT.waitServer(context, () -> GT.countPlaced(sp, MIN, MAX) >= total, 600, "print did not finish");
         } catch (AssertionError e) {
+            GT.log("[container] FAIL STATE placed=" + GT.countPlaced(sp, MIN, MAX) + "/" + total + " " + context.computeOnClient(c ->
+                    com.autyism.printer.handler.ModuleManager.PRINT.debugState() + " screen=" + c.screen
+                            + " menu=" + c.player.containerMenu.getClass().getSimpleName() + " hand=" + c.player.getMainHandItem()
+                            + " paused=" + com.autyism.printer.printer.ContainerGuard.isPaused()
+                            + " inv=" + java.util.stream.IntStream.range(0, 36).mapToObj(i -> i + ":" + c.player.getInventory().getItem(i)).filter(x -> !x.endsWith(" minecraft:air")).toList()));
+            GT.log("[container] FAIL missing " + GT.mismatches(sp, MIN, MAX, ContainerPauseGameTest::expected));
             if (guard) throw e;
         }
         context.waitTicks(10);
