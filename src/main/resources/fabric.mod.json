@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "${mod_id}",
+  "version": "${mod_version}",
+  "name": "${mod_name}",
+  "icon": "assets/autyism-le/icon.png",
+  "description": "Autyism's personal Litematica enhancement pack: built-in printer (based on the BiliXWhite/water2004 Litematica Printer forks), block picker GUI for block lists, schematic edit saving, container/entity material lists and verifier, rendering improvements and more.",
+  "authors": ["Autyism"],
+  "contributors": ["aleksilassila", "zhaixianyu", "BlinkWhite", "bunnyi116", "water2004"],
+  "license": "AGPL-3.0",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["com.autyism.ale.LitematicaPrinterMod"],
+    "modmenu": ["com.autyism.ale.compat.ModMenuCompat"]
+  },
+  "mixins": ["autyism-le.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.17.0",
+    "minecraft": "${minecraft_version}",
+    "fabric-api": "*",
+    "malilib": ">=0.27.0",
+    "litematica": ">=0.26.0"
+  },
+  "suggests": {
+    "schematicpreview": "*",
+    "shulkerbox": "*",
+    "quickshulker": "*"
+  },
+  "breaks": {
+    "litematica-printer": "*"
+  }
+}
