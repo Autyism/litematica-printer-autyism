@@ -12,7 +12,8 @@
       "com.autyism.printer.gametest.BedrockGameTest",
       "com.autyism.printer.gametest.LargeRangeGameTest",
       "com.autyism.printer.gametest.BigPrintGameTest",
-      "com.autyism.printer.gametest.DragonGameTest"
+      "com.autyism.printer.gametest.DragonGameTest",
+      "com.autyism.printer.gametest.ShulkerGameTest"
     ]
   },
   "mixins": [

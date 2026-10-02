@@ -28,6 +28,7 @@ public class I18n {
 
     public static final I18n BLOCK_NO_SUPPORT = of("block.no_support");
     public static final I18n BLOCK_MISMATCH = of("block.mismatch");
+    public static final I18n SHULKER_CONTENT_MISMATCH = of("shulker.content_mismatch");
 
     private static final String PREFIX_CONFIG = "config";
     private static final String PREFIX_COMMENT = "desc";

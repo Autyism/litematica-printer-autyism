@@ -90,16 +90,27 @@ public final class GT {
      */
     public static fi.dy.masa.litematica.schematic.placement.SchematicPlacement captureAndPlace(
             ClientGameTestContext context, BlockPos min, BlockPos max, BlockPos origin, String name) {
-        return context.computeOnClient(client -> {
+        throw new UnsupportedOperationException("use captureAndPlace(context, sp, ...)");
+    }
+
+    /**
+     * 真实流程：在服务端线程把 min..max 的方块（含方块实体内容物/实体）截取成 .litematic 写到 schematics 目录
+     * （与 Litematica 单人模式保存一致，客户端世界里没有容器内容物），再在客户端从文件读回并创建投影放置。
+     */
+    public static fi.dy.masa.litematica.schematic.placement.SchematicPlacement captureAndPlace(
+            ClientGameTestContext context, TestSingleplayerContext sp, BlockPos min, BlockPos max, BlockPos origin, String name) {
+        java.nio.file.Path dir = context.computeOnClient(client -> DataManager.getSchematicsBaseDirectory());
+        boolean written = sp.getServer().computeOnServer(server -> {
             fi.dy.masa.litematica.selection.AreaSelection area = new fi.dy.masa.litematica.selection.AreaSelection();
             area.setName(name);
             area.addSubRegionBox(new fi.dy.masa.litematica.selection.Box(min, max, name), false);
             area.setExplicitOrigin(min);
-            var schematic = fi.dy.masa.litematica.schematic.LitematicaSchematic.createFromWorld(client.level, area,
+            var schematic = fi.dy.masa.litematica.schematic.LitematicaSchematic.createFromWorld(server.overworld(), area,
                     new fi.dy.masa.litematica.schematic.LitematicaSchematic.SchematicSaveInfo(false, false), "ALE", s -> log("capture: " + s));
-            if (schematic == null) throw new AssertionError("could not capture schematic " + name);
-            java.nio.file.Path dir = DataManager.getSchematicsBaseDirectory();
-            if (!schematic.writeToFile(dir, name, true)) throw new AssertionError("could not write schematic " + name);
+            return schematic != null && schematic.writeToFile(dir, name, true);
+        });
+        if (!written) throw new AssertionError("could not capture/write schematic " + name);
+        return context.computeOnClient(client -> {
             var loaded = fi.dy.masa.litematica.schematic.LitematicaSchematic.createFromFile(dir, name + ".litematic");
             if (loaded == null) throw new AssertionError("could not read back schematic " + name);
             var placement = fi.dy.masa.litematica.schematic.placement.SchematicPlacement.createFor(loaded, origin, name, true, true);

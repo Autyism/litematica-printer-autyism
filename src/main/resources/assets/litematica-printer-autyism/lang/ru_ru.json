@@ -245,7 +245,7 @@
   "litematica-printer-autyism.config.updateCheck": "Проверять обновления",
   "litematica-printer-autyism.config.updateCheck.desc": "Автоматически проверять наличие обновлений мода при первом входе в мир.",
   "litematica-printer-autyism.config.useQuickShulker": "Использовать Quick Shulker Boxes",
-  "litematica-printer-autyism.config.useQuickShulker.desc": "Если материалов нет в инвентаре, но они есть в открытых шалкерных ящиках (через мод Quick Shulker) — автоматически брать предметы оттуда.",
+  "litematica-printer-autyism.config.useQuickShulker.desc": "When a material is missing, find the shulker box in your inventory that contains it and take the material out (via Advanced Shulkerboxes or QuickShulker, no fake right clicks). When the inventory is almost full, items not needed right now are put back into the shulker first.",
   "litematica-printer-autyism.config.useRemoteContainer": "Использовать материалы из удалённых контейнеров",
   "litematica-printer-autyism.config.useRemoteContainer.desc": "При нехватке материалов в инвентаре пытается получить их из контейнеров в зоне выделения схемы через мод Remote Inventory Server, установленный на сервере.",
   "litematica-printer-autyism.config.workRange": "Радиус работы",
@@ -306,5 +306,7 @@
   "modmenu.nameTranslation.litematica-printer-autyism": "Litematica Printer Autyism Edition",
   "modmenu.descriptionTranslation.litematica-printer-autyism": "Litematica printer rebuilt by Autyism: container-safe printing, layered bottom-up printing with huge ranges, smart shulker restock, built-in tool switching and more.",
   "litematica-printer-autyism.config.mineInstantFirstDetect": "Instant-First Only With Eff V + Haste II",
-  "litematica-printer-autyism.config.mineInstantFirstDetect.desc": "Instant-first mining: blocks in range that can be broken instantly are mined first; blocks that can't are skipped until no instantly-breakable block is left in range (walking around brings new ones back to the front).\nOn: only active when an Efficiency V tool and Haste II are detected.\nOff: always active.\nA block counts as instant when one tick of progress (best tool in inventory) reaches 100%, or the Break Progress Threshold when 'Instant On Same Tick' is enabled."
+  "litematica-printer-autyism.config.mineInstantFirstDetect.desc": "Instant-first mining: blocks in range that can be broken instantly are mined first; blocks that can't are skipped until no instantly-breakable block is left in range (walking around brings new ones back to the front).\nOn: only active when an Efficiency V tool and Haste II are detected.\nOff: always active.\nA block counts as instant when one tick of progress (best tool in inventory) reaches 100%, or the Break Progress Threshold when 'Instant On Same Tick' is enabled.",
+  "litematica-printer-autyism.shulker.content_mismatch": "§eNo shulker box with exactly the schematic's contents in the inventory - not placing a wrong one",
+  "litematica-printer-autyism.shulkerSource.mod": "Mod (auto: Advanced Shulkerboxes / QuickShulker)"
 }

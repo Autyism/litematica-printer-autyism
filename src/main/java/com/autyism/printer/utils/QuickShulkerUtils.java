@@ -52,6 +52,7 @@ public class QuickShulkerUtils {
     private QuickShulkerUtils() {}
 
     public static void tick() {
+        com.autyism.printer.compat.AdvancedShulkerCompat.tick();
         if (shulkerCooldown > 0) {
             shulkerCooldown--;
         }
@@ -87,7 +88,7 @@ public class QuickShulkerUtils {
      * 打开、处理或等待延迟关闭都算忙碌，期间不能再做背包交换。
      */
     public static boolean isBusy() {
-        return isOpenHandler || deferredCloseTicks > 0;
+        return isOpenHandler || deferredCloseTicks > 0 || com.autyism.printer.compat.AdvancedShulkerCompat.isPending();
     }
 
     public static boolean requestShulkerItem(LocalPlayer player, Item[] items) {
@@ -96,7 +97,8 @@ public class QuickShulkerUtils {
         ShulkerSource source = (ShulkerSource) Configs.Print.SHULKER_SOURCE.getOptionListValue();
 
 
-        if (source == ShulkerSource.MOD && !QUICK_SHULKER_LOADED) {
+        // “模组”来源：自动使用已安装的潜影盒模组（优先 Advanced Shulkerboxes，其次 QuickShulker）
+        if (source == ShulkerSource.MOD && !QUICK_SHULKER_LOADED && !com.autyism.printer.compat.AdvancedShulkerCompat.isLoaded()) {
             return false;
         }
 
@@ -107,28 +109,25 @@ public class QuickShulkerUtils {
         if (Configs.Print.RETURN_TO_SHULKER_WHEN_FULL.getBooleanValue()
                 && isInventoryFull(inventory)) {
             ReturnRequest returnRequest = itemsToReturn.peekFirst();
-            if (returnRequest == null) return false;
-
-            int shulkerSlot = findReturnShulker(inventory, returnRequest);
-            if (shulkerSlot == -1) return false;
-
-            activeReturnRequest = returnRequest;
-            activeShulker = returnRequest.shulker();
-            return openSelectedShulker(inventory, shulkerSlot, source);
+            // 没有可归还的记录时，继续走下面的取物流程：打开潜影盒后会先把用不到的物品放回去腾出空位
+            int shulkerSlot = returnRequest == null ? -1 : findReturnShulker(inventory, returnRequest);
+            if (shulkerSlot != -1) {
+                activeReturnRequest = returnRequest;
+                activeShulker = returnRequest.shulker();
+                return openSelectedShulker(inventory, shulkerSlot, source);
+            }
         }
 
         // 不开启精确回塞时，只要有 itemsToReturn 就尝试回塞到任意有空位的潜影盒
         if (!Configs.Print.RETURN_TO_SHULKER_WHEN_FULL.getBooleanValue()
                 && isInventoryFull(inventory)) {
             ReturnRequest returnRequest = itemsToReturn.peekFirst();
-            if (returnRequest == null) return false;
-
-            int shulkerSlot = findAnyShulker(player);
-            if (shulkerSlot == -1) return false;
-
-            activeReturnRequest = returnRequest;
-            activeShulker = null;
-            return openSelectedShulker(inventory, shulkerSlot, source);
+            int shulkerSlot = returnRequest == null ? -1 : findAnyShulker(player);
+            if (shulkerSlot != -1) {
+                activeReturnRequest = returnRequest;
+                activeShulker = null;
+                return openSelectedShulker(inventory, shulkerSlot, source);
+            }
         }
 
         for (Item item : items) {
@@ -157,9 +156,11 @@ public class QuickShulkerUtils {
         setOpenHandler(true);
         setShulkerCooldown(Configs.Print.SHULKER_COOLDOWN.getIntegerValue());
 
-        // 按来源打开潜影盒：PLUGIN 走右键模拟，MOD 走 QuickShulker API
+        // 按来源打开潜影盒：PLUGIN 走右键模拟；MOD 优先 Advanced Shulkerboxes（拿到手上对空气使用），否则 QuickShulker API
         if (source == ShulkerSource.PLUGIN) {
             openShulkerByRightClick(shulkerSlot);
+        } else if (com.autyism.printer.compat.AdvancedShulkerCompat.isLoaded()) {
+            com.autyism.printer.compat.AdvancedShulkerCompat.open(shulkerSlot, QuickShulkerUtils::abortOpen);
         } else {
             QuickShulkerCompat.openShulker(shulkerStack, shulkerSlot);
         }
@@ -246,6 +247,8 @@ public class QuickShulkerUtils {
         }
 
         int ownSlots = container.slots.size() - 36;
+        // 智能：背包快满时，先把暂时用不到的物品放回这个潜影盒，腾出空间
+        depositUnneeded(player, container, ownSlots, inventory);
         for (int slotIndex = 0; slotIndex < ownSlots; slotIndex++) {
             Slot slot = container.slots.get(slotIndex);
             if (!slot.hasItem()) continue;
@@ -340,9 +343,62 @@ public class QuickShulkerUtils {
         if (wasReturn) shulkerCooldown = 0;
     }
 
-    /** 在玩家背包（跳过快捷栏）中找到包含目标物品的潜影盒，返回背包槽位索引，未找到返回 -1 */
+    /** 打开失败（例如潜影盒拿不到手上）时恢复状态 */
+    private static void abortOpen() {
+        if (ModUtils.closeScreen > 0) ModUtils.closeScreen--;
+        isOpenHandler = false;
+        shulkerBoxSlot = -1;
+        activeReturnRequest = null;
+        activeShulker = null;
+        lastNeedItemList.clear();
+    }
+
+    /**
+     * 背包空位少于 2 个时，把“暂时用不到”的物品快速移入当前打开的潜影盒：
+     * 只动主背包（不动快捷栏），跳过工具/盔甲等会损耗的物品、潜影盒、食物、这次要取的物品和最近打印用过的物品；
+     * 优先放潜影盒里已有同种物品的，最多移动 3 组。
+     */
+    private static void depositUnneeded(LocalPlayer player, AbstractContainerMenu container, int ownSlots, Inventory inventory) {
+        if (mc.gameMode == null) return;
+        int empty = 0;
+        for (int i = 0; i < 36; i++) if (inventory.getItem(i).isEmpty()) empty++;
+        if (empty >= 2) return;
+        int moved = 0;
+        for (int pass = 0; pass < 2 && moved < 3 && empty < 2; pass++) {
+            for (int i = 9; i < 36 && moved < 3 && empty < 2; i++) {
+                ItemStack stack = inventory.getItem(i);
+                if (!isDepositCandidate(stack)) continue;
+                boolean inShulker = false;
+                boolean hasRoom = false;
+                for (int s = 0; s < ownSlots; s++) {
+                    ItemStack c = container.slots.get(s).getItem();
+                    if (c.isEmpty()) hasRoom = true;
+                    else if (ItemStack.isSameItemSameComponents(c, stack)) {
+                        inShulker = true;
+                        if (c.getCount() < c.getMaxStackSize()) hasRoom = true;
+                    }
+                }
+                if (!hasRoom || (pass == 0 && !inShulker)) continue;
+                int containerSlot = ownSlots + (i - 9);
+                mc.gameMode.handleInventoryMouseClick(container.containerId, containerSlot, 0, ClickType.QUICK_MOVE, player);
+                moved++;
+                if (inventory.getItem(i).isEmpty()) empty++;
+            }
+        }
+    }
+
+    private static boolean isDepositCandidate(ItemStack stack) {
+        if (stack.isEmpty() || stack.isDamageableItem()) return false;
+        if (com.autyism.printer.utils.ShulkerContentUtils.isShulkerItem(stack)) return false;
+        if (stack.has(net.minecraft.core.component.DataComponents.FOOD)) return false;
+        if (stack.is(net.minecraft.world.item.Items.TOTEM_OF_UNDYING)) return false;
+        if (lastNeedItemList.contains(stack.getItem())) return false;
+        return !InventoryUtils.isRecentlyUsed(stack.getItem());
+    }
+
+    /** 在玩家背包中找到包含目标物品的潜影盒，返回背包槽位索引，未找到返回 -1 */
     public static int findShulkerWithItem(LocalPlayer player, Item target) {
-        for (int i = 9; i < player.getInventory().getContainerSize(); i++) {
+        for (int i = 0; i < 36; i++) {
             ItemStack stack = player.getInventory().getItem(i);
             String id = net.minecraft.core.registries.BuiltInRegistries.ITEM
                     .getKey(stack.getItem()).toString();
