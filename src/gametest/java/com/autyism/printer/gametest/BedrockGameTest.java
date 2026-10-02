@@ -26,7 +26,9 @@ public final class BedrockGameTest implements FabricClientGameTest {
     private static final List<BlockPos> BEDROCK = List.of(
             new BlockPos(80, 64, 0), new BlockPos(82, 64, 0), new BlockPos(84, 64, 0),
             new BlockPos(86, 64, 0), new BlockPos(88, 64, 0));
-    private static final BlockPos SEL_MIN = new BlockPos(79, 64, -1);
+    /** 加入破基岩方块列表的末地传送门框架 */
+    private static final BlockPos FRAME = new BlockPos(84, 64, -3);
+    private static final BlockPos SEL_MIN = new BlockPos(79, 64, -3);
     private static final BlockPos SEL_MAX = new BlockPos(89, 64, 1);
 
     @Override
@@ -56,6 +58,7 @@ public final class BedrockGameTest implements FabricClientGameTest {
             for (int x = 76; x <= 92; x++)
                 for (int z = -6; z <= 8; z++) level.setBlockAndUpdate(new BlockPos(x, 63, z), Blocks.STONE.defaultBlockState());
             for (BlockPos p : BEDROCK) level.setBlockAndUpdate(p, Blocks.BEDROCK.defaultBlockState());
+            level.setBlockAndUpdate(FRAME, Blocks.END_PORTAL_FRAME.defaultBlockState());
             var player = server.getPlayerList().getPlayers().getFirst();
             player.getInventory().clearContent();
             player.getInventory().setItem(0, new ItemStack(Items.PISTON, 32));
@@ -67,7 +70,7 @@ public final class BedrockGameTest implements FabricClientGameTest {
         });
         sp.getServer().runCommand("item replace entity @a hotbar.3 with minecraft:netherite_pickaxe[minecraft:enchantments={\"minecraft:efficiency\":5}]");
         sp.getServer().runCommand("effect give @a minecraft:haste infinite 1 true");
-        sp.getServer().runCommand("tp @a 84.5 64 -1.5 0 30");
+        sp.getServer().runCommand("tp @a 84.5 64 -1.5 0 60");
         context.waitFor(client -> client.player != null && client.level.getBlockState(BEDROCK.getFirst()).is(Blocks.BEDROCK)
                 && client.player.getInventory().getItem(3).is(Items.NETHERITE_PICKAXE)
                 && client.player.getInventory().getItem(0).is(Items.PISTON)
@@ -89,6 +92,7 @@ public final class BedrockGameTest implements FabricClientGameTest {
             Configs.Core.WORK_RANGE.setDoubleValue(0);
             Configs.Bedrock.BACKEND.setOptionListValue(backend);
             Configs.Bedrock.IGNORE_RENDER_LAYER.setBooleanValue(true);
+            Configs.Bedrock.BLOCK_LIST.setStrings(java.util.List.of("minecraft:bedrock", "minecraft:end_portal_frame"));
             Configs.Bedrock.ENABLED.setBooleanValue(true);
             ModuleManager.BEDROCK.resetScanState();
             Configs.Core.WORK_SWITCH.setBooleanValue(true);
@@ -103,13 +107,14 @@ public final class BedrockGameTest implements FabricClientGameTest {
             GT.disableAll();
             DataManager.getRenderLayerRange().setLayerMode(LayerMode.ALL);
         });
-        GT.log("[bedrock/" + backend + "] OK: " + BEDROCK.size() + " bedrock in the selection broken in " + ticks + " ticks (render layer y=70 ignored)");
+        GT.log("[bedrock/" + backend + "] OK: " + BEDROCK.size() + " bedrock + 1 end portal frame (block list) broken in " + ticks + " ticks (render layer y=70 ignored)");
     }
 
     private static int remaining(TestSingleplayerContext sp) {
         return sp.getServer().computeOnServer(server -> {
             int n = 0;
             for (BlockPos p : BEDROCK) if (server.overworld().getBlockState(p).is(Blocks.BEDROCK)) n++;
+            if (server.overworld().getBlockState(FRAME).is(Blocks.END_PORTAL_FRAME)) n++;
             return n;
         });
     }

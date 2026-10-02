@@ -663,10 +663,16 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 .defaultValue(true)
                 .build();
 
+        // 破基岩模式要处理的方块（例如末地传送门框架、强化深板岩），会自动同步到破基岩模组的允许列表
+        public static final ConfigStringList BLOCK_LIST = stringListValue("bedrockBlockList")
+                .defaultValue(com.google.common.collect.ImmutableList.of("minecraft:bedrock"))
+                .build();
+
         public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
                 ENABLED,
                 BACKEND,
-                IGNORE_RENDER_LAYER
+                IGNORE_RENDER_LAYER,
+                BLOCK_LIST
         );
     }
 

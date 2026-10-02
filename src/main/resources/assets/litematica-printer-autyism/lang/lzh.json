@@ -314,5 +314,7 @@
   "litematica-printer-autyism.layer.done_issues": "§e第 Y=%s 层完成：正确 %s/%s，状态错误 %s，方块错误 %s，跳过/缺失 %s",
   "litematica-printer-autyism.hud.print_progress": "已打印 %s%%（范围内 %s / %s）",
   "litematica-printer-autyism.hud.print_errors": "状态错误：%s  方块错误：%s",
-  "litematica-printer-autyism.hud.layer": "当前层 Y=%s：%s / %s"
+  "litematica-printer-autyism.hud.layer": "当前层 Y=%s：%s / %s",
+  "litematica-printer-autyism.config.bedrockBlockList": "破基岩方块列表",
+  "litematica-printer-autyism.config.bedrockBlockList.desc": "破基岩模式要破除的方块（例如末地传送门框架 minecraft:end_portal_frame、强化深板岩）。会自动加入破基岩模组自己的允许列表。"
 }

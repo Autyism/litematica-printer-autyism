@@ -40,6 +40,7 @@ public class Bedrock extends Module {
             return false;
         }
         BedrockCompat.ensureWorking();
+        BedrockCompat.syncAllowList();
         return true;
     }
 
@@ -50,12 +51,12 @@ public class Bedrock extends Module {
 
     @Override
     public boolean canProcessPos(BlockPos pos) {
-        return level.getBlockState(pos).is(Blocks.BEDROCK);
+        return BedrockCompat.isTargetBlock(level.getBlockState(pos));
     }
 
     @Override
     public boolean isCorrectBlock(BlockPos pos) {
-        return !level.getBlockState(pos).is(Blocks.BEDROCK);
+        return !BedrockCompat.isTargetBlock(level.getBlockState(pos));
     }
 
     @Override
