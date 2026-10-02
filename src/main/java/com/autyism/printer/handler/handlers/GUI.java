@@ -79,6 +79,11 @@ public class GUI extends Module {
     @Override
     protected void preprocess() {
         if (box == null || box.get() == null || level == null) return;
+        if (level != lastLevel) {
+            // 换了世界 / 服务器：上一个世界的进度不再有意义
+            lastLevel = level;
+            resetScanState();
+        }
 
         if (!scanning) {
             startScan();
@@ -92,6 +97,21 @@ public class GUI extends Module {
         }
 
         finishScan();
+    }
+
+    @org.jetbrains.annotations.Nullable
+    private net.minecraft.client.multiplayer.ClientLevel lastLevel;
+
+    @Override
+    public void resetScanState() {
+        super.resetScanState();
+        scanning = false;
+        wrongState = wrongBlock = 0;
+        totalProgress.clearShown();
+        printProgress.clearShown();
+        fluidProgress.clearShown();
+        fillProgress.clearShown();
+        mineProgress.clearShown();
     }
 
     private void startScan() {
@@ -187,6 +207,13 @@ public class GUI extends Module {
         public void resetCounters() {
             this.total = 0;
             this.finished = 0;
+        }
+
+        /** 重新开始（打印机重新开启 / 换了世界）：不再显示上一次打印的进度 */
+        public void clearShown() {
+            resetCounters();
+            shownTotal = shownFinished = 0;
+            progress = 0;
         }
 
         public void calculateProgress() {
