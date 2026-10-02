@@ -44,7 +44,18 @@ public class Implementation {
             ChestBlock.class,               // 箱子
             SmokerBlock.class,              // 烟熏炉
             BlastFurnaceBlock.class,        // 高炉
-            CrafterBlock.class              // 合成器（自动合成台）
+            CrafterBlock.class,             // 合成器（自动合成台）
+            // 以下为补充：直接右键会触发交互，对着它们放方块必须潜行
+            StandingSignBlock.class,        // 立式告示牌（右键会打开编辑界面，需求 11）
+            WallSignBlock.class,            // 墙上告示牌
+            ButtonBlock.class,              // 按钮
+            EnderChestBlock.class,          // 末影箱
+            ChiseledBookShelfBlock.class,   // 雕纹书架
+            DecoratedPotBlock.class,        // 饰纹陶罐
+            ComposterBlock.class,           // 堆肥桶
+            RespawnAnchorBlock.class,       // 重生锚
+            CampfireBlock.class,            // 营火
+            DaylightDetectorBlock.class     // 阳光探测器（右键会反相）
     };
 
     /**

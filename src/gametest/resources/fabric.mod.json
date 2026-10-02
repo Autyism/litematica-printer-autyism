@@ -13,7 +13,8 @@
       "com.autyism.printer.gametest.LargeRangeGameTest",
       "com.autyism.printer.gametest.BigPrintGameTest",
       "com.autyism.printer.gametest.DragonGameTest",
-      "com.autyism.printer.gametest.ShulkerGameTest"
+      "com.autyism.printer.gametest.ShulkerGameTest",
+      "com.autyism.printer.gametest.SignGameTest"
     ]
   },
   "mixins": [
