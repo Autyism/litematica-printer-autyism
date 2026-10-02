@@ -291,7 +291,7 @@
   "litematica-printer-autyism.config.pauseOnContainer": "使用容器时暂停",
   "litematica-printer-autyism.config.pauseOnContainer.desc": "从右键箱子/潜影盒/容器实体的那一刻起暂停打印机，直到容器关闭后稍等片刻再恢复。避免客户端和服务端对背包状态不一致（这会导致去箱子里拿材料时打印出错误方块）。",
   "litematica-printer-autyism.config.bedrockBackend": "破基岩模组",
-  "litematica-printer-autyism.config.bedrockBackend.desc": "破基岩模式调用哪个破基岩模组。自动：优先 bedrockminer (bunnyi116)，其次 bedrock-miner (lxyan2333)，再其次 blockminer。",
+  "litematica-printer-autyism.config.bedrockBackend.desc": "破基岩模式调用哪个破基岩模组。自动：优先 bedrock-miner (lxyan2333)，其次 bedrockminer (bunnyi116)，再其次 blockminer。",
   "litematica-printer-autyism.bedrockBackend.auto": "自动",
   "litematica-printer-autyism.bedrockBackend.bunnyi": "bedrockminer (bunnyi116)",
   "litematica-printer-autyism.bedrockBackend.lxyan": "bedrock-miner (lxyan2333)",

@@ -38,12 +38,22 @@ public final class BedrockGameTest implements FabricClientGameTest {
             throw new AssertionError("[bedrock] bedrockminer is not loaded in the test environment");
         }
         try (TestSingleplayerContext sp = GT.newWorld(context)) {
-            runWith(context, sp, com.autyism.printer.enums.BedrockBackend.BUNNYI);
-            if (FabricLoader.getInstance().isModLoaded("bedrock-miner")) {
-                runWith(context, sp, com.autyism.printer.enums.BedrockBackend.LXYAN);
-            } else {
-                GT.log("[bedrock] lxyan2333 bedrock-miner not loaded, skipping that backend (run with -PwithLxyan)");
+            String order = System.getProperty("ale.backends", "BUNNYI,LXYAN");
+            java.util.List<String> failures = new java.util.ArrayList<>();
+            for (String name : order.split(",")) {
+                var backend = com.autyism.printer.enums.BedrockBackend.valueOf(name.trim());
+                if (backend == com.autyism.printer.enums.BedrockBackend.LXYAN && !FabricLoader.getInstance().isModLoaded("bedrock-miner")) {
+                    GT.log("[bedrock] lxyan2333 bedrock-miner not loaded, skipping that backend (run with -PwithLxyan)");
+                    continue;
+                }
+                try {
+                    runWith(context, sp, backend);
+                } catch (AssertionError e) {
+                    GT.log("[bedrock] backend " + backend + " FAILED: " + e.getMessage());
+                    failures.add(backend + ": " + e.getMessage());
+                }
             }
+            if (!failures.isEmpty()) throw new AssertionError("[bedrock] " + failures);
         } finally {
             context.runOnClient(client -> GT.disableAll());
         }
