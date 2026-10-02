@@ -17,7 +17,8 @@
       "com.autyism.printer.gametest.SignGameTest",
       "com.autyism.printer.gametest.ComplexPrintGameTest",
       "com.autyism.printer.gametest.OrientationGameTest",
-      "com.autyism.printer.gametest.FluidGameTest"
+      "com.autyism.printer.gametest.FluidGameTest",
+      "com.autyism.printer.gametest.ModesGameTest"
     ]
   },
   "mixins": [
