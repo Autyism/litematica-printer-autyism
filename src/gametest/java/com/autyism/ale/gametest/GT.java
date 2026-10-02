@@ -36,6 +36,11 @@ public final class GT {
         sp.getServer().runCommand("gamerule doMobSpawning false");
         sp.getServer().runCommand("gamerule doWeatherCycle false");
         sp.getServer().runCommand("gamemode survival @a");
+        // 相当于“允许作弊”的单人世界
+        sp.getServer().runOnServer(server -> {
+            var player = server.getPlayerList().getPlayers().getFirst();
+            server.getPlayerList().op(player.nameAndId());
+        });
         context.runOnClient(client -> configureCommon());
         return sp;
     }
@@ -79,6 +84,47 @@ public final class GT {
         TestSchematicRegion.activate(min, max);
     }
 
+    /**
+     * 真实流程：把客户端世界里 min..max 的方块（含方块实体/实体）截取成 .litematic 文件写到 schematics 目录，
+     * 再从文件读回并创建投影放置（origin = 放置原点）。返回放置。
+     */
+    public static fi.dy.masa.litematica.schematic.placement.SchematicPlacement captureAndPlace(
+            ClientGameTestContext context, BlockPos min, BlockPos max, BlockPos origin, String name) {
+        return context.computeOnClient(client -> {
+            fi.dy.masa.litematica.selection.AreaSelection area = new fi.dy.masa.litematica.selection.AreaSelection();
+            area.setName(name);
+            area.addSubRegionBox(new fi.dy.masa.litematica.selection.Box(min, max, name), false);
+            area.setExplicitOrigin(min);
+            var schematic = fi.dy.masa.litematica.schematic.LitematicaSchematic.createFromWorld(client.level, area,
+                    new fi.dy.masa.litematica.schematic.LitematicaSchematic.SchematicSaveInfo(false, false), "ALE", s -> log("capture: " + s));
+            if (schematic == null) throw new AssertionError("could not capture schematic " + name);
+            java.nio.file.Path dir = DataManager.getSchematicsBaseDirectory();
+            if (!schematic.writeToFile(dir, name, true)) throw new AssertionError("could not write schematic " + name);
+            var loaded = fi.dy.masa.litematica.schematic.LitematicaSchematic.createFromFile(dir, name + ".litematic");
+            if (loaded == null) throw new AssertionError("could not read back schematic " + name);
+            var placement = fi.dy.masa.litematica.schematic.placement.SchematicPlacement.createFor(loaded, origin, name, true, true);
+            DataManager.getSchematicPlacementManager().addSchematicPlacement(placement, false);
+            DataManager.getSchematicPlacementManager().setSelectedSchematicPlacement(placement);
+            return placement;
+        });
+    }
+
+    /** 等待投影世界里 pos 处出现期望的方块（放置是异步载入的） */
+    public static void waitSchematicBlock(ClientGameTestContext context, BlockPos pos, net.minecraft.world.level.block.Block block) {
+        context.waitFor(client -> {
+            WorldSchematic w = SchematicWorldHandler.getSchematicWorld();
+            return w != null && w.getBlockState(pos).is(block);
+        }, 400);
+    }
+
+    public static void removeAllPlacements(ClientGameTestContext context) {
+        context.runOnClient(client -> {
+            var mgr = DataManager.getSchematicPlacementManager();
+            for (var p : new ArrayList<>(mgr.getAllSchematicsPlacements())) mgr.removeSchematicPlacement(p);
+            TestSchematicRegion.clear();
+        });
+    }
+
     public static List<String> mismatches(TestSingleplayerContext sp, BlockPos min, BlockPos max, Function<BlockPos, BlockState> expected) {
         return sp.getServer().computeOnServer(server -> {
             List<String> result = new ArrayList<>();
@@ -115,6 +161,7 @@ public final class GT {
         Configs.Core.WORK_RANGE.setDoubleValue(5.0D);
         Configs.Core.ITERATOR_SHAPE.setOptionListValue(RadiusShapeType.SPHERE);
         Configs.Core.PAUSE_ON_CONTAINER.setBooleanValue(true);
+        Configs.Print.LAYERED_MODE.setBooleanValue(true);
         Configs.Placement.PRINT_USE_PACKET.setBooleanValue(false);
         Configs.Placement.PLACE_INTERVAL.setIntegerValue(0);
         Configs.Placement.PLACE_BLOCKS_PER_TICK.setIntegerValue(0);

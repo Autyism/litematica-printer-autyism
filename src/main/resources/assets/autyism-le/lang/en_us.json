@@ -299,5 +299,11 @@
   "autyism-le.bedrockBackend.lxyan": "bedrock-miner (lxyan2333)",
   "autyism-le.bedrockBackend.blockminer": "blockminer",
   "autyism-le.config.bedrockIgnoreRenderLayer": "Ignore Render Layers",
-  "autyism-le.config.bedrockIgnoreRenderLayer.desc": "Break all bedrock inside the Litematica area selection regardless of the current render layer range."
+  "autyism-le.config.bedrockIgnoreRenderLayer.desc": "Break all bedrock inside the Litematica area selection regardless of the current render layer range.",
+  "autyism-le.config.printLayeredMode": "Layered Printing (bottom-up)",
+  "autyism-le.config.printLayeredMode.desc": "Only print the lowest unfinished Y layer of the schematic inside the work range; the next layer starts after the current one is complete (missing materials pause it). Combine with a large Work Range to build big structures while standing still. Iteration only covers schematic boxes inside the range, so any range size works.",
+  "autyism-le.config.autoRaiseReachSingleplayer": "Auto Raise Reach (Singleplayer)",
+  "autyism-le.config.autoRaiseReachSingleplayer.desc": "In singleplayer (cheats allowed), when Work Range is larger than your block interaction range, run /attribute to raise it (vanilla maximum 64). The integrated server otherwise rejects far placements.",
+  "autyism-le.config.limitRangeSingleplayer": "Limit Range to Reach (Singleplayer)",
+  "autyism-le.config.limitRangeSingleplayer.desc": "In singleplayer the effective work range never exceeds the server-side interaction range, so the printer does not waste time on placements the integrated server would reject. Multiplayer is not affected."
 }

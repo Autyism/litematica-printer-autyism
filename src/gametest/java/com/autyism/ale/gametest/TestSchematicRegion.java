@@ -21,6 +21,11 @@ public final class TestSchematicRegion {
         bounds = null;
     }
 
+    @org.jetbrains.annotations.Nullable
+    public static int[] bounds() {
+        return bounds;
+    }
+
     public static boolean contains(BlockPos pos) {
         int[] c = bounds;
         return c != null

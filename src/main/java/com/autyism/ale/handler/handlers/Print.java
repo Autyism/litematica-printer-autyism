@@ -73,6 +73,34 @@ public class Print extends Module {
         this.needSchematic = true;
     }
 
+    /** 投影里整段都是空气、且不需要清除多余方块时，整段跳过（大型投影 99% 是空气） */
+    @Override
+    protected com.autyism.ale.handler.IteratorManager.SectionFilter getSectionFilter() {
+        if (Configs.Print.BREAK_EXTRA_BLOCK.getBooleanValue()) return null;
+        WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
+        if (schematic == null) return null;
+        return (sx, sy, sz) -> {
+            var chunk = schematic.getChunkSource().getChunkIfExists(sx, sz);
+            if (chunk == null) return true;
+            int index = chunk.getSectionIndexFromSectionY(sy);
+            if (index < 0 || index >= chunk.getSectionsCount()) return true;
+            return chunk.getSection(index).hasOnlyAir();
+        };
+    }
+
+    @Override
+    protected boolean isObstructedForLayer(BlockPos pos) {
+        WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
+        if (schematic == null) return false;
+        BlockState required = schematic.getBlockState(pos);
+        return !level.isUnobstructed(required, pos, net.minecraft.world.phys.shapes.CollisionContext.empty());
+    }
+
+    @Override
+    protected boolean isLayeredMode() {
+        return Configs.Print.LAYERED_MODE.getBooleanValue();
+    }
+
     @Override
     protected int getTickInterval() {
         return Configs.Placement.PLACE_INTERVAL.getIntegerValue();
@@ -272,6 +300,7 @@ public class Print extends Module {
             useShift = action.getShift();
         }
         action.queueAction(blockPos, side, useShift, player);
+        notePlacementAttempt(blockPos);
         // 放冰完成：入队挖掘并进入等待水生成
         if (placingIceForWater) {
             placingIceForWater = false;

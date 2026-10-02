@@ -51,11 +51,12 @@ public final class ToolSwitchGameTest implements FabricClientGameTest {
             if (left != 9) throw new AssertionError("[tool] mining did not stop: " + (9 - left) + " blocks were mined");
             if (damage(sp, Items.NETHERITE_PICKAXE) != badBefore) throw new AssertionError("[tool] nearly broken pickaxe was used");
             if (damage(sp, Items.STONE_PICKAXE) != 0) throw new AssertionError("[tool] fell back to another tool (stone pickaxe was used)");
-            boolean handIsBlock = context.computeOnClient(client -> client.player.getMainHandItem().is(Items.DIRT));
+            boolean handIsBlock = context.computeOnClient(client -> client.player.getMainHandItem().getItem() instanceof net.minecraft.world.item.BlockItem
+                    && !client.player.getMainHandItem().isDamageableItem());
             if (!handIsBlock) throw new AssertionError("[tool] hand was not switched to a non-damageable block");
             if (ToolSwitchUtils.getLastWarnTime() <= warnBefore) throw new AssertionError("[tool] no on-screen warning was shown");
             context.takeScreenshot("ale-tool-durability-warning");
-            GT.log("[tool] protection OK: mining stopped, no tool used, hand switched to dirt, warning shown");
+            GT.log("[tool] protection OK: mining stopped, no tool used, hand switched to a block, warning shown");
 
             // 修好工具后关闭再开启打印机 → 继续挖掘
             sp.getServer().runOnServer(server -> {
