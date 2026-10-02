@@ -43,7 +43,7 @@ public final class LargeRangeGameTest implements FabricClientGameTest {
                 for (BlockPos p : BlockPos.betweenClosed(MIN, MAX)) server.overworld().setBlockAndUpdate(p, expected(p));
             });
             context.waitFor(client -> client.level.getBlockState(MIN).is(Blocks.STONE) && client.level.getBlockState(MAX).is(Blocks.STONE), 200);
-            GT.captureAndPlace(context, MIN, MAX, MIN, "ale_test_sculpture");
+            GT.captureAndPlace(context, sp, MIN, MAX, MIN, "ale_test_sculpture");
             sp.getServer().runOnServer(server -> {
                 for (BlockPos p : BlockPos.betweenClosed(MIN, MAX)) server.overworld().setBlockAndUpdate(p, Blocks.AIR.defaultBlockState());
             });

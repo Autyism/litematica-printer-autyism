@@ -40,7 +40,7 @@ public final class BigPrintGameTest implements FabricClientGameTest {
                 for (BlockPos p : BlockPos.betweenClosed(MIN, MAX)) server.overworld().setBlockAndUpdate(p, expected(p));
             });
             context.waitFor(client -> client.level.getBlockState(MAX).is(expected(MAX).getBlock()), 200);
-            GT.captureAndPlace(context, MIN, MAX, MIN, "ale_test_big");
+            GT.captureAndPlace(context, sp, MIN, MAX, MIN, "ale_test_big");
             sp.getServer().runOnServer(server -> {
                 for (BlockPos p : BlockPos.betweenClosed(MIN, MAX)) server.overworld().setBlockAndUpdate(p, Blocks.AIR.defaultBlockState());
                 var player = server.getPlayerList().getPlayers().getFirst();

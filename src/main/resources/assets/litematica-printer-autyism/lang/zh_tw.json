@@ -249,7 +249,7 @@
   "litematica-printer-autyism.config.remoteContainerBlocks": "遠程容器方塊清單",
   "litematica-printer-autyism.config.remoteContainerBlocks.desc": "被識別為容器的方塊 ID 清單。格式：minecraft:chest, minecraft:trapped_chest 等。",
   "litematica-printer-autyism.config.useQuickShulker": "使用快捷界伏盒",
-  "litematica-printer-autyism.config.useQuickShulker.desc": "當背包缺少材料但已開啟的界伏盒（透過快捷界伏盒模組）中有該物品時，自動從中取用。",
+  "litematica-printer-autyism.config.useQuickShulker.desc": "缺材料时，自动找出背包里装着该材料的潜影盒并取出材料（通过 Advanced Shulkerboxes 或 QuickShulker，不模拟右键，不会误触旁边方块）。背包快满时会先把暂时用不到的物品放回潜影盒腾出空间。",
   "litematica-printer-autyism.config.shulkerSource": "界伏盒來源",
   "litematica-printer-autyism.config.shulkerSource.desc": "選擇界伏盒支援類型：模組（Quick Shulker 用戶端模組）、插件（AxShulkers 伺服端插件）或 TakeItOut（伺服端模組）。",
   "litematica-printer-autyism.config.shulkerSource.mod": "模組（Quick Shulker）",
@@ -307,5 +307,7 @@
   "modmenu.nameTranslation.litematica-printer-autyism": "投影打印机 Autyism 版",
   "modmenu.descriptionTranslation.litematica-printer-autyism": "由 Autyism 重新整合的投影打印机：容器安全打印、超大范围分层打印、智能潜影盒补货、内置自动换工具等。",
   "litematica-printer-autyism.config.mineInstantFirstDetect": "仅在效率V+急迫II时启用秒破优先",
-  "litematica-printer-autyism.config.mineInstantFirstDetect.desc": "秒破优先：工作范围内先挖能秒破的方块，不能秒破的先跳过，直到范围内没有可秒破的方块才开始挖它们（走动后范围里又有可秒破的，会重新优先）。\n开启：仅在检测到效率 V 工具 + 急迫 II 时启用。\n关闭：始终启用。\n秒破判定：用背包里最合适的工具，一 tick 的挖掘进度达到 100%（开启“即时挖掘”时为“挖掘进度阈值”）即视为可秒破。"
+  "litematica-printer-autyism.config.mineInstantFirstDetect.desc": "秒破优先：工作范围内先挖能秒破的方块，不能秒破的先跳过，直到范围内没有可秒破的方块才开始挖它们（走动后范围里又有可秒破的，会重新优先）。\n开启：仅在检测到效率 V 工具 + 急迫 II 时启用。\n关闭：始终启用。\n秒破判定：用背包里最合适的工具，一 tick 的挖掘进度达到 100%（开启“即时挖掘”时为“挖掘进度阈值”）即视为可秒破。",
+  "litematica-printer-autyism.shulker.content_mismatch": "§e背包里没有内容物与投影一致的潜影盒，不会放置不符的潜影盒",
+  "litematica-printer-autyism.shulkerSource.mod": "模组（自动：Advanced Shulkerboxes / QuickShulker）"
 }

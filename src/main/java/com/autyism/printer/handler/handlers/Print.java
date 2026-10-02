@@ -257,7 +257,23 @@ public class Print extends Module {
             addHighlight(blockPos, HighlightType.FAILED);
             return;
         }
-        InventoryUtils.ItemSwitchResult switchResult = InventoryUtils.switchToItemsResult(player, reqItems);
+        // 需求 8：放置投影里的潜影盒时，手上潜影盒的内容物必须与投影一致（空盒对空盒，装着东西的必须一模一样）
+        boolean placingShulker = ctx.requiredState.getBlock() instanceof ShulkerBoxBlock;
+        if (placingShulker) {
+            java.util.List<net.minecraft.world.item.ItemStack> wanted = ShulkerContentUtils.requiredContents(ctx.schematic, blockPos);
+            InventoryUtils.setStackFilter(
+                    s -> !ShulkerContentUtils.isShulkerItem(s) || ShulkerContentUtils.sameContents(ShulkerContentUtils.itemContents(s), wanted),
+                    ShulkerContentUtils.withContents(new net.minecraft.world.item.ItemStack(ctx.requiredState.getBlock().asItem()), wanted));
+        }
+        InventoryUtils.ItemSwitchResult switchResult;
+        try {
+            switchResult = InventoryUtils.switchToItemsResult(player, reqItems);
+        } finally {
+            InventoryUtils.clearStackFilter();
+        }
+        if (placingShulker && switchResult == InventoryUtils.ItemSwitchResult.UNAVAILABLE) {
+            MessageUtils.setOverlayMessage(I18n.SHULKER_CONTENT_MISMATCH.getName());
+        }
         if (switchResult != InventoryUtils.ItemSwitchResult.READY) {
             if (switchResult == InventoryUtils.ItemSwitchResult.WAITING) {
                 // 物品切换已发出：保留该坐标，下一 tick 确认主手后再放置
@@ -290,7 +306,10 @@ public class Print extends Module {
             return;
         }
         boolean useShift;
-        if (action.getShift() == null) {
+        if (placingShulker) {
+            // 潜影盒总是潜行放置：装了 Advanced Shulkerboxes 时不潜行会打开潜影盒界面而不是放下
+            useShift = true;
+        } else if (action.getShift() == null) {
             useShift =
                     (Implementation.isInteractive(
                                             level.getBlockState(blockPos.relative(side)).getBlock())
@@ -301,6 +320,7 @@ public class Print extends Module {
         }
         action.queueAction(blockPos, side, useShift, player);
         notePlacementAttempt(blockPos);
+        if (reqItems != null && reqItems.length > 0 && reqItems[0] != null) InventoryUtils.markRecentlyUsed(reqItems[0]);
         // 放冰完成：入队挖掘并进入等待水生成
         if (placingIceForWater) {
             placingIceForWater = false;

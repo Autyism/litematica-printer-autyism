@@ -44,6 +44,42 @@ public class InventoryUtils {
 
 
 
+    // 需求 8：额外的物品筛选（例如潜影盒内容物必须与投影一致）；为 null 时只按物品种类匹配
+    @org.jetbrains.annotations.Nullable
+    private static java.util.function.Predicate<ItemStack> stackFilter;
+    // 创造模式下直接生成的物品（例如带内容物的潜影盒）
+    @org.jetbrains.annotations.Nullable
+    private static ItemStack creativeOverride;
+    // 最近放置用过的物品（智能回塞时不把它们放回潜影盒）
+    private static final java.util.LinkedHashSet<Item> RECENTLY_USED = new java.util.LinkedHashSet<>();
+
+    public static void setStackFilter(@org.jetbrains.annotations.Nullable java.util.function.Predicate<ItemStack> filter,
+                                      @org.jetbrains.annotations.Nullable ItemStack creativeStack) {
+        stackFilter = filter;
+        creativeOverride = creativeStack;
+    }
+
+    public static void clearStackFilter() {
+        stackFilter = null;
+        creativeOverride = null;
+    }
+
+    private static boolean passesFilter(ItemStack stack) {
+        return stackFilter == null || stackFilter.test(stack);
+    }
+
+    public static void markRecentlyUsed(Item item) {
+        RECENTLY_USED.remove(item);
+        RECENTLY_USED.add(item);
+        while (RECENTLY_USED.size() > 12) {
+            RECENTLY_USED.remove(RECENTLY_USED.iterator().next());
+        }
+    }
+
+    public static boolean isRecentlyUsed(Item item) {
+        return RECENTLY_USED.contains(item);
+    }
+
     public static int getSelectedSlot(Inventory inventory) {
         return inventory.getSelectedSlot();
     }
@@ -376,14 +412,16 @@ public class InventoryUtils {
         }
         ItemStack mainHand = player.getMainHandItem();
         for (Item item : items) {
-            if (mainHand.is(item)) {
+            if (mainHand.is(item) && passesFilter(mainHand)) {
                 return ItemSwitchResult.READY;
             }
         }
         Inventory inventory = player.getInventory();
         if (PlayerUtils.getAbilities(player).instabuild) {
-            InventoryUtils.setPickedItemToHand(new ItemStack(items[0]), client);
-            return player.getMainHandItem().is(items[0]) ? ItemSwitchResult.READY : ItemSwitchResult.UNAVAILABLE;
+            ItemStack wanted = creativeOverride != null ? creativeOverride.copy() : new ItemStack(items[0]);
+            InventoryUtils.setPickedItemToHand(wanted, client);
+            return player.getMainHandItem().is(items[0]) && passesFilter(player.getMainHandItem())
+                    ? ItemSwitchResult.READY : ItemSwitchResult.UNAVAILABLE;
         }
         for (Item item : items) {
             int slot = findItemInInventory(inventory, item);
@@ -392,7 +430,8 @@ public class InventoryUtils {
             orderlyStoreItem = itemStack.copy();
             if (Inventory.isHotbarSlot(slot)) {
                 setHotbarSlot(slot, inventory);
-                return player.getMainHandItem().is(item) ? ItemSwitchResult.READY : ItemSwitchResult.UNAVAILABLE;
+                return player.getMainHandItem().is(item) && passesFilter(player.getMainHandItem())
+                        ? ItemSwitchResult.READY : ItemSwitchResult.UNAVAILABLE;
             }
             // 打开着其他容器（如快捷潜影盒延迟关闭）时不能对玩家背包做交换
             if (player.containerMenu != player.inventoryMenu) {
@@ -410,7 +449,8 @@ public class InventoryUtils {
 
     private static int findItemInInventory(Inventory inventory, Item item) {
         for (int i = 0; i < inventory.getContainerSize(); i++) {
-            if (inventory.getItem(i).getItem().equals(item)) {
+            ItemStack stack = inventory.getItem(i);
+            if (stack.getItem().equals(item) && passesFilter(stack)) {
                 return i;
             }
         }
