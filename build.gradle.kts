@@ -43,6 +43,15 @@ dependencies {
     modCompileOnly(files("libs/shulkerbox-fabric-1.21.11-2.0.5.jar"))
     modCompileOnly("dev.blinkwhite.remoteinventory:remote-inventory-next:${prop("remote_inventory_version")}+${prop("minecraft_version")}")
 
+    // 仅 gametest 运行时加载的可选联动模组（用于测试联动功能）
+    if (providers.gradleProperty("aleGameTest").isPresent) {
+        modLocalRuntime(files("libs/bedrock-miner-v1.6.1-mc1.21.11.jar"))
+        if (providers.gradleProperty("withLxyan").isPresent) {
+            modLocalRuntime(files("libs/bedrock-miner-2.0.11+1.21.11.jar"))
+            modLocalRuntime("net.fabricmc:fabric-language-kotlin:1.14.1+kotlin.2.4.20")
+        }
+    }
+
     compileOnly("org.projectlombok:lombok:${prop("lombok_version")}")
     annotationProcessor("org.projectlombok:lombok:${prop("lombok_version")}")
 }
@@ -96,5 +105,8 @@ if (providers.gradleProperty("aleGameTest").isPresent) {
     }
     tasks.matching { it.name == "runClientGameTest" }.configureEach {
         (this as JavaExec).systemProperty("ale.gt", (project.findProperty("gt") ?: "").toString())
+        if (providers.gradleProperty("withLxyan").isPresent) {
+            (this as JavaExec).systemProperty("fabric.client.gametest.disableNetworkSynchronizer", "true")
+        }
     }
 }

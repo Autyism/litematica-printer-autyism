@@ -35,19 +35,17 @@ public class Bedrock extends Module {
             MessageUtils.setOverlayMessage(I18n.BEDROCK_CREATIVE_MODE.getName());
             return false;
         }
-        if (!ModUtils.isBedrockMinerLoaded() && !ModUtils.isBlockMinerLoaded()) {
-            if (ModUtils.isLoadMod("bedrock-miner"))
-                MessageUtils.setOverlayMessage(I18n.BEDROCK_NOT_SUPPORT.getName());
+        if (!BedrockCompat.isAvailable()) {
             MessageUtils.setOverlayMessage(I18n.BEDROCK_MOD_MISSING.getName());
             return false;
         }
-        if (!BedrockCompat.isWorking()) {
-            BedrockCompat.setWorking(true);
-        }
-        if (BedrockCompat.isFeatureEnable()) {
-            BedrockCompat.setFeatureEnable(false);
-        }
+        BedrockCompat.ensureWorking();
         return true;
+    }
+
+    @Override
+    protected boolean respectsRenderLayer() {
+        return !Configs.Bedrock.IGNORE_RENDER_LAYER.getBooleanValue();
     }
 
     @Override

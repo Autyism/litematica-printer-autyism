@@ -1,7 +1,7 @@
 {
   "autyism-le.auto_disable_notice": "打印机已自动关闭",
   "autyism-le.bedrock.creative_mode": "创造模式无法使用破基岩模式！",
-  "autyism-le.bedrock.mod_missing": "未安装 Fabric-Bedrock-Miner/Block-Miner 模组，无法破基岩！",
+  "autyism-le.bedrock.mod_missing": "未安装受支持的破基岩模组（bedrockminer / bedrock-miner / blockminer），无法破基岩！",
   "autyism-le.block.mismatch": "方块 %s 下方方块不相符，跳过放置",
   "autyism-le.block.no_support": "方块 %s 下方无支撑，跳过放置",
   "autyism-le.brewingstand.lower": "降低炼药锅内水位需要 §l§6%s",
@@ -291,5 +291,13 @@
   "autyism-le.config.breakToolDurabilityThreshold.desc": "剩余耐久小于等于该值的工具会被保护、不再使用。",
   "autyism-le.message.tool_low_durability": "§e%s 只剩 %s 点耐久，已停止使用以免损坏",
   "autyism-le.config.pauseOnContainer": "使用容器时暂停",
-  "autyism-le.config.pauseOnContainer.desc": "从右键箱子/潜影盒/容器实体的那一刻起暂停打印机，直到容器关闭后稍等片刻再恢复。避免客户端和服务端对背包状态不一致（这会导致去箱子里拿材料时打印出错误方块）。"
+  "autyism-le.config.pauseOnContainer.desc": "从右键箱子/潜影盒/容器实体的那一刻起暂停打印机，直到容器关闭后稍等片刻再恢复。避免客户端和服务端对背包状态不一致（这会导致去箱子里拿材料时打印出错误方块）。",
+  "autyism-le.config.bedrockBackend": "破基岩模组",
+  "autyism-le.config.bedrockBackend.desc": "破基岩模式调用哪个破基岩模组。自动：优先 bedrockminer (bunnyi116)，其次 bedrock-miner (lxyan2333)，再其次 blockminer。",
+  "autyism-le.bedrockBackend.auto": "自动",
+  "autyism-le.bedrockBackend.bunnyi": "bedrockminer (bunnyi116)",
+  "autyism-le.bedrockBackend.lxyan": "bedrock-miner (lxyan2333)",
+  "autyism-le.bedrockBackend.blockminer": "blockminer",
+  "autyism-le.config.bedrockIgnoreRenderLayer": "忽略渲染层",
+  "autyism-le.config.bedrockIgnoreRenderLayer.desc": "处理 Litematica 框选范围内的所有基岩，不受当前渲染层范围限制。"
 }

@@ -1,7 +1,7 @@
 {
   "autyism-le.auto_disable_notice": "Принтер автоматически отключён",
   "autyism-le.bedrock.creative_mode": "Режим бедрока недоступен в творческом режиме!",
-  "autyism-le.bedrock.mod_missing": "Мод Fabric-Bedrock-Miner/Block-Miner не установлен — разрушение бедрока недоступно!",
+  "autyism-le.bedrock.mod_missing": "No supported bedrock breaking mod installed (bedrockminer / bedrock-miner / blockminer)!",
   "autyism-le.block.mismatch": "Блок %s имеет несовместимый блок снизу — размещение пропущено",
   "autyism-le.block.no_support": "Блок %s не имеет опоры снизу — размещение пропущено",
   "autyism-le.brewingstand.lower": "Для понижения уровня воды в котле требуется §l§6%s",
@@ -290,5 +290,13 @@
   "autyism-le.config.breakToolDurabilityThreshold.desc": "Tools with remaining durability <= this value are protected.",
   "autyism-le.message.tool_low_durability": "§e%s has only %s durability left - stopped using it to protect the tool",
   "autyism-le.config.pauseOnContainer": "Pause While Using Containers",
-  "autyism-le.config.pauseOnContainer.desc": "Pause the printer from the moment you right-click a chest/shulker/entity container until shortly after the container is closed. Prevents the client and server from disagreeing about your inventory (which made the printer place wrong blocks while you took materials)."
+  "autyism-le.config.pauseOnContainer.desc": "Pause the printer from the moment you right-click a chest/shulker/entity container until shortly after the container is closed. Prevents the client and server from disagreeing about your inventory (which made the printer place wrong blocks while you took materials).",
+  "autyism-le.config.bedrockBackend": "Bedrock Miner Backend",
+  "autyism-le.config.bedrockBackend.desc": "Which bedrock breaking mod the bedrock mode drives. Auto: bedrockminer (bunnyi116) > bedrock-miner (lxyan2333) > blockminer.",
+  "autyism-le.bedrockBackend.auto": "Auto",
+  "autyism-le.bedrockBackend.bunnyi": "bedrockminer (bunnyi116)",
+  "autyism-le.bedrockBackend.lxyan": "bedrock-miner (lxyan2333)",
+  "autyism-le.bedrockBackend.blockminer": "blockminer",
+  "autyism-le.config.bedrockIgnoreRenderLayer": "Ignore Render Layers",
+  "autyism-le.config.bedrockIgnoreRenderLayer.desc": "Break all bedrock inside the Litematica area selection regardless of the current render layer range."
 }
