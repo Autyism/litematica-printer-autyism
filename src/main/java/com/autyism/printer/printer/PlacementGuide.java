@@ -237,6 +237,10 @@ public class PlacementGuide {
                     }
                     if (ctx.level.getBlockState(ctx.blockPos.relative(chestFacing)).getBlock() instanceof ChestBlock) {
                         return new Action().setSides(Map.of(chestFacing, Vec3.ZERO)).setLookDirection(facing).setShift(false);
+                    } else if (type == ChestType.RIGHT) {
+                        // 大箱子固定先放左半、右半等左半真的出现在世界里再放（不潜行才会合并）。
+                        // 有的环境客户端预测有延迟，两半同一轮放时右半看不到左半，会被当成单箱潜行放下，再也合不上
+                        return null;
                     } else {
                         return new Action().setSides(noChestSides).setLookDirection(facing).setShift();
                     }

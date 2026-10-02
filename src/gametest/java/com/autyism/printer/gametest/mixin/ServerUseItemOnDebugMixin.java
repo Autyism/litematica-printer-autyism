@@ -19,7 +19,8 @@ public abstract class ServerUseItemOnDebugMixin {
     private void gt$log(ServerPlayer player, Level level, ItemStack stack, InteractionHand hand, BlockHitResult hit, CallbackInfoReturnable<InteractionResult> cir) {
         if (Boolean.getBoolean("ale.debuglook")) {
             System.out.println("[server-use] pos=" + hit.getBlockPos() + " face=" + hit.getDirection() + " item=" + stack.getItem()
-                    + " rot=" + player.getYRot() + "/" + player.getXRot());
+                    + " rot=" + player.getYRot() + "/" + player.getXRot() + " shift=" + player.isShiftKeyDown()
+                    + " secondary=" + player.isSecondaryUseActive() + " hit=" + hit.getLocation());
         }
     }
 
