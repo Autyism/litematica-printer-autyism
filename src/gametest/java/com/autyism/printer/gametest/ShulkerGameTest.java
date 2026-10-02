@@ -117,8 +117,12 @@ public final class ShulkerGameTest implements FabricClientGameTest {
         var wrong = GT.mismatches(sp, ROW_MIN, ROW_MAX, p -> Blocks.STONE.defaultBlockState());
         if (!wrong.isEmpty()) throw new AssertionError("[shulker] wrong blocks: " + wrong);
         if (screenSeen[0]) throw new AssertionError("[shulker] a container screen became visible");
-        String menu = sp.getServer().computeOnServer(s -> s.getPlayerList().getPlayers().getFirst().containerMenu.getClass().getSimpleName());
-        if (!menu.equals("InventoryMenu")) throw new AssertionError("[shulker] a container is still open: " + menu);
+        // 正式环境里类名是混淆名，直接比较对象
+        String menu = sp.getServer().computeOnServer(s -> {
+            var pl = s.getPlayerList().getPlayers().getFirst();
+            return pl.containerMenu == pl.inventoryMenu ? null : pl.containerMenu.getClass().getName();
+        });
+        if (menu != null) throw new AssertionError("[shulker] a container is still open: " + menu);
         if (full) {
             int andesiteInShulker = sp.getServer().computeOnServer(s -> {
                 var inv = s.getPlayerList().getPlayers().getFirst().getInventory();
