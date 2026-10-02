@@ -309,5 +309,10 @@
   "litematica-printer-autyism.config.mineInstantFirstDetect": "Instant-First Only With Eff V + Haste II",
   "litematica-printer-autyism.config.mineInstantFirstDetect.desc": "Instant-first mining: blocks in range that can be broken instantly are mined first; blocks that can't are skipped until no instantly-breakable block is left in range (walking around brings new ones back to the front).\nOn: only active when an Efficiency V tool and Haste II are detected.\nOff: always active.\nA block counts as instant when one tick of progress (best tool in inventory) reaches 100%, or the Break Progress Threshold when 'Instant On Same Tick' is enabled.",
   "litematica-printer-autyism.shulker.content_mismatch": "§eNo shulker box with exactly the schematic's contents in the inventory - not placing a wrong one",
-  "litematica-printer-autyism.shulkerSource.mod": "Mod (auto: Advanced Shulkerboxes / QuickShulker)"
+  "litematica-printer-autyism.shulkerSource.mod": "Mod (auto: Advanced Shulkerboxes / QuickShulker)",
+  "litematica-printer-autyism.layer.done_all": "§aLayer Y=%s done: all %s blocks placed",
+  "litematica-printer-autyism.layer.done_issues": "§eLayer Y=%s done: %s/%s correct, %s wrong state, %s wrong block, %s skipped/missing",
+  "litematica-printer-autyism.hud.print_progress": "Printed %s%% (%s / %s in range)",
+  "litematica-printer-autyism.hud.print_errors": "Wrong state: %s  Wrong block: %s",
+  "litematica-printer-autyism.hud.layer": "Layer Y=%s: %s / %s"
 }

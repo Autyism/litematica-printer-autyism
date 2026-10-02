@@ -276,11 +276,28 @@ public abstract class MixinGui {
             RenderUtils.drawString(MessageUtils.translatable(KEY_LAG_PAUSED).getString(), centerX, centerY - 22, Color.ORANGE, true, true);
         }
 
-        double progress = guiHandler.getTotalProgress().getProgress();
-        RenderUtils.drawString((int) (progress * 100) + "%", centerX, centerY + 22, Color.WHITE, true, true);
-        drawProgressBar(centerX, centerY + 36, 40, 6, progress, new Color(0, 0, 0, 150), new Color(0, 255, 0, 255));
+        GUI.Progress shown = Configs.Print.ENABLED.getBooleanValue() ? guiHandler.getPrintProgress() : guiHandler.getTotalProgress();
+        double progress = shown.getProgress();
+        String progressText = Configs.Print.ENABLED.getBooleanValue()
+                ? com.autyism.printer.I18n.HUD_PRINT_PROGRESS.getName((int) Math.floor(progress * 100), shown.getShownFinished(), shown.getShownTotal()).getString()
+                : (int) Math.floor(progress * 100) + "%";
+        RenderUtils.drawString(progressText, centerX, centerY + 22, Color.WHITE, true, true);
+        drawProgressBar(centerX, centerY + 36, 80, 6, progress, new Color(0, 0, 0, 150), new Color(0, 255, 0, 255));
+        int extraY = centerY + 46;
+        if (Configs.Print.ENABLED.getBooleanValue() && (guiHandler.getWrongState() > 0 || guiHandler.getWrongBlock() > 0)) {
+            RenderUtils.drawString(com.autyism.printer.I18n.HUD_PRINT_ERRORS.getName(guiHandler.getWrongState(), guiHandler.getWrongBlock()).getString(),
+                    centerX, extraY, Color.ORANGE, true, true);
+            extraY += 10;
+        }
+        com.autyism.printer.handler.handlers.Print.LayerStats ls = ModuleManager.PRINT.getLastLayerStats();
+        Integer layer = ModuleManager.PRINT.getCurrentLayer();
+        if (layer != null && ls != null && ls.layer() == layer && ls.total() > 0) {
+            RenderUtils.drawString(com.autyism.printer.I18n.HUD_LAYER.getName(layer, ls.correct(), ls.total()).getString(),
+                    centerX, extraY, Color.CYAN, true, true);
+            extraY += 10;
+        }
 
-        int infoY = centerY + 52;
+        int infoY = Math.max(centerY + 52, extraY + 2);
 
         HashSet<String> modeNames = new HashSet<>();
         for (Module module : ModuleManager.VALUES) {

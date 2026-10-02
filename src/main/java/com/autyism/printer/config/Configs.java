@@ -198,7 +198,6 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 Y_REVERSE,
                 Z_REVERSE,
                 AUTO_DISABLE_PRINTER,
-                UPDATE_CHECK,
                 DEBUG_OUTPUT
         );
     }
