@@ -78,6 +78,7 @@ public final class AdvancedShulkerCompat {
         if (ShulkerContentUtils.isShulkerItem(hand) && hand.getCount() == 1
                 && ShulkerContentUtils.sameContents(ShulkerContentUtils.itemContents(hand), pendingContents)) {
             pendingSlot = -1;
+            if (Boolean.getBoolean("ale.debuglook")) System.out.println("[qs] useItem with " + hand + " selected=" + player.getInventory().getSelectedSlot());
             ContainerGuard.beginPrinterInteraction();
             try {
                 mc.gameMode.useItem(player, InteractionHand.MAIN_HAND);
@@ -86,6 +87,7 @@ public final class AdvancedShulkerCompat {
             }
             return;
         }
+        if (Boolean.getBoolean("ale.debuglook")) System.out.println("[qs] waiting hand=" + hand + " contents match=" + ShulkerContentUtils.sameContents(ShulkerContentUtils.itemContents(hand), pendingContents));
         if (++waitTicks > MAX_WAIT_TICKS) {
             cancel(true);
         }

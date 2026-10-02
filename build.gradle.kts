@@ -106,7 +106,7 @@ if (providers.gradleProperty("aleGameTest").isPresent) {
     }
     tasks.matching { it.name == "runClientGameTest" }.configureEach {
         (this as JavaExec).systemProperty("ale.gt", (project.findProperty("gt") ?: "").toString())
-        for (key in listOf("range", "layered", "bpt", "ticks")) {
+        for (key in listOf("range", "layered", "bpt", "ticks", "debuglook")) {
             project.findProperty(key)?.let { (this as JavaExec).systemProperty("ale.$key", it.toString()) }
         }
         if (providers.gradleProperty("withLxyan").isPresent) {

@@ -101,7 +101,10 @@ public abstract class Module extends ConfigUtils {
                 ? (BlockHitResult) hitResult : null;
     }
 
+    private int dbgTicks, dbgIters, dbgPasses, dbgRebuilds;
+
     public void tick() {
+        dbgTicks++;
         int tickInterval = getTickInterval();
         if (tickInterval > 0) {
             long currentTickTime = ModuleManager.getCurrentHandlerTime();
@@ -128,6 +131,7 @@ public abstract class Module extends ConfigUtils {
         if (iteratorManager.tryBuildBox(player, selectionType != null ? selectionType.getOptionListValue() : null, respectsRenderLayer(),
                 areaBoxes, layerClamp)) {
             box.set(iteratorManager.getBox());
+            dbgRebuilds++;
             scanState = ScanState.RUNNING;
             waitingPos = null;
             currentCycleItem = null;
@@ -152,6 +156,8 @@ public abstract class Module extends ConfigUtils {
 
     private void iterateBlocks(int maxExecs) {
         int execCount = 0;
+        layerIdleTicks++;
+        dbgIters++;
         int timeLimitMs = getIterationTimeLimit();
 
         skipIteration.set(false);
@@ -201,6 +207,7 @@ public abstract class Module extends ConfigUtils {
                             && canProcessPos(pos));
                     layerPending = unfinished && layerAttempts.getOrDefault(pos.asLong(), 0) < LAYER_MAX_ATTEMPTS
                             && !isObstructedForLayer(pos);
+                    if (layerPending) lastPendingPos = pos.immutable();
                 }
                 if (work) {
                     // 按方块分类：一轮扫描仅处理一种方块类型（可选开关）
@@ -234,7 +241,15 @@ public abstract class Module extends ConfigUtils {
     /** 记录一次放置尝试（由具体模块在真正发出放置时调用） */
     protected void notePlacementAttempt(BlockPos pos) {
         if (layerY != null) layerAttempts.addTo(pos.asLong(), 1);
+        layerIdleTicks = 0;
     }
+
+    /** 当前层连续多少个“实际在工作的 tick”没有任何放置尝试（暂停、离开范围时不计） */
+    private int layerIdleTicks;
+    @Nullable
+    private int[] lastLayerBounds;
+    /** 当前层还有没完成的格子、但连续这么多工作 tick 都没有放置尝试，就先打上一层，防止整机卡死 */
+    private static final int LAYER_STALL_TICKS = 80;
 
     /** 该格子是否被实体挡住而无法放置（分层模式下不阻塞换层） */
     protected boolean isObstructedForLayer(BlockPos pos) {
@@ -244,6 +259,42 @@ public abstract class Module extends ConfigUtils {
     /** 是否启用分层打印（从下往上一层一层打） */
     protected boolean isLayeredMode() {
         return false;
+    }
+
+    /** 最近一次让当前层保持“未完成”的格子（调试 / 测试用） */
+    @Nullable
+    private BlockPos lastPendingPos;
+
+    /** 调试 / 测试用：当前内部状态 */
+    public String debugState() {
+        return "ticks=" + dbgTicks + " iters=" + dbgIters + " passes=" + dbgPasses + " rebuilds=" + dbgRebuilds + " scan=" + scanState + " waiting=" + waitingPos + " layer=" + layerY + " pending=" + layerPending
+                + " idle=" + layerIdleTicks + " box=" + (box == null ? null : box.get())
+                + " breakQueue=" + com.autyism.printer.utils.BreakUtils.INSTANCE.isNeedHandle()
+                + " lookWait=" + ActionManager.INSTANCE.needWaitModifyLook
+                + " canExec=" + canExecute() + " canIter=" + canIterate() + " allowed=" + isConfigAllowed()
+                + " paused=" + ContainerGuard.isPaused() + " screen=" + (mc == null ? null : mc.screen)
+                + " iterBox=" + iteratorManager.getBox() + " effRange=" + ConfigUtils.getEffectiveRange()
+                + " workRange=" + Configs.Core.WORK_RANGE.getDoubleValue()
+                + " reach=" + (player == null ? null : player.blockInteractionRange()) + " eyeY=" + (player == null ? null : player.getEyeY())
+                + " areaBoxes=" + getWorkAreaBoxes();
+    }
+
+    private int forcedLayerSkips;
+    @Nullable
+    private BlockPos lastForcedSkipPos;
+
+    public int getForcedLayerSkips() {
+        return forcedLayerSkips;
+    }
+
+    @Nullable
+    public BlockPos getLastForcedSkipPos() {
+        return lastForcedSkipPos;
+    }
+
+    @Nullable
+    public BlockPos getLastPendingPos() {
+        return lastPendingPos;
     }
 
     @Nullable
@@ -263,10 +314,19 @@ public abstract class Module extends ConfigUtils {
             layerY = null;
             return null;
         }
-        if (layerY == null || layerY < bounds[0] || layerY > bounds[1]) {
+        // 投影 / 选区的高度范围变了（换了投影、移动了投影）就从新的最底层重新开始；
+        // 只看区域本身，不看玩家可达范围，否则玩家跳一下就会重头扫一遍
+        int[] areaKey = {Integer.MAX_VALUE, Integer.MIN_VALUE};
+        for (PrinterBox b : areaBoxes) {
+            areaKey[0] = Math.min(areaKey[0], b.minY);
+            areaKey[1] = Math.max(areaKey[1], b.maxY);
+        }
+        if (layerY == null || layerY < bounds[0] || layerY > bounds[1] || !java.util.Arrays.equals(areaKey, lastLayerBounds)) {
             layerY = bounds[0];
             layerPending = false;
             layerAttempts.clear();
+            layerIdleTicks = 0;
+            lastLayerBounds = areaKey;
         }
         return layerY;
     }
@@ -306,10 +366,18 @@ public abstract class Module extends ConfigUtils {
     }
 
     private void onPassFinished() {
+        dbgPasses++;
         onScanPassFinished();
         if (layerY == null) return;
+        if (layerPending && layerIdleTicks > LAYER_STALL_TICKS) {
+            // 本层剩下的格子一直放不了（缺材料、无处可贴、需要先有别的方块……）：先打上面的层，到顶后会回来复查
+            layerPending = false;
+            forcedLayerSkips++;
+            lastForcedSkipPos = lastPendingPos;
+        }
         onLayerPassFinished(layerY, !layerPending);
         if (!layerPending) {
+            layerIdleTicks = 0;
             List<PrinterBox> areaBoxes = getWorkAreaBoxes();
             int[] bounds = areaBoxes == null ? null : layerBounds(areaBoxes);
             if (bounds != null) {

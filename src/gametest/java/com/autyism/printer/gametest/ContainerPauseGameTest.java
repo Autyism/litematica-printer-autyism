@@ -60,7 +60,7 @@ public final class ContainerPauseGameTest implements FabricClientGameTest {
             if (client.screen != null) client.player.closeContainer();
         });
         GT.clearArena(sp, 36, -3, 50, 8, 70);
-        sp.getServer().runOnServer(server -> {
+        java.util.function.Consumer<net.minecraft.server.MinecraftServer> setup = server -> {
             var level = server.overworld();
             level.setBlockAndUpdate(CHEST, Blocks.CHEST.defaultBlockState());
             if (level.getBlockEntity(CHEST) instanceof ChestBlockEntity chest) {
@@ -75,12 +75,27 @@ public final class ContainerPauseGameTest implements FabricClientGameTest {
             player.getInventory().setSelectedSlot(0);
             player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetHeldSlotPacket(0));
             player.inventoryMenu.sendAllDataToRemote();
-        });
+        };
+        sp.getServer().runOnServer(setup::accept);
         sp.getServer().runCommand("tp @a 43.5 64 3.5 0 0");
-        context.waitFor(client -> client.player != null && client.level.getBlockState(CHEST).is(Blocks.CHEST)
+        java.util.function.Predicate<net.minecraft.client.Minecraft> ready = client -> client.player != null && client.level.getBlockState(CHEST).is(Blocks.CHEST)
                 && client.player.getInventory().getItem(9).is(Items.STONE)
                 && client.player.getInventory().getItem(0).isEmpty() && client.player.getInventory().getItem(1).isEmpty()
-                && Math.abs(client.player.getZ() - 3.5) < 0.01, 200);
+                && Math.abs(client.player.getZ() - 3.5) < 0.01;
+        for (int i = 0; i < 600 && !context.computeOnClient(ready::test); i++) {
+            if (i % 100 == 99) {
+                // 背包同步偶尔被上一个测试留下的状态打断：重发一次
+                GT.log("[container] waiting for setup: " + context.computeOnClient(c -> "chest=" + c.level.getBlockState(CHEST)
+                        + " slot9=" + c.player.getInventory().getItem(9) + " slot0=" + c.player.getInventory().getItem(0)
+                        + " slot1=" + c.player.getInventory().getItem(1) + " z=" + c.player.getZ() + " screen=" + c.screen));
+                // 上一个场景里延迟处理的容器操作可能在清空背包之后才生效：重新准备一遍
+                context.runOnClient(c -> { if (c.screen != null) c.player.closeContainer(); });
+                sp.getServer().runOnServer(setup::accept);
+                sp.getServer().runCommand("tp @a 43.5 64 3.5 0 0");
+            }
+            context.waitTick();
+        }
+        if (!context.computeOnClient(ready::test)) throw new AssertionError("[container] setup never synced");
         context.waitTicks(5);
 
         TestHooks.delayOpenScreenTicks = 12;

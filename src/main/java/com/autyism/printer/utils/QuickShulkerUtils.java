@@ -106,6 +106,8 @@ public class QuickShulkerUtils {
 
         Inventory inventory = player.getInventory();
 
+        // 背包里已经没有这种物品的归还请求（用完了 / 被玩家拿走了）已经没有意义：丢掉，否则会一直抢先打开潜影盒却什么都放不回去
+        itemsToReturn.removeIf(r -> !inventoryHas(inventory, r.item()));
         if (Configs.Print.RETURN_TO_SHULKER_WHEN_FULL.getBooleanValue()
                 && isInventoryFull(inventory)) {
             ReturnRequest returnRequest = itemsToReturn.peekFirst();
@@ -149,8 +151,25 @@ public class QuickShulkerUtils {
         return false;
     }
 
+    private static boolean inventoryHas(Inventory inventory, Item item) {
+        for (int i = 0; i < Math.min(inventory.getContainerSize(), 36); i++) {
+            if (inventory.getItem(i).is(item)) return true;
+        }
+        return false;
+    }
+
     private static boolean openSelectedShulker(Inventory inventory, int shulkerSlot, ShulkerSource source) {
         ItemStack shulkerStack = inventory.getItem(shulkerSlot);
+        if (Boolean.getBoolean("ale.debuglook")) {
+            System.out.println("[qs] open slot=" + shulkerSlot + " stack=" + shulkerStack + " closeScreen=" + ModUtils.closeScreen
+                    + " menu=" + (mc.player == null ? null : mc.player.containerMenu.getClass().getSimpleName()));
+        }
+        // 客户端此时没有打开任何容器：如果服务端那边还挂着一个（上一次打开的回包丢了 / 被打断），先关掉让两边同步，
+        // 否则服务端一直认为潜影盒开着，后面的取物会全部失败
+        LocalPlayer self = mc.player;
+        if (self != null && self.containerMenu == self.inventoryMenu && self.connection != null) {
+            self.connection.send(new net.minecraft.network.protocol.game.ServerboundContainerClosePacket(0));
+        }
         setShulkerBoxSlot(shulkerSlot);
         ModUtils.closeScreen++;
         setOpenHandler(true);
@@ -239,6 +258,12 @@ public class QuickShulkerUtils {
 
         AbstractContainerMenu container = player.containerMenu;
         Inventory inventory = player.getInventory();
+        if (Boolean.getBoolean("ale.debuglook")) {
+            int empty = 0;
+            for (int i = 0; i < 36; i++) if (inventory.getItem(i).isEmpty()) empty++;
+            System.out.println("[qs] switchFromShulker menu=" + container.getClass().getSimpleName() + " slots=" + container.slots.size()
+                    + " return=" + activeReturnRequest + " need=" + lastNeedItemList + " emptyInv=" + empty + " returns=" + itemsToReturn.size());
+        }
 
         if (activeReturnRequest != null) {
             returnItemToShulker(player, container, inventory, activeReturnRequest);
@@ -300,6 +325,10 @@ public class QuickShulkerUtils {
         }
 
         int ownSlots = container.slots.size() - 36;
+        if (!inventoryHas(inventory, returnRequest.item())) {
+            itemsToReturn.removeFirstOccurrence(returnRequest);
+            return;
+        }
         for (int i = 0; i < Math.min(inventory.getContainerSize(), 36); i++) {
             if (!inventory.getItem(i).is(returnRequest.item())) continue;
 
@@ -345,6 +374,7 @@ public class QuickShulkerUtils {
 
     /** 打开失败（例如潜影盒拿不到手上）时恢复状态 */
     private static void abortOpen() {
+        if (Boolean.getBoolean("ale.debuglook")) System.out.println("[qs] abortOpen closeScreen=" + ModUtils.closeScreen);
         if (ModUtils.closeScreen > 0) ModUtils.closeScreen--;
         isOpenHandler = false;
         shulkerBoxSlot = -1;
@@ -364,10 +394,13 @@ public class QuickShulkerUtils {
         for (int i = 0; i < 36; i++) if (inventory.getItem(i).isEmpty()) empty++;
         if (empty >= 2) return;
         int moved = 0;
-        for (int pass = 0; pass < 2 && moved < 3 && empty < 2; pass++) {
+        // pass 0：潜影盒里已有同种物品的；pass 1：任何有空间的；
+        // pass 2（前面一个都放不回时）：放宽“最近用过”的限制——总比背包满了什么都取不出来强
+        for (int pass = 0; pass < 3 && moved < 3 && empty < 2; pass++) {
+            if (pass == 2 && moved > 0) break;
             for (int i = 9; i < 36 && moved < 3 && empty < 2; i++) {
                 ItemStack stack = inventory.getItem(i);
-                if (!isDepositCandidate(stack)) continue;
+                if (!isDepositCandidate(stack, pass == 2)) continue;
                 boolean inShulker = false;
                 boolean hasRoom = false;
                 for (int s = 0; s < ownSlots; s++) {
@@ -379,6 +412,7 @@ public class QuickShulkerUtils {
                     }
                 }
                 if (!hasRoom || (pass == 0 && !inShulker)) continue;
+                if (Boolean.getBoolean("ale.debuglook")) System.out.println("[qs] deposit " + stack + " pass=" + pass);
                 int containerSlot = ownSlots + (i - 9);
                 mc.gameMode.handleInventoryMouseClick(container.containerId, containerSlot, 0, ClickType.QUICK_MOVE, player);
                 moved++;
@@ -387,13 +421,13 @@ public class QuickShulkerUtils {
         }
     }
 
-    private static boolean isDepositCandidate(ItemStack stack) {
+    private static boolean isDepositCandidate(ItemStack stack, boolean allowRecentlyUsed) {
         if (stack.isEmpty() || stack.isDamageableItem()) return false;
         if (com.autyism.printer.utils.ShulkerContentUtils.isShulkerItem(stack)) return false;
         if (stack.has(net.minecraft.core.component.DataComponents.FOOD)) return false;
         if (stack.is(net.minecraft.world.item.Items.TOTEM_OF_UNDYING)) return false;
         if (lastNeedItemList.contains(stack.getItem())) return false;
-        return !InventoryUtils.isRecentlyUsed(stack.getItem());
+        return allowRecentlyUsed || !InventoryUtils.isRecentlyUsed(stack.getItem());
     }
 
     /** 在玩家背包中找到包含目标物品的潜影盒，返回背包槽位索引，未找到返回 -1 */

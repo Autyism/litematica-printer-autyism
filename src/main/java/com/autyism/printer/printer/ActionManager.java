@@ -35,6 +35,29 @@ public class ActionManager {
     @Nullable
     public PlayerLook look;
     public boolean needWaitModifyLook = false;
+    /** 水平转头后至少等这么多 tick 再放置 */
+    private static final int LOOK_WAIT_TICKS = 2;
+    private int lookWaitTicks;
+    /** 服务端最后收到的水平朝向，以及从哪个 tick 开始一直是这个朝向 */
+    @Nullable
+    private Direction serverHeadDir;
+    private int serverHeadDirSince;
+
+    private static int tickNow() {
+        var p = net.minecraft.client.Minecraft.getInstance().player;
+        return p == null ? 0 : p.tickCount;
+    }
+
+    /** 每个发出去的带视角的移动包都会调用（见 PacketUtils.getFixedPacket） */
+    public void noteSentRotation(float yaw) {
+        Direction d = Direction.fromYRot(yaw);
+        if (d != serverHeadDir) {
+            serverHeadDir = d;
+            serverHeadDirSince = tickNow();
+        }
+    }
+
+    private static final boolean DEBUG_LOOK = Boolean.getBoolean("ale.debuglook");
     private boolean actionRequiresWaitModifyLook = false;
 
     private ActionManager() {
@@ -70,32 +93,39 @@ public class ActionManager {
         if (look != null) {
             PacketUtils.sendLookPacket(player, look);
         }
+        if (DEBUG_LOOK) {
+            System.out.println("[printer-look] target=" + target + " side=" + side + " look=" + look + " needWait=" + needWaitModifyLook
+                    + " requiresWait=" + actionRequiresWaitModifyLook + " playerRot=" + player.getYRot() + "/" + player.getXRot());
+        }
 
         if (!useProtocol && !needWaitModifyLook && actionRequiresWaitModifyLook) {
             if (look != null) {
                 Direction lookDirection = BlockUtils.orderedByNearest(look.yaw(), look.pitch())[0];
-                if (lookDirection.getAxis().isHorizontal()) {
+                // 服务端按“头部朝向”(yHeadRot) 判断水平朝向，而头部朝向要等服务端给玩家 tick 之后才跟上转头包；
+                // 只等 1 tick 时转头包和放置包常常落在同一个服务端 tick 里，结果用的是上一个方块的朝向。
+                // （不能用“客户端视角已经朝那边”来省掉等待：打印机自己发的转头包会把服务端的头转走）
+                // 服务端的头已经朝这个水平方向至少 LOOK_WAIT_TICKS 个 tick 了（例如连续放同朝向的楼梯）就不用再等
+                boolean headReady = serverHeadDir == lookDirection && tickNow() - serverHeadDirSince >= LOOK_WAIT_TICKS;
+                if (lookDirection.getAxis().isHorizontal() && !headReady) {
                     needWaitModifyLook = true;
+                    lookWaitTicks = LOOK_WAIT_TICKS;
                     return this;
                 }
             }
         }
 
         if (needWaitModifyLook) {
+            if (--lookWaitTicks > 0) return this;
             needWaitModifyLook = false;
         }
 
-        Direction direction;
-        if (look == null) {
-            direction = side;
-        } else {
-            direction = BlockUtils.getHorizontalDirection(look.yaw());
-        }
         Vec3 hitVec;
         if (!useProtocol) {
             Vec3 targetCenter = Vec3.atCenterOf(target);
             Vec3 sideOffset = Vec3.atLowerCornerOf(BlockUtils.getVector(side)).scale(0.5);
-            Vec3 rotatedHitModifier = hitModifier.yRot((direction.toYRot() + 90) % 360).scale(0.5);
+            // hitModifier 是世界坐标系下的偏移（只有门的门轴用到了水平分量，其余都是竖直分量）。
+            // 原来这里按 (朝向角度+90) 去 yRot，但 yRot 的参数是弧度，结果是一个毫无意义的随机旋转，门轴因此会放反
+            Vec3 rotatedHitModifier = hitModifier.scale(0.5);
             hitVec = targetCenter.add(sideOffset).add(rotatedHitModifier);
         } else {
             hitVec = hitModifier;

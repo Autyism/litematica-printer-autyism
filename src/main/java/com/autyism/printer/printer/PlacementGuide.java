@@ -263,11 +263,10 @@ public class PlacementGuide {
                 DoorHingeSide hinge = ctx.requiredState.getValue(DoorBlock.HINGE);
                 BlockPos upperPos = ctx.blockPos.above();
 
-                // 获取门铰链方向
-                Direction hingeSide = facing.getCounterClockWise();
-
-                double offset = hinge == DoorHingeSide.RIGHT ? 0.25 : -0.25;
-                Vec3 hingeVec = facing.getAxis() == Direction.Axis.X ? new Vec3(0, 0, offset) : new Vec3(offset, 0, 0);
+                // 原版 DoorBlock.getHinge：左右两边都没有决定性方块时按点击位置决定门轴——
+                // 点在门朝向的逆时针一侧（例如朝南的门点在东半边）= 左门轴，顺时针一侧 = 右门轴
+                Direction hingeSide = hinge == DoorHingeSide.LEFT ? facing.getCounterClockWise() : facing.getClockWise();
+                Vec3 hingeVec = new Vec3(hingeSide.getStepX() * 0.25, 0, hingeSide.getStepZ() * 0.25);
 
                 Map<Direction, Vec3> sides = new HashMap<>();
                 sides.put(hingeSide, Vec3.ZERO); // 靠墙方向需要支撑
@@ -276,7 +275,7 @@ public class PlacementGuide {
 
                 // 获取左右方块状态
                 Direction left = facing.getCounterClockWise();
-                Direction right = facing.getCounterClockWise();
+                Direction right = facing.getClockWise();
                 BlockState leftState = ctx.level.getBlockState(ctx.blockPos.relative(left));
                 BlockState leftUpperState = ctx.level.getBlockState(upperPos.relative(left));
                 BlockState rightState = ctx.level.getBlockState(ctx.blockPos.relative(right));
@@ -309,10 +308,13 @@ public class PlacementGuide {
                 return new Action().setItem(Items.FLOWER_POT);
             }
             case VINES, GLOW_LICHEN -> {
+                // 原版藤蔓 / 发光地衣贴哪一面由玩家“看的方向”决定（getNearestLookingDirections），不是点击的面：
+                // 必须同时朝那个方向看，否则会贴到别的面上
                 for (Direction direction : Direction.values()) {
                     if (direction == Direction.DOWN && ctx.requiredState.getBlock() == Blocks.VINE) continue;
                     if ((Boolean) BlockUtils.getPropertyByName(ctx.requiredState, direction.name())) {
-                        return new Action().setSides(direction);
+                        // 支撑方块还没放时原版会贴到别的面：先等支撑
+                        return new Action().setSides(direction).setLookDirection(direction).setRequiresSupport();
                     }
                 }
             }
@@ -611,10 +613,15 @@ public class PlacementGuide {
                         case FLOOR   -> Direction.DOWN;
                         default      -> side;
                     };
-                    if (face != AttachFace.WALL) {
-                        side = side.getOpposite();
-                    }
-                    return new Action().setSides(side).setLookDirection(side.getOpposite(), sidePitch).setNeedWaitModifyLook();
+                    Direction lookYaw = face == AttachFace.WALL ? side.getOpposite() : side;
+                    // 拉杆 / 按钮 / 砂轮的朝向由视角决定，且原版只有在支撑方块存在时才会选这个方向，
+                    // 否则会退而求其次贴到别的面上（朝向就错了）：必须先等支撑方块放好，再点支撑方块
+                    Direction support = switch (face) {
+                        case CEILING -> Direction.UP;
+                        case FLOOR -> Direction.DOWN;
+                        default -> side.getOpposite();
+                    };
+                    return new Action().setSides(support).setLookDirection(lookYaw, sidePitch).setNeedWaitModifyLook().setRequiresSupport();
                 }
                 if (block instanceof HorizontalDirectionalBlock || block instanceof StonecutterBlock
                         // @formatter:off
@@ -878,10 +885,21 @@ public class PlacementGuide {
                 }
             }
             case VINES, GLOW_LICHEN -> {
+                // 只补“投影里有、世界里还没有”的面；世界里多出来的面只能拆掉重放
+                boolean extraFace = false;
                 for (Direction direction : Direction.values()) {
-                    if (direction == Direction.DOWN) continue;
-                    if ((Boolean) BlockUtils.getPropertyByName(ctx.requiredState, direction.name())) {
-                        return new Action().setSides(direction).setLookDirection(direction);
+                    if (direction == Direction.DOWN && ctx.requiredState.getBlock() == Blocks.VINE) continue;
+                    Object want = BlockUtils.getPropertyByName(ctx.requiredState, direction.name());
+                    Object have = BlockUtils.getPropertyByName(ctx.currentState, direction.name());
+                    if (Boolean.TRUE.equals(have) && !Boolean.TRUE.equals(want)) extraFace = true;
+                }
+                if (!extraFace) {
+                    for (Direction direction : Direction.values()) {
+                        if (direction == Direction.DOWN && ctx.requiredState.getBlock() == Blocks.VINE) continue;
+                        if (Boolean.TRUE.equals(BlockUtils.getPropertyByName(ctx.requiredState, direction.name()))
+                                && !Boolean.TRUE.equals(BlockUtils.getPropertyByName(ctx.currentState, direction.name()))) {
+                            return new Action().setSides(direction).setLookDirection(direction).setRequiresSupport();
+                        }
                     }
                 }
                 if (printBreakWrongStateBlock) {

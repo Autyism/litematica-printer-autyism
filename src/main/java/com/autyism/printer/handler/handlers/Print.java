@@ -208,10 +208,55 @@ public class Print extends Module {
             if (lastSkipResult) return false;
         }
 
+        // 用桶打印水源 / 岩浆源 / 装满的炼药锅
+        this.fluidPlan = FluidPlacer.plan(level, schematic, player, blockPos, required, current);
+        if (fluidPlan != null) {
+            this.action = null;
+            return true;
+        }
+
         Action action = guide.getAction(ctx);
         if (action == null) return false;
         this.action = action;
         return true;
+    }
+
+    @Nullable
+    private FluidPlacer.Plan fluidPlan;
+
+    private void executeFluid(BlockPos blockPos, AtomicReference<Boolean> skipIteration) {
+        FluidPlacer.Plan plan = fluidPlan;
+        Item[] items = {plan.bucket()};
+        InventoryUtils.ItemSwitchResult result = InventoryUtils.switchToItemsResult(player, items);
+        if (result == InventoryUtils.ItemSwitchResult.WAITING) {
+            if (blockPos.equals(switchWaitPos)) {
+                switchWaitCount++;
+            } else {
+                switchWaitPos = blockPos.immutable();
+                switchWaitCount = 1;
+            }
+            if (switchWaitCount <= MAX_SWITCH_WAIT_TICKS) {
+                enterWaiting(blockPos);
+                skipIteration.set(true);
+                return;
+            }
+            switchWaitPos = null;
+            switchWaitCount = 0;
+        }
+        if (result != InventoryUtils.ItemSwitchResult.READY) {
+            setCooldown(blockPos, ConfigUtils.getPlaceCooldown());
+            recordMissingMaterial(items);
+            addHighlight(blockPos, HighlightType.FAILED);
+            return;
+        }
+        if (FluidPlacer.execute(player, plan)) {
+            notePlacementAttempt(blockPos);
+            InventoryUtils.markRecentlyUsed(plan.bucket());
+            addHighlight(blockPos, HighlightType.PLACE);
+        }
+        // 流体靠视角定位：每 tick 只放一格，并给足时间等服务端确认
+        setCooldown(blockPos, Math.max(ConfigUtils.getPlaceCooldown(), 5));
+        skipIteration.set(true);
     }
 
     @Override
@@ -225,6 +270,9 @@ public class Print extends Module {
     @Nullable
     protected Item[] getRequiredItems(BlockPos pos) {
         // canProcessPos 已设置 this.action 和 this.ctx
+        if (this.fluidPlan != null && this.fluidPlan.target().equals(pos)) {
+            return new Item[]{this.fluidPlan.bucket()};
+        }
         if (this.action != null && this.ctx != null) {
             return this.action.getRequiredItems(this.ctx.requiredState.getBlock());
         }
@@ -234,6 +282,10 @@ public class Print extends Module {
     @Override
     protected void executeIteration(BlockPos blockPos, AtomicReference<Boolean> skipIteration) {
         placingIceForWater = false;
+        if (fluidPlan != null && fluidPlan.target().equals(blockPos)) {
+            executeFluid(blockPos, skipIteration);
+            return;
+        }
         if (Configs.Print.PRINT_ICE_FOR_WATER.getBooleanValue()
                 && BlockUtils.needsWater(ctx.requiredState)) {
             boolean isWaitingHere = watingForWaterPos != null && watingForWaterPos.equals(blockPos);
@@ -293,15 +345,24 @@ public class Print extends Module {
                 && ctx.requiredState.getBlock() instanceof FallingBlock) {
             BlockPos downPos = blockPos.below();
 
-            if (FallingBlock.isFree(level.getBlockState(downPos))) {
+            BlockState downWorld = level.getBlockState(downPos);
+            BlockState downSchematic = ctx.schematic.getBlockState(downPos);
+            if (FallingBlock.isFree(downWorld)) {
                 MessageUtils.setOverlayMessage(
                         I18n.BLOCK_NO_SUPPORT.getName(ctx.getRequiredBlockName().getString()));
                 addHighlight(blockPos, HighlightType.FAILED);
+                // 计入尝试次数并冷却：分层模式下不会因为这一格永远卡在本层
+                setCooldown(blockPos, ConfigUtils.getPlaceCooldown());
+                notePlacementAttempt(blockPos);
                 return;
-            } else if (level.getBlockState(downPos) != ctx.schematic.getBlockState(downPos)) {
+            } else if (!downSchematic.isAir() && downWorld != downSchematic) {
+                // 只有投影里下面本来就有方块、且世界里还不是那个方块时才等待；
+                // 投影下面是空气（例如投影最底层的沙子/铁砧放在地面上）时，世界里有支撑就可以直接放
                 MessageUtils.setOverlayMessage(
                         I18n.BLOCK_MISMATCH.getName(ctx.getRequiredBlockName().getString()));
                 addHighlight(blockPos, HighlightType.FAILED);
+                setCooldown(blockPos, ConfigUtils.getPlaceCooldown());
+                notePlacementAttempt(blockPos);
                 return;
             }
         }

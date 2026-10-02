@@ -199,4 +199,9 @@ public class PrinterBox implements Iterable<BlockPos> {
             return new BlockPos(x, y, z);
         }
     }
+
+    @Override
+    public String toString() {
+        return "PrinterBox[" + minX + "," + minY + "," + minZ + " -> " + maxX + "," + maxY + "," + maxZ + "]";
+    }
 }

@@ -94,10 +94,24 @@ public final class ShulkerGameTest implements FabricClientGameTest {
         context.waitTicks(5);
         boolean[] screenSeen = {false};
         context.runOnClient(c -> GT.enablePrint());
-        int ticks = GT.waitServer(context, () -> {
-            if (context.computeOnClient(c -> c.screen != null)) screenSeen[0] = true;
-            return GT.countPlaced(sp, ROW_MIN, ROW_MAX) == 6;
-        }, 400, "[shulker] restock" + (full ? " (full inventory)" : "") + ": row was not printed");
+        int ticks;
+        try {
+            ticks = GT.waitServer(context, () -> {
+                if (context.computeOnClient(c -> c.screen != null)) screenSeen[0] = true;
+                return GT.countPlaced(sp, ROW_MIN, ROW_MAX) == 6;
+            }, 400, "[shulker] restock" + (full ? " (full inventory)" : "") + ": row was not printed");
+        } catch (AssertionError e) {
+            GT.log("[shulker] FAIL STATE server: " + sp.getServer().computeOnServer(sv -> {
+                var pl = sv.getPlayerList().getPlayers().getFirst();
+                return "shift=" + pl.isShiftKeyDown() + " input=" + pl.getLastClientInput() + " menu=" + pl.containerMenu.getClass().getSimpleName()
+                        + " usingItem=" + pl.isUsingItem() + " hand=" + pl.getMainHandItem() + " cooldown=" + pl.getCooldowns().isOnCooldown(pl.getMainHandItem());
+            }));
+            GT.log("[shulker] FAIL STATE placed=" + GT.countPlaced(sp, ROW_MIN, ROW_MAX) + " " + context.computeOnClient(c ->
+                    com.autyism.printer.handler.ModuleManager.PRINT.debugState() + " qsBusy=" + com.autyism.printer.utils.QuickShulkerUtils.isBusy()
+                            + " screen=" + c.screen + " menu=" + c.player.containerMenu.getClass().getSimpleName()
+                            + " hand=" + c.player.getMainHandItem() + " slot20=" + c.player.getInventory().getItem(20)));
+            throw e;
+        }
         context.waitTicks(10);
         context.runOnClient(c -> GT.disableAll());
         var wrong = GT.mismatches(sp, ROW_MIN, ROW_MAX, p -> Blocks.STONE.defaultBlockState());
