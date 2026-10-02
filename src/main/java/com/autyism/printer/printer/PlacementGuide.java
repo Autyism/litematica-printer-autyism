@@ -506,7 +506,6 @@ public class PlacementGuide {
                 }
                 // 天花板悬挂告示牌处理逻辑
                 if (signBlock instanceof WallHangingSignBlock) {
-                    //TODO: 视乎方向还是有点问题, 待处理
                     Direction facing = ctx.requiredState.getValue(WallHangingSignBlock.FACING);
                     List<Direction> sides = new ArrayList<>();
                     if (facing.getAxis() == Direction.Axis.X) {
@@ -516,9 +515,11 @@ public class PlacementGuide {
                         sides.add(Direction.EAST);
                         sides.add(Direction.WEST);
                     }
+                    // 墙挂悬挂式告示牌：朝向由服务端玩家的“头部朝向”决定（两侧都能挂时 N/S 或 E/W 都合法），
+                    // 转头包和放置在同一 tick 发出时服务端头部朝向尚未更新 → 朝向反了。先转头，下一 tick 再放
                     return new Action()
                             .setSides(sides.toArray(new Direction[0]))
-                            .setLookDirection(facing.getOpposite()).setRequiresSupport();
+                            .setLookDirection(facing.getOpposite()).setRequiresSupport().setNeedWaitModifyLook();
                 }
                 if (signBlock instanceof CeilingHangingSignBlock) {
                     int rotation = ctx.requiredState.getValue(CeilingHangingSignBlock.ROTATION);
