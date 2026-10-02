@@ -55,7 +55,12 @@ public abstract class MixinMultiPlayerGameMode implements MultiPlayerGameModeExt
     @Override
     public InteractionResult litematica_printer$useItemOn(boolean localPrediction, InteractionHand hand, BlockHitResult blockHit) {
         if (localPrediction) {
-            return useItemOn(minecraft.player, hand, blockHit);
+            com.autyism.ale.printer.ContainerGuard.beginPrinterInteraction();
+            try {
+                return useItemOn(minecraft.player, hand, blockHit);
+            } finally {
+                com.autyism.ale.printer.ContainerGuard.endPrinterInteraction();
+            }
         }
         this.ensureHasSentCarriedItem();
         if (!this.minecraft.level.getWorldBorder().isWithinBounds(blockHit.getBlockPos())) {
@@ -63,6 +68,25 @@ public abstract class MixinMultiPlayerGameMode implements MultiPlayerGameModeExt
         }
         litematica_printer$startPrediction((sequence) -> new ServerboundUseItemOnPacket(hand, blockHit, sequence));
         return InteractionResult.PASS;
+    }
+
+    // ---------------- 需求 1：记录玩家自己发起的、可能打开容器的交互 ----------------
+    @org.spongepowered.asm.mixin.injection.Inject(method = "useItemOn", at = @org.spongepowered.asm.mixin.injection.At("HEAD"))
+    private void ale$onUseItemOn(LocalPlayer player, InteractionHand hand, BlockHitResult hit,
+                                 org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<InteractionResult> cir) {
+        com.autyism.ale.printer.ContainerGuard.onUseItemOn(player, hit.getBlockPos());
+    }
+
+    @org.spongepowered.asm.mixin.injection.Inject(method = "useItem", at = @org.spongepowered.asm.mixin.injection.At("HEAD"))
+    private void ale$onUseItem(net.minecraft.world.entity.player.Player player, InteractionHand hand,
+                               org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<InteractionResult> cir) {
+        if (player instanceof LocalPlayer lp) com.autyism.ale.printer.ContainerGuard.onUseItem(lp);
+    }
+
+    @org.spongepowered.asm.mixin.injection.Inject(method = "interact", at = @org.spongepowered.asm.mixin.injection.At("HEAD"))
+    private void ale$onInteract(net.minecraft.world.entity.player.Player player, net.minecraft.world.entity.Entity entity, InteractionHand hand,
+                                org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<InteractionResult> cir) {
+        com.autyism.ale.printer.ContainerGuard.onInteractEntity(entity);
     }
 
     @Unique

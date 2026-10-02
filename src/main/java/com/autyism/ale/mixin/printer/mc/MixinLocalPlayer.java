@@ -59,7 +59,8 @@ public class MixinLocalPlayer extends AbstractClientPlayer {
         ModuleManager.updateTickHandlerTime();
         BlockPosCooldownManager.INSTANCE.tick();
         BreakUtils.INSTANCE.preprocess();
-        if (BreakUtils.INSTANCE.isNeedHandle()) {
+        boolean containerPaused = com.autyism.ale.printer.ContainerGuard.tick() && com.autyism.ale.utils.ConfigUtils.isPrinterEnable();
+        if (!containerPaused && BreakUtils.INSTANCE.isNeedHandle()) {
             BreakUtils.INSTANCE.onTick();
         }
         ModuleManager.tick();

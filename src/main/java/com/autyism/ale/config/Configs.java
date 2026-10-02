@@ -93,6 +93,11 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 .range(0, 256)
                 .build();
 
+        // 需求 1：打开容器时暂停打印机
+        public static final ConfigBoolean PAUSE_ON_CONTAINER = booleanValue("pauseOnContainer")
+                .defaultValue(true)
+                .build();
+
         // 迭代占用时长（毫秒）
         public static final ConfigInteger ITERATION_TIME_LIMIT = integerValue("iterationTimeLimit")
                 .defaultValue(8)
@@ -168,6 +173,7 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
         public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
                 WORK_SWITCH,
                 WORK_RANGE,
+                PAUSE_ON_CONTAINER,
                 ITERATION_TIME_LIMIT,
                 CLASSIFY_BY_BLOCK,
                 RENDER_HUD,

@@ -94,4 +94,7 @@ if (providers.gradleProperty("aleGameTest").isPresent) {
             username.set("ALEGameTest")
         }
     }
+    tasks.matching { it.name == "runClientGameTest" }.configureEach {
+        (this as JavaExec).systemProperty("ale.gt", (project.findProperty("gt") ?: "").toString())
+    }
 }

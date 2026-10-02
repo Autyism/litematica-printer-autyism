@@ -289,5 +289,7 @@
   "autyism-le.config.breakToolDurabilityProtect.desc": "Never use a tool whose remaining durability is at or below the threshold; switch to something else or stop breaking, and show a warning on screen.",
   "autyism-le.config.breakToolDurabilityThreshold": "Durability Threshold",
   "autyism-le.config.breakToolDurabilityThreshold.desc": "Tools with remaining durability <= this value are protected.",
-  "autyism-le.message.tool_low_durability": "§e%s has only %s durability left - stopped using it to protect the tool"
+  "autyism-le.message.tool_low_durability": "§e%s has only %s durability left - stopped using it to protect the tool",
+  "autyism-le.config.pauseOnContainer": "Pause While Using Containers",
+  "autyism-le.config.pauseOnContainer.desc": "Pause the printer from the moment you right-click a chest/shulker/entity container until shortly after the container is closed. Prevents the client and server from disagreeing about your inventory (which made the printer place wrong blocks while you took materials)."
 }
