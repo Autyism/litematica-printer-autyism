@@ -8,7 +8,8 @@
     "fabric-client-gametest": [
       "com.autyism.ale.gametest.PrinterFixGameTest",
       "com.autyism.ale.gametest.ContainerPauseGameTest",
-      "com.autyism.ale.gametest.ToolSwitchGameTest"
+      "com.autyism.ale.gametest.ToolSwitchGameTest",
+      "com.autyism.ale.gametest.BedrockGameTest"
     ]
   },
   "mixins": [

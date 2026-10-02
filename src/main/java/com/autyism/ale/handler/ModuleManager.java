@@ -47,6 +47,7 @@ public class ModuleManager {
         if (ModUtils.isRemoteInventoryNextLoaded()) {
             RemoteContainerUtils.tick();
         }
+        com.autyism.ale.compat.BedrockCompat.syncWithModule(ConfigUtils.isPrinterEnable() && Configs.Bedrock.ENABLED.getBooleanValue());
         // 需求 1：玩家打开/正在打开容器时暂停打印机，避免和服务端的背包状态不同步
         if (ContainerGuard.isPaused()) return;
         boolean printerEnabled = ConfigUtils.isPrinterEnable();

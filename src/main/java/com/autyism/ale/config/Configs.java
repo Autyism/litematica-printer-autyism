@@ -635,8 +635,20 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 .defaultValue(false)
                 .build();
 
+        // 使用哪个破基岩模组（同时装了多个时可指定）
+        public static final ConfigOptionList BACKEND = optionList("bedrockBackend")
+                .defaultValue(BedrockBackend.AUTO)
+                .build();
+
+        // 框选范围内的基岩全部处理，不受 Litematica 渲染层限制
+        public static final ConfigBoolean IGNORE_RENDER_LAYER = booleanValue("bedrockIgnoreRenderLayer")
+                .defaultValue(true)
+                .build();
+
         public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
-                ENABLED
+                ENABLED,
+                BACKEND,
+                IGNORE_RENDER_LAYER
         );
     }
 

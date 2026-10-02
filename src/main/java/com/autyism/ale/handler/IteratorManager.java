@@ -59,6 +59,13 @@ public class IteratorManager {
      * 根据玩家位置和配置重建 PrinterBox，返回是否需要重置扫描状态。
      */
     public boolean tryBuildBox(LocalPlayer player, @Nullable Object selectionTypeObj) {
+        return tryBuildBox(player, selectionTypeObj, true);
+    }
+
+    /**
+     * @param respectRenderLayer false 时不按 Litematica 渲染层裁剪（例如破基岩模式处理整个框选范围）
+     */
+    public boolean tryBuildBox(LocalPlayer player, @Nullable Object selectionTypeObj, boolean respectRenderLayer) {
         BlockPos eyeBP = new BlockPos(
                 (int) Math.round(player.getX()),
                 (int) Math.round(player.getEyeY()),
@@ -68,7 +75,7 @@ public class IteratorManager {
         int currentRange = (int) Math.ceil(effectiveRange);
 
         LayerRange layerRange = DataManager.getRenderLayerRange();
-        LayerMode layerMode = layerRange.getLayerMode();
+        LayerMode layerMode = respectRenderLayer ? layerRange.getLayerMode() : LayerMode.ALL;
         Direction.Axis layerAxis = layerRange.getAxis();
         int layerMin = layerRange.getLayerMin();
         int layerMax = layerRange.getLayerMax();

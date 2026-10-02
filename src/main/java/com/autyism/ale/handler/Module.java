@@ -121,7 +121,7 @@ public abstract class Module extends ConfigUtils {
         }
 
         if (box == null) return;
-        if (iteratorManager.tryBuildBox(player, selectionType != null ? selectionType.getOptionListValue() : null)) {
+        if (iteratorManager.tryBuildBox(player, selectionType != null ? selectionType.getOptionListValue() : null, respectsRenderLayer())) {
             box.set(iteratorManager.getBox());
             scanState = ScanState.RUNNING;
             waitingPos = null;
@@ -241,7 +241,7 @@ public abstract class Module extends ConfigUtils {
 
     private boolean needsWork(BlockPos pos) {
         // 逐方块复核渲染层：盒子裁剪之外的兜底，覆盖等待重试的坐标和层范围在两次重建之间变化的情况
-        if (!LitematicaUtils.isPositionWithinRange(pos)) return false;
+        if (respectsRenderLayer() && !LitematicaUtils.isPositionWithinRange(pos)) return false;
         return !isOnCooldown(pos) && canProcessPos(pos) && !isCorrectBlock(pos);
     }
 
@@ -321,6 +321,11 @@ public abstract class Module extends ConfigUtils {
 
     protected Direction getPlayerPlacementDirection() {
         return Direction.orderedByNearest(player)[0].getOpposite();
+    }
+
+    /** 是否按 Litematica 渲染层过滤要处理的方块 */
+    protected boolean respectsRenderLayer() {
+        return true;
     }
 
     protected boolean needsAreaCheck() {
