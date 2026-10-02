@@ -70,20 +70,39 @@ public final class ToolSwitchUtils {
         ItemStack held = player.getMainHandItem();
         boolean protect = protectEnabled();
 
-        float heldScore = (protect && isNearlyBroken(held)) ? -1F : score(player, state, held);
+        // 因耐久不足而被放弃、但本来是更好选择的工具：用于屏幕提示
+        ItemStack skipped = ItemStack.EMPTY;
+        float skippedScore = -1F;
+        float heldScore;
+        if (protect && isNearlyBroken(held)) {
+            heldScore = -1F;
+            skipped = held;
+            skippedScore = score(player, state, held);
+        } else {
+            heldScore = score(player, state, held);
+        }
         int bestSlot = -1;
         float bestScore = heldScore;
         for (int slot = 0; slot < 36; slot++) {
             if (slot == inventory.getSelectedSlot()) continue;
             ItemStack stack = inventory.getItem(slot);
-            if (protect && isNearlyBroken(stack)) continue;
             float s = score(player, state, stack);
+            if (protect && isNearlyBroken(stack)) {
+                if (s > skippedScore) {
+                    skipped = stack;
+                    skippedScore = s;
+                }
+                continue;
+            }
             // 只有明显更好才切换，避免来回抖动；同速时优先不消耗耐久的物品
             if (s > bestScore + 1.0E-4F
                     || (Math.abs(s - bestScore) <= 1.0E-4F && bestSlot == -1 && held.isDamageableItem() && !stack.isDamageableItem() && s > 0)) {
                 bestScore = s;
                 bestSlot = slot;
             }
+        }
+        if (!skipped.isEmpty() && skippedScore > bestScore + 1.0E-4F) {
+            warnLowDurability(skipped);
         }
         if (bestSlot == -1) return false;
         return moveSlotToHand(player, bestSlot);
@@ -139,6 +158,11 @@ public final class ToolSwitchUtils {
             return true;
         }
         return InventoryUtils.setPickedItemToHand(slot, stack, mc);
+    }
+
+    /** 最近一次耐久警告的时间（测试/调试用） */
+    public static long getLastWarnTime() {
+        return lastWarnTime;
     }
 
     public static void warnLowDurability(ItemStack stack) {
