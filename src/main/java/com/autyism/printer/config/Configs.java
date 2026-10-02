@@ -533,9 +533,10 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 .defaultValue(SelectionType.LITEMATICA_SELECTION)
                 .build();
 
-        // 仅挖掘可秒破的方块：跳过需要持续挖掘的方块，避免单个硬方块卡住整片秒破
-        public static final ConfigBoolean MINE_INSTANT_ONLY = booleanValue("mineInstantOnly")
-                .defaultValue(false)
+        // 秒破优先：先挖范围内能秒破的方块，都挖完了再挖不能秒破的。
+        // 开启时仅在检测到“效率 V 工具 + 急迫 II”时启用这套逻辑；关闭则始终启用
+        public static final ConfigBoolean MINE_INSTANT_FIRST_DETECT = booleanValue("mineInstantFirstDetect")
+                .defaultValue(true)
                 .build();
 
         // 挖掘模式限制器
@@ -562,7 +563,7 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
         public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
                 ENABLED,
                 MINE_SELECTION_TYPE,
-                MINE_INSTANT_ONLY,
+                MINE_INSTANT_FIRST_DETECT,
                 EXCAVATE_LIMITER,
                 EXCAVATE_LIMIT,
                 EXCAVATE_WHITELIST,

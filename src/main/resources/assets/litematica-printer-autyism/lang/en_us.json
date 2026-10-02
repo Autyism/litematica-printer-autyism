@@ -305,5 +305,7 @@
   "litematica-printer-autyism.config.limitRangeSingleplayer": "Limit Range to Reach (Singleplayer)",
   "litematica-printer-autyism.config.limitRangeSingleplayer.desc": "In singleplayer the effective work range never exceeds the server-side interaction range, so the printer does not waste time on placements the integrated server would reject. Multiplayer is not affected.",
   "modmenu.nameTranslation.litematica-printer-autyism": "Litematica Printer Autyism Edition",
-  "modmenu.descriptionTranslation.litematica-printer-autyism": "Litematica printer rebuilt by Autyism: container-safe printing, layered bottom-up printing with huge ranges, smart shulker restock, built-in tool switching and more."
+  "modmenu.descriptionTranslation.litematica-printer-autyism": "Litematica printer rebuilt by Autyism: container-safe printing, layered bottom-up printing with huge ranges, smart shulker restock, built-in tool switching and more.",
+  "litematica-printer-autyism.config.mineInstantFirstDetect": "Instant-First Only With Eff V + Haste II",
+  "litematica-printer-autyism.config.mineInstantFirstDetect.desc": "Instant-first mining: blocks in range that can be broken instantly are mined first; blocks that can't are skipped until no instantly-breakable block is left in range (walking around brings new ones back to the front).\nOn: only active when an Efficiency V tool and Haste II are detected.\nOff: always active.\nA block counts as instant when one tick of progress (best tool in inventory) reaches 100%, or the Break Progress Threshold when 'Instant On Same Tick' is enabled."
 }

@@ -305,5 +305,7 @@
   "litematica-printer-autyism.config.limitRangeSingleplayer": "单人世界限制在交互距离内",
   "litematica-printer-autyism.config.limitRangeSingleplayer.desc": "单人世界中实际工作半径不超过服务端允许的交互距离，避免反复放置会被内置服务端撤回的方块（看起来像罢工）。多人服务器不受影响。",
   "modmenu.nameTranslation.litematica-printer-autyism": "投影打印机 Autyism 版",
-  "modmenu.descriptionTranslation.litematica-printer-autyism": "由 Autyism 重新整合的投影打印机：容器安全打印、超大范围分层打印、智能潜影盒补货、内置自动换工具等。"
+  "modmenu.descriptionTranslation.litematica-printer-autyism": "由 Autyism 重新整合的投影打印机：容器安全打印、超大范围分层打印、智能潜影盒补货、内置自动换工具等。",
+  "litematica-printer-autyism.config.mineInstantFirstDetect": "仅在效率V+急迫II时启用秒破优先",
+  "litematica-printer-autyism.config.mineInstantFirstDetect.desc": "秒破优先：工作范围内先挖能秒破的方块，不能秒破的先跳过，直到范围内没有可秒破的方块才开始挖它们（走动后范围里又有可秒破的，会重新优先）。\n开启：仅在检测到效率 V 工具 + 急迫 II 时启用。\n关闭：始终启用。\n秒破判定：用背包里最合适的工具，一 tick 的挖掘进度达到 100%（开启“即时挖掘”时为“挖掘进度阈值”）即视为可秒破。"
 }

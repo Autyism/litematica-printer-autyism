@@ -287,7 +287,12 @@ public abstract class Module extends ConfigUtils {
     }
 
     /** 一轮遍历结束：分层模式下本层已全部完成则进入上一层（到顶后回到最底层复查） */
+    /** 一轮遍历结束时调用（子类可覆盖） */
+    protected void onScanPassFinished() {
+    }
+
     private void onPassFinished() {
+        onScanPassFinished();
         if (layerY == null) return;
         if (!layerPending) {
             List<PrinterBox> areaBoxes = getWorkAreaBoxes();
