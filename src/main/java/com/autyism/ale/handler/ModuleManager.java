@@ -6,6 +6,7 @@ import lombok.Setter;
 import com.autyism.ale.config.Configs;
 import com.autyism.ale.handler.handlers.*;
 import com.autyism.ale.printer.ActionManager;
+import com.autyism.ale.printer.ContainerGuard;
 import com.autyism.ale.printer.MissingMaterialTracker;
 import com.autyism.ale.utils.BreakUtils;
 import com.autyism.ale.utils.ConfigUtils;
@@ -46,6 +47,8 @@ public class ModuleManager {
         if (ModUtils.isRemoteInventoryNextLoaded()) {
             RemoteContainerUtils.tick();
         }
+        // 需求 1：玩家打开/正在打开容器时暂停打印机，避免和服务端的背包状态不同步
+        if (ContainerGuard.isPaused()) return;
         boolean printerEnabled = ConfigUtils.isPrinterEnable();
         if (printerEnabled && !lastPrinterEnabled) {
             MissingMaterialTracker.getInstance().reset();

@@ -6,7 +6,8 @@
   "environment": "client",
   "entrypoints": {
     "fabric-client-gametest": [
-      "com.autyism.ale.gametest.PrinterFixGameTest"
+      "com.autyism.ale.gametest.PrinterFixGameTest",
+      "com.autyism.ale.gametest.ContainerPauseGameTest"
     ]
   },
   "mixins": [
