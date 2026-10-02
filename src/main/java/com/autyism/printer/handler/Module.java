@@ -365,10 +365,17 @@ public abstract class Module extends ConfigUtils {
         return layerAttempts.getOrDefault(pos.asLong(), 0) >= LAYER_MAX_ATTEMPTS || isObstructedForLayer(pos);
     }
 
+    /** 本轮扫描是否遇到了还没载入完的投影区域（子类实现；分层模式下这样的层不算完成） */
+    protected boolean consumeAreaNotReady() {
+        return false;
+    }
+
     private void onPassFinished() {
         dbgPasses++;
         onScanPassFinished();
+        boolean notReady = consumeAreaNotReady();
         if (layerY == null) return;
+        if (notReady) layerPending = true;
         if (layerPending && layerIdleTicks > LAYER_STALL_TICKS) {
             // 本层剩下的格子一直放不了（缺材料、无处可贴、需要先有别的方块……）：先打上面的层，到顶后会回来复查
             layerPending = false;

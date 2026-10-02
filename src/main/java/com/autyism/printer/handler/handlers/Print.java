@@ -85,11 +85,25 @@ public class Print extends Module {
         if (schematic == null) return null;
         return (sx, sy, sz) -> {
             var chunk = schematic.getChunkSource().getChunkIfExists(sx, sz);
-            if (chunk == null) return true;
+            if (chunk == null) {
+                // 世界里这个区块已经加载、投影世界里却还没有：投影还在后台载入，这一层不能算“已完成”
+                if (level != null && level.getChunkSource().hasChunk(sx, sz)) schematicNotReady = true;
+                return true;
+            }
             int index = chunk.getSectionIndexFromSectionY(sy);
             if (index < 0 || index >= chunk.getSectionsCount()) return true;
             return chunk.getSection(index).hasOnlyAir();
         };
+    }
+
+    /** 本轮扫描中遇到了“投影还没载入完”的区块 */
+    private boolean schematicNotReady;
+
+    @Override
+    protected boolean consumeAreaNotReady() {
+        boolean r = schematicNotReady;
+        schematicNotReady = false;
+        return r;
     }
 
     // ---------------- 分层统计（每层完成时提示） ----------------

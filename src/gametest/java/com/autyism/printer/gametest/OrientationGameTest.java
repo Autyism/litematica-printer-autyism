@@ -108,6 +108,16 @@ public final class OrientationGameTest implements FabricClientGameTest {
             put(next(), Blocks.FURNACE.defaultBlockState().setValue(BlockStateProperties.HORIZONTAL_FACING, d));
         }
         put(next(), Blocks.HOPPER.defaultBlockState().setValue(HopperBlock.FACING, Direction.DOWN));
+        // 大箱子：两半 LEFT / RIGHT，4 个朝向
+        for (Direction d : HORIZONTAL) {
+            BlockPos p = next();
+            // 箱子朝向 d 时，LEFT 那一半的伙伴在 d 的顺时针方向
+            BlockPos partner = p.relative(d.getClockWise());
+            put(p, Blocks.CHEST.defaultBlockState().setValue(BlockStateProperties.HORIZONTAL_FACING, d)
+                    .setValue(BlockStateProperties.CHEST_TYPE, net.minecraft.world.level.block.state.properties.ChestType.LEFT));
+            put(partner, Blocks.CHEST.defaultBlockState().setValue(BlockStateProperties.HORIZONTAL_FACING, d)
+                    .setValue(BlockStateProperties.CHEST_TYPE, net.minecraft.world.level.block.state.properties.ChestType.RIGHT));
+        }
     }
 
     @Override
