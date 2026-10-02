@@ -109,8 +109,7 @@ if (providers.gradleProperty("aleGameTest").isPresent) {
         for (key in listOf("range", "layered", "bpt", "ticks", "debuglook")) {
             project.findProperty(key)?.let { (this as JavaExec).systemProperty("ale.$key", it.toString()) }
         }
-        if (providers.gradleProperty("withLxyan").isPresent) {
-            (this as JavaExec).systemProperty("fabric.client.gametest.disableNetworkSynchronizer", "true")
-        }
+        // 打印机本来就会直接发包（转头、潜行、容器操作），测试框架的网络同步检查会偶发误报：统一关掉
+        (this as JavaExec).systemProperty("fabric.client.gametest.disableNetworkSynchronizer", "true")
     }
 }
