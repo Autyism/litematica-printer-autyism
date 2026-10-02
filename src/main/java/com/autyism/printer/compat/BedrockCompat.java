@@ -146,6 +146,75 @@ public class BedrockCompat {
     }
 
     // ================================================================
+    //  方块列表（破基岩模式要处理哪些方块）
+    // ================================================================
+
+    private static java.util.List<String> cachedListConfig = java.util.List.of();
+    private static java.util.Set<net.minecraft.world.level.block.Block> targetBlocks = java.util.Set.of(net.minecraft.world.level.block.Blocks.BEDROCK);
+    private static java.util.List<String> syncedIds = java.util.List.of();
+
+    private static void refreshTargets() {
+        java.util.List<String> current = Configs.Bedrock.BLOCK_LIST.getStrings();
+        if (current.equals(cachedListConfig)) return;
+        cachedListConfig = new java.util.ArrayList<>(current);
+        java.util.Set<net.minecraft.world.level.block.Block> set = new java.util.HashSet<>();
+        for (net.minecraft.world.level.block.Block block : net.minecraft.core.registries.BuiltInRegistries.BLOCK) {
+            for (String entry : current) {
+                if (com.autyism.printer.utils.PinYinSearchUtils.matchBlockName(entry, block.defaultBlockState())) {
+                    set.add(block);
+                    break;
+                }
+            }
+        }
+        targetBlocks = set;
+    }
+
+    public static boolean isTargetBlock(net.minecraft.world.level.block.state.BlockState state) {
+        refreshTargets();
+        return targetBlocks.contains(state.getBlock());
+    }
+
+    /** 把方块列表同步进破基岩模组自己的允许列表（只添加，不删除用户原有的设置） */
+    public static void syncAllowList() {
+        refreshTargets();
+        java.util.List<String> ids = new java.util.ArrayList<>();
+        for (net.minecraft.world.level.block.Block b : targetBlocks) {
+            ids.add(net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(b).toString());
+        }
+        java.util.Collections.sort(ids);
+        if (ids.equals(syncedIds)) return;
+        syncedIds = ids;
+        if (bunnyiLoaded()) {
+            try {
+                Class<?> cfgClass = Class.forName("com.github.bunnyi116.bedrockminer.config.Config");
+                Object cfg = cfgClass.getMethod("getInstance").invoke(null);
+                @SuppressWarnings("unchecked")
+                java.util.List<String> list = (java.util.List<String>) cfgClass.getField("blockWhitelist").get(cfg);
+                for (String id : ids) if (!list.contains(id)) list.add(id);
+            } catch (Throwable ignored) {
+            }
+        }
+        if (lxyanLoaded()) {
+            try {
+                Class<?> client = Class.forName("com.github.lxyan2333.bedrockminer.client.config.Configs$Client");
+                Object inst = client.getField("INSTANCE").get(null);
+                fi.dy.masa.malilib.config.options.ConfigStringList allow =
+                        (fi.dy.masa.malilib.config.options.ConfigStringList) client.getMethod("getALLOW_LIST").invoke(inst);
+                java.util.List<String> merged = new java.util.ArrayList<>(allow.getStrings());
+                boolean changed = false;
+                for (String id : ids) {
+                    if (!merged.contains(id)) {
+                        merged.add(id);
+                        changed = true;
+                    }
+                }
+                if (changed) allow.setStrings(merged);
+            } catch (Throwable ignored) {
+            }
+        }
+    }
+
+    // ================================================================
     //  Public API
     // ================================================================
 

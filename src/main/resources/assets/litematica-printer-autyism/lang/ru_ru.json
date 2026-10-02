@@ -313,5 +313,7 @@
   "litematica-printer-autyism.layer.done_issues": "§eLayer Y=%s done: %s/%s correct, %s wrong state, %s wrong block, %s skipped/missing",
   "litematica-printer-autyism.hud.print_progress": "Printed %s%% (%s / %s in range)",
   "litematica-printer-autyism.hud.print_errors": "Wrong state: %s  Wrong block: %s",
-  "litematica-printer-autyism.hud.layer": "Layer Y=%s: %s / %s"
+  "litematica-printer-autyism.hud.layer": "Layer Y=%s: %s / %s",
+  "litematica-printer-autyism.config.bedrockBlockList": "Bedrock Mode Block List",
+  "litematica-printer-autyism.config.bedrockBlockList.desc": "Blocks the bedrock mode breaks (e.g. minecraft:end_portal_frame, minecraft:reinforced_deepslate). The list is also added to the bedrock miner mod's own allow list automatically."
 }
