@@ -299,5 +299,11 @@
   "autyism-le.bedrockBackend.lxyan": "bedrock-miner (lxyan2333)",
   "autyism-le.bedrockBackend.blockminer": "blockminer",
   "autyism-le.config.bedrockIgnoreRenderLayer": "忽略渲染层",
-  "autyism-le.config.bedrockIgnoreRenderLayer.desc": "处理 Litematica 框选范围内的所有基岩，不受当前渲染层范围限制。"
+  "autyism-le.config.bedrockIgnoreRenderLayer.desc": "处理 Litematica 框选范围内的所有基岩，不受当前渲染层范围限制。",
+  "autyism-le.config.printLayeredMode": "分层打印（从下往上）",
+  "autyism-le.config.printLayeredMode.desc": "只打印工作范围内投影最低的一个未完成的 Y 层，这一层全部完成后才开始上一层（缺材料会停在这一层等待）。配合很大的工作半径，可以站着不动从下往上把大型建筑一层层搭起来。迭代只覆盖范围内的投影方块框，范围设多大都不会卡。",
+  "autyism-le.config.autoRaiseReachSingleplayer": "单人世界自动调高交互距离",
+  "autyism-le.config.autoRaiseReachSingleplayer.desc": "单人世界（允许作弊）中，工作半径大于方块交互距离时自动用 /attribute 调高交互距离（原版上限 64）。否则内置服务端会撤回超出距离的放置。",
+  "autyism-le.config.limitRangeSingleplayer": "单人世界限制在交互距离内",
+  "autyism-le.config.limitRangeSingleplayer.desc": "单人世界中实际工作半径不超过服务端允许的交互距离，避免反复放置会被内置服务端撤回的方块（看起来像罢工）。多人服务器不受影响。"
 }

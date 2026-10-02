@@ -90,7 +90,17 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
         // 工作半径（0 = 自动使用最大可用交互距离）
         public static final ConfigDouble WORK_RANGE = floatValue("workRange")
                 .defaultValue(0)
-                .range(0, 256)
+                .range(0, 4096)
+                .build();
+
+        // 单人世界：工作半径大于原版交互距离时，自动用指令调高交互距离属性（需要允许作弊，最大 64）
+        public static final ConfigBoolean AUTO_RAISE_REACH = booleanValue("autoRaiseReachSingleplayer")
+                .defaultValue(true)
+                .build();
+
+        // 单人世界：工作半径不超过服务端允许的交互距离
+        public static final ConfigBoolean LIMIT_RANGE_SINGLEPLAYER = booleanValue("limitRangeSingleplayer")
+                .defaultValue(true)
                 .build();
 
         // 需求 1：打开容器时暂停打印机
@@ -173,6 +183,8 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
         public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
                 WORK_SWITCH,
                 WORK_RANGE,
+                AUTO_RAISE_REACH,
+                LIMIT_RANGE_SINGLEPLAYER,
                 PAUSE_ON_CONTAINER,
                 ITERATION_TIME_LIMIT,
                 CLASSIFY_BY_BLOCK,
@@ -321,6 +333,11 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
     }
 
     public static class Print {
+        // 需求 13：大范围分层打印（从下往上一层层打）
+        public static final ConfigBooleanHotkeyed LAYERED_MODE = booleanHotkey("printLayeredMode")
+                .defaultValue(true)
+                .build();
+
         // 启用打印
         public static final ConfigBooleanHotkeyed ENABLED = booleanHotkey("printEnabled")
                 .defaultValue(false)
@@ -473,6 +490,7 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
 
         public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
                 ENABLED,
+                LAYERED_MODE,
                 PRINT_SELECTION_TYPE,
                 EASY_PLACE_PROTOCOL,
                 PLACE_IN_AIR,

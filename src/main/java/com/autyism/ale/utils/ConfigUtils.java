@@ -48,8 +48,13 @@ public class ConfigUtils {
 
     public static double getEffectiveRange() {
         double configRange = Configs.Core.WORK_RANGE.getDoubleValue();
+        double reach = PlayerUtils.getInteractionRange(4.5);
         if (configRange <= 0) {
-            return PlayerUtils.getInteractionRange(4.5);
+            return reach;
+        }
+        // 单人世界的内置服务端一定会按原版交互距离校验，超出的放置会被撤回（看起来像打印机罢工），这里限制在可交互范围内
+        if (client.hasSingleplayerServer() && Configs.Core.LIMIT_RANGE_SINGLEPLAYER.getBooleanValue()) {
+            return Math.min(configRange, reach);
         }
         return configRange;
     }

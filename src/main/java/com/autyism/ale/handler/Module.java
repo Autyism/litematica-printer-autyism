@@ -24,6 +24,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
@@ -121,7 +122,11 @@ public abstract class Module extends ConfigUtils {
         }
 
         if (box == null) return;
-        if (iteratorManager.tryBuildBox(player, selectionType != null ? selectionType.getOptionListValue() : null, respectsRenderLayer())) {
+        List<PrinterBox> areaBoxes = needsAreaCheck() ? getWorkAreaBoxes() : null;
+        iteratorManager.setSectionFilter(getSectionFilter());
+        Integer layerClamp = updateLayerClamp(areaBoxes);
+        if (iteratorManager.tryBuildBox(player, selectionType != null ? selectionType.getOptionListValue() : null, respectsRenderLayer(),
+                areaBoxes, layerClamp)) {
             box.set(iteratorManager.getBox());
             scanState = ScanState.RUNNING;
             waitingPos = null;
@@ -180,13 +185,23 @@ public abstract class Module extends ConfigUtils {
                 BlockPos pos = iteratorManager.next();
                 if (pos == null) {
                     currentCycleItem = null; // 一轮扫描耗尽，重置方块分类
+                    onPassFinished();
                     return;
                 }
 
                 if (needsAreaCheck() && !isPosInWorkspace(pos)) continue;
 
                 boolean executed = false;
-                if (needsWork(pos)) {
+                boolean work = needsWork(pos);
+                if (layerY != null && !layerPending) {
+                    // 分层模式：本层还有没完成的方块（包括刚尝试过、处于冷却中的）就不能进入上一层。
+                    // 例外：被实体挡住（例如玩家自己站在那格）或反复尝试仍放不上的格子，不能卡住整层
+                    boolean unfinished = work || (isOnCooldown(pos) && LitematicaUtils.isPositionWithinRange(pos) && !isCorrectBlock(pos)
+                            && canProcessPos(pos));
+                    layerPending = unfinished && layerAttempts.getOrDefault(pos.asLong(), 0) < LAYER_MAX_ATTEMPTS
+                            && !isObstructedForLayer(pos);
+                }
+                if (work) {
                     // 按方块分类：一轮扫描仅处理一种方块类型（可选开关）
                     if (!Configs.Core.CLASSIFY_BY_BLOCK.getBooleanValue() || isCycleItemMatch(pos)) {
                         executeIteration(pos, skipIteration);
@@ -204,6 +219,100 @@ public abstract class Module extends ConfigUtils {
             if (timeoutTask != null) timeoutTask.cancel(false);
             timeLimitExceeded.set(false);
         }
+    }
+
+    // ---------------- 需求 13：分层打印 ----------------
+    /** 分层模式下当前正在打印的层；null = 未启用分层 */
+    @Nullable
+    private Integer layerY;
+    private boolean layerPending;
+    /** 分层模式下每个格子的放置尝试次数（换层时清空） */
+    private final it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap layerAttempts = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap();
+    private static final int LAYER_MAX_ATTEMPTS = 6;
+
+    /** 记录一次放置尝试（由具体模块在真正发出放置时调用） */
+    protected void notePlacementAttempt(BlockPos pos) {
+        if (layerY != null) layerAttempts.addTo(pos.asLong(), 1);
+    }
+
+    /** 该格子是否被实体挡住而无法放置（分层模式下不阻塞换层） */
+    protected boolean isObstructedForLayer(BlockPos pos) {
+        return false;
+    }
+
+    /** 是否启用分层打印（从下往上一层一层打） */
+    protected boolean isLayeredMode() {
+        return false;
+    }
+
+    @Nullable
+    public Integer getCurrentLayer() {
+        return layerY;
+    }
+
+    /** 计算本 tick 的分层 Y；区域发生变化时把层号限制在区域范围内 */
+    @Nullable
+    private Integer updateLayerClamp(@Nullable List<PrinterBox> areaBoxes) {
+        if (!isLayeredMode() || areaBoxes == null || areaBoxes.isEmpty() || player == null) {
+            layerY = null;
+            return null;
+        }
+        int[] bounds = layerBounds(areaBoxes);
+        if (bounds == null) {
+            layerY = null;
+            return null;
+        }
+        if (layerY == null || layerY < bounds[0] || layerY > bounds[1]) {
+            layerY = bounds[0];
+            layerPending = false;
+            layerAttempts.clear();
+        }
+        return layerY;
+    }
+
+    /** 工作范围内投影/选区的最低层与最高层 */
+    @Nullable
+    private int[] layerBounds(List<PrinterBox> areaBoxes) {
+        double range = ConfigUtils.getEffectiveRange();
+        int minY = (int) Math.floor(player.getEyeY() - range);
+        int maxY = (int) Math.ceil(player.getEyeY() + range);
+        int lo = Integer.MAX_VALUE, hi = Integer.MIN_VALUE;
+        for (PrinterBox b : areaBoxes) {
+            int y0 = Math.max(b.minY, minY), y1 = Math.min(b.maxY, maxY);
+            if (y0 > y1) continue;
+            lo = Math.min(lo, y0);
+            hi = Math.max(hi, y1);
+        }
+        return lo > hi ? null : new int[]{lo, hi};
+    }
+
+    /** 一轮遍历结束：分层模式下本层已全部完成则进入上一层（到顶后回到最底层复查） */
+    private void onPassFinished() {
+        if (layerY == null) return;
+        if (!layerPending) {
+            List<PrinterBox> areaBoxes = getWorkAreaBoxes();
+            int[] bounds = areaBoxes == null ? null : layerBounds(areaBoxes);
+            if (bounds != null) {
+                layerY = layerY + 1 > bounds[1] ? bounds[0] : layerY + 1;
+                layerAttempts.clear();
+            }
+        }
+        layerPending = false;
+    }
+
+    /** 可整段跳过的区块段（默认不跳过） */
+    @Nullable
+    protected IteratorManager.SectionFilter getSectionFilter() {
+        return null;
+    }
+
+    /**
+     * 工作区域的方块框：投影模式为所有启用的投影放置子区域，选区模式为 Litematica 选区。
+     * 迭代只会在“工作范围 ∩ 这些框”里进行。返回 null 表示不限制（遍历整个工作范围）。
+     */
+    @Nullable
+    protected List<PrinterBox> getWorkAreaBoxes() {
+        return needSchematic ? LitematicaUtils.getSchematicWorkBoxes() : LitematicaUtils.getSelectionWorkBoxes();
     }
 
     private boolean isCycleItemMatch(BlockPos pos) {
@@ -257,6 +366,9 @@ public abstract class Module extends ConfigUtils {
     }
 
     public void resetScanState() {
+        layerY = null;
+        layerAttempts.clear();
+        layerPending = false;
         scanState = ScanState.RUNNING;
         waitingPos = null;
         currentCycleItem = null;

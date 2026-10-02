@@ -9,7 +9,10 @@
       "com.autyism.ale.gametest.PrinterFixGameTest",
       "com.autyism.ale.gametest.ContainerPauseGameTest",
       "com.autyism.ale.gametest.ToolSwitchGameTest",
-      "com.autyism.ale.gametest.BedrockGameTest"
+      "com.autyism.ale.gametest.BedrockGameTest",
+      "com.autyism.ale.gametest.LargeRangeGameTest",
+      "com.autyism.ale.gametest.BigPrintGameTest",
+      "com.autyism.ale.gametest.DragonGameTest"
     ]
   },
   "mixins": [

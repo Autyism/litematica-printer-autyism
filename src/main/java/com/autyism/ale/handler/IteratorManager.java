@@ -16,7 +16,11 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
 
 /**
  * 迭代管理器 — 从 Module 中分离出的迭代相关逻辑。
@@ -45,6 +49,30 @@ public class IteratorManager {
     @Nullable
     private PrinterBox lastBox;
 
+    /** 工作范围与投影/选区方块框的交集；null 表示没有区域信息，退回到遍历整个工作范围 */
+    @Nullable
+    private List<PrinterBox> regions;
+    @Nullable
+    private List<PrinterBox> lastAreaBoxes;
+    @Nullable
+    private Integer lastLayerClamp;
+
+    /** 区块段过滤：返回 true 表示整个 16x16x16 区块段都不需要处理（例如投影里这一段全是空气） */
+    @FunctionalInterface
+    public interface SectionFilter {
+        boolean skip(int sectionX, int sectionY, int sectionZ);
+    }
+
+    /** 超过这个体积的区域按区块段遍历，以便整段跳过空气（小区域保持原来的逐格顺序） */
+    private static final long SECTIONED_VOLUME = 64L * 64 * 64;
+
+    @Nullable
+    private SectionFilter sectionFilter;
+
+    public void setSectionFilter(@Nullable SectionFilter filter) {
+        this.sectionFilter = filter;
+    }
+
     private boolean needsRebuild;
     private boolean dirtyIterator;
     // 层范围与工作范围无交集：本轮不迭代任何方块
@@ -66,6 +94,16 @@ public class IteratorManager {
      * @param respectRenderLayer false 时不按 Litematica 渲染层裁剪（例如破基岩模式处理整个框选范围）
      */
     public boolean tryBuildBox(LocalPlayer player, @Nullable Object selectionTypeObj, boolean respectRenderLayer) {
+        return tryBuildBox(player, selectionTypeObj, respectRenderLayer, null, null);
+    }
+
+    /**
+     * @param areaBoxes  投影放置/选区的方块框。不为 null 时只遍历“工作范围 ∩ 这些框”，
+     *                   因此遍历量只取决于投影大小，与工作范围设多大无关（需求 13：超大范围）
+     * @param layerClamp 不为 null 时只遍历这一个 Y 层（分层打印模式）
+     */
+    public boolean tryBuildBox(LocalPlayer player, @Nullable Object selectionTypeObj, boolean respectRenderLayer,
+                               @Nullable List<PrinterBox> areaBoxes, @Nullable Integer layerClamp) {
         BlockPos eyeBP = new BlockPos(
                 (int) Math.round(player.getX()),
                 (int) Math.round(player.getEyeY()),
@@ -97,7 +135,9 @@ public class IteratorManager {
                 || layerBelow != lastLayerBelow
                 || layerAxis != lastLayerAxis
                 || layerMode != lastLayerMode
-                || selectionType != lastSelectionType;
+                || selectionType != lastSelectionType
+                || !java.util.Objects.equals(areaBoxes, lastAreaBoxes)
+                || !java.util.Objects.equals(layerClamp, lastLayerClamp);
 
         if (needRebuild) {
             lastEyePos = eyeBP;
@@ -110,6 +150,8 @@ public class IteratorManager {
             lastLayerAxis = layerAxis;
             lastLayerMode = layerMode;
             lastSelectionType = selectionType;
+            lastAreaBoxes = areaBoxes;
+            lastLayerClamp = layerClamp;
 
             int minX = (int) Math.floor(player.getX() - effectiveRange);
             int maxX = (int) Math.ceil(player.getX() + effectiveRange);
@@ -167,13 +209,38 @@ public class IteratorManager {
                 emptyBox = maxY < PrinterBox.client.level.getMinY() || minY > PrinterBox.client.level.getMaxY();
             }
 
+            if (layerClamp != null) {
+                minY = Math.max(minY, layerClamp);
+                maxY = Math.min(maxY, layerClamp);
+                if (minY > maxY) emptyBox = true;
+            }
+
             box = new PrinterBox(minX, minY, minZ, maxX, maxY, maxZ);
             lastBox = box;
 
-            box.iterationMode = (IterationOrderType) Configs.Core.ITERATION_ORDER.getOptionListValue();
-            box.xIncrement = !Configs.Core.X_REVERSE.getBooleanValue();
-            box.yIncrement = !Configs.Core.Y_REVERSE.getBooleanValue();
-            box.zIncrement = !Configs.Core.Z_REVERSE.getBooleanValue();
+            if (areaBoxes != null && !emptyBox) {
+                List<PrinterBox> list = new ArrayList<>();
+                for (PrinterBox area : areaBoxes) {
+                    int x0 = Math.max(minX, area.minX), x1 = Math.min(maxX, area.maxX);
+                    int y0 = Math.max(minY, area.minY), y1 = Math.min(maxY, area.maxY);
+                    int z0 = Math.max(minZ, area.minZ), z1 = Math.min(maxZ, area.maxZ);
+                    if (x0 > x1 || y0 > y1 || z0 > z1) continue;
+                    list.add(new PrinterBox(x0, y0, z0, x1, y1, z1));
+                }
+                regions = list;
+            } else {
+                regions = null;
+            }
+
+            List<PrinterBox> toConfigure = new ArrayList<>();
+            toConfigure.add(box);
+            if (regions != null) toConfigure.addAll(regions);
+            for (PrinterBox b : toConfigure) {
+                b.iterationMode = (IterationOrderType) Configs.Core.ITERATION_ORDER.getOptionListValue();
+                b.xIncrement = !Configs.Core.X_REVERSE.getBooleanValue();
+                b.yIncrement = !Configs.Core.Y_REVERSE.getBooleanValue();
+                b.zIncrement = !Configs.Core.Z_REVERSE.getBooleanValue();
+            }
 
             this.shapeType = Configs.Core.ITERATOR_SHAPE.getOptionListValue() instanceof RadiusShapeType s ? s : null;
             this.eyePos = player.getEyePosition();
@@ -211,7 +278,7 @@ public class IteratorManager {
         if (box == null || emptyBox) return null;
 
         if (cachedIterator == null) {
-            cachedIterator = box.iterator();
+            cachedIterator = createIterator();
             dirtyIterator = false;
         }
 
@@ -236,10 +303,119 @@ public class IteratorManager {
     public boolean hasNext() {
         if (box == null || emptyBox) return false;
         if (cachedIterator == null) {
-            cachedIterator = box.iterator();
+            cachedIterator = createIterator();
             dirtyIterator = false;
         }
         return cachedIterator.hasNext();
+    }
+
+    private Iterator<BlockPos> regionIterator(PrinterBox region) {
+        long volume = (long) (region.maxX - region.minX + 1) * (region.maxY - region.minY + 1) * (region.maxZ - region.minZ + 1);
+        if (sectionFilter == null || volume < SECTIONED_VOLUME) return region.iterator();
+        return new SectionedIterator(region, sectionFilter);
+    }
+
+    /** 按区块段遍历一个大区域：整段被过滤的直接跳过，段内按区域配置的顺序逐格遍历 */
+    private static final class SectionedIterator implements Iterator<BlockPos> {
+        private final PrinterBox region;
+        private final SectionFilter filter;
+        private final int sx0, sx1, sy0, sy1, sz0, sz1;
+        private int sx, sy, sz;
+        private boolean started;
+        private boolean finished;
+        private Iterator<BlockPos> current = Collections.emptyIterator();
+
+        SectionedIterator(PrinterBox region, SectionFilter filter) {
+            this.region = region;
+            this.filter = filter;
+            this.sx0 = region.minX >> 4;
+            this.sx1 = region.maxX >> 4;
+            this.sy0 = region.minY >> 4;
+            this.sy1 = region.maxY >> 4;
+            this.sz0 = region.minZ >> 4;
+            this.sz1 = region.maxZ >> 4;
+        }
+
+        /** 前进到下一个区块段；返回 false 表示遍历结束 */
+        private boolean advanceSection() {
+            if (!started) {
+                started = true;
+                sy = region.yIncrement ? sy0 : sy1;
+                sx = region.xIncrement ? sx0 : sx1;
+                sz = region.zIncrement ? sz0 : sz1;
+                return true;
+            }
+            sz += region.zIncrement ? 1 : -1;
+            if (region.zIncrement ? sz > sz1 : sz < sz0) {
+                sz = region.zIncrement ? sz0 : sz1;
+                sx += region.xIncrement ? 1 : -1;
+                if (region.xIncrement ? sx > sx1 : sx < sx0) {
+                    sx = region.xIncrement ? sx0 : sx1;
+                    sy += region.yIncrement ? 1 : -1;
+                    if (region.yIncrement ? sy > sy1 : sy < sy0) return false;
+                }
+            }
+            return true;
+        }
+
+        @Override
+        public boolean hasNext() {
+            while (!current.hasNext()) {
+                if (finished) return false;
+                if (!advanceSection()) {
+                    finished = true;
+                    return false;
+                }
+                if (filter.skip(sx, sy, sz)) continue;
+                PrinterBox sub = new PrinterBox(
+                        Math.max(region.minX, sx << 4), Math.max(region.minY, sy << 4), Math.max(region.minZ, sz << 4),
+                        Math.min(region.maxX, (sx << 4) + 15), Math.min(region.maxY, (sy << 4) + 15), Math.min(region.maxZ, (sz << 4) + 15));
+                sub.iterationMode = region.iterationMode;
+                sub.xIncrement = region.xIncrement;
+                sub.yIncrement = region.yIncrement;
+                sub.zIncrement = region.zIncrement;
+                current = sub.iterator();
+            }
+            return true;
+        }
+
+        @Override
+        public BlockPos next() {
+            if (!hasNext()) throw new NoSuchElementException();
+            return current.next();
+        }
+    }
+
+    private Iterator<BlockPos> createIterator() {
+        if (regions == null) return box.iterator();
+        if (regions.isEmpty()) return Collections.emptyIterator();
+        if (regions.size() == 1) return regionIterator(regions.getFirst());
+        List<PrinterBox> list = regions;
+        return new Iterator<>() {
+            private int index = 0;
+            private Iterator<BlockPos> current = regionIterator(list.getFirst());
+
+            @Override
+            public boolean hasNext() {
+                while (!current.hasNext()) {
+                    if (++index >= list.size()) return false;
+                    current = regionIterator(list.get(index));
+                }
+                return true;
+            }
+
+            @Override
+            public BlockPos next() {
+                if (!hasNext()) throw new NoSuchElementException();
+                return current.next();
+            }
+        };
+    }
+
+    /** 本次迭代涉及的区域（工作范围与投影/选区的交集），没有区域信息时为 null */
+    @Nullable
+    public List<PrinterBox> getRegions() {
+        return regions;
     }
 
     public void reset() {
