@@ -89,6 +89,7 @@ public final class PrinterFixGameTest implements FabricClientGameTest {
                 player.getInventory().setItem(9 + i, new ItemStack(i % 2 == 0 ? Items.STONE : Items.OAK_PLANKS, 64));
             }
             player.getInventory().setSelectedSlot(0);
+            player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetHeldSlotPacket(0));
             player.inventoryMenu.sendAllDataToRemote();
         });
         sp.getServer().runCommand("tp @a " + px + " " + py + " " + pz);
@@ -257,6 +258,7 @@ public final class PrinterFixGameTest implements FabricClientGameTest {
             var player = server.getPlayerList().getPlayers().getFirst();
             player.getInventory().clearContent();
             player.getInventory().setSelectedSlot(0);
+            player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetHeldSlotPacket(0));
             player.inventoryMenu.sendAllDataToRemote();
         });
         sp.getServer().runCommand("tp @a 23.5 64 -1.5");
