@@ -52,6 +52,7 @@ public class ModuleManager {
         if (ContainerGuard.isPaused()) return;
         boolean printerEnabled = ConfigUtils.isPrinterEnable();
         if (printerEnabled && !lastPrinterEnabled) {
+            com.autyism.ale.utils.ToolSwitchUtils.resetHalt();
             MissingMaterialTracker.getInstance().reset();
             for (Module module : VALUES) {
                 module.resetScanState();
