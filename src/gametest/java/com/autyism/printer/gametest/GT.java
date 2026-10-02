@@ -32,6 +32,8 @@ public final class GT {
 
     public static TestSingleplayerContext newWorld(ClientGameTestContext context) {
         TestSingleplayerContext sp = context.worldBuilder().create();
+        // Litematica 会把上一个同名测试世界的投影放置读回来：每个测试开始时清空，避免互相影响
+        removeAllPlacements(context);
         sp.getServer().runCommand("gamerule doDaylightCycle false");
         sp.getServer().runCommand("gamerule doMobSpawning false");
         sp.getServer().runCommand("gamerule doWeatherCycle false");
@@ -82,6 +84,26 @@ public final class GT {
             schematic.setBlock(pos.immutable(), states.apply(pos.immutable()), 3);
         }
         TestSchematicRegion.activate(min, max);
+    }
+
+    /**
+     * 写入投影世界并确认没有被 Litematica 的后台清理（例如刚删除过投影放置）抹掉；被抹掉就重写。
+     */
+    public static void setSchematicStable(ClientGameTestContext context, BlockPos min, BlockPos max, Function<BlockPos, BlockState> states) {
+        for (int attempt = 0; attempt < 5; attempt++) {
+            context.runOnClient(c -> setSchematic(min, max, states));
+            context.waitTicks(20);
+            boolean intact = context.computeOnClient(c -> {
+                WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
+                for (BlockPos pos : BlockPos.betweenClosed(min, max)) {
+                    if (!schematic.getBlockState(pos).equals(states.apply(pos.immutable()))) return false;
+                }
+                return true;
+            });
+            if (intact) return;
+            log("schematic blocks were cleared in the background, rewriting (attempt " + (attempt + 1) + ")");
+        }
+        throw new AssertionError("schematic world keeps getting cleared");
     }
 
     /**

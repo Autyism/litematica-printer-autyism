@@ -54,6 +54,7 @@ public class ModuleManager {
         boolean printerEnabled = ConfigUtils.isPrinterEnable();
         if (printerEnabled && !lastPrinterEnabled) {
             com.autyism.printer.utils.ToolSwitchUtils.resetHalt();
+            com.autyism.printer.utils.InventoryUtils.clearRecentlyUsed();
             MissingMaterialTracker.getInstance().reset();
             for (Module module : VALUES) {
                 module.resetScanState();

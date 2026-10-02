@@ -316,5 +316,7 @@
   "litematica-printer-autyism.hud.print_errors": "状态错误：%s  方块错误：%s",
   "litematica-printer-autyism.hud.layer": "当前层 Y=%s：%s / %s",
   "litematica-printer-autyism.config.bedrockBlockList": "破基岩方块列表",
-  "litematica-printer-autyism.config.bedrockBlockList.desc": "破基岩模式要破除的方块（例如末地传送门框架 minecraft:end_portal_frame、强化深板岩）。会自动加入破基岩模组自己的允许列表。"
+  "litematica-printer-autyism.config.bedrockBlockList.desc": "破基岩模式要破除的方块（例如末地传送门框架 minecraft:end_portal_frame、强化深板岩）。会自动加入破基岩模组自己的允许列表。",
+  "litematica-printer-autyism.config.printFluidsWithBucket": "用桶打印流体",
+  "litematica-printer-autyism.config.printFluidsWithBucket.desc": "用水桶 / 岩浆桶放置投影里的水源、岩浆源（像玩家一样瞄准相邻方块的面），并给投影里应该装满水 / 岩浆 / 细雪的空炼药锅倒满。只有四周和下方的方块都打印好之后才放，不会漏出去。生存模式每桶放一格（空桶留在背包里）；没有桶时如果开了“破冰放水”就用原来的方法。"
 }

@@ -68,6 +68,11 @@ public class InventoryUtils {
         return stackFilter == null || stackFilter.test(stack);
     }
 
+    /** 换世界 / 重新开启打印机时清空 */
+    public static void clearRecentlyUsed() {
+        RECENTLY_USED.clear();
+    }
+
     public static void markRecentlyUsed(Item item) {
         RECENTLY_USED.remove(item);
         RECENTLY_USED.add(item);

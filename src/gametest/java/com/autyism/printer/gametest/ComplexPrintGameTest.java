@@ -1,0 +1,249 @@
+package com.autyism.printer.gametest;
+
+import com.autyism.printer.config.Configs;
+import com.autyism.printer.handler.ModuleManager;
+import fi.dy.masa.litematica.data.DataManager;
+import fi.dy.masa.litematica.schematic.LitematicaSchematic;
+import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
+import fi.dy.masa.litematica.world.SchematicWorldHandler;
+import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
+import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
+import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.Property;
+
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+
+/**
+ * 自测：用用户文件夹里带大量内饰的真实投影（楼梯/台阶/门/告示牌/红石/容器/流体……），创造模式分层打印，
+ * 打完后逐方块与投影对比，按“方块 + 问题类型 + 不同的属性”汇总，找出打印机放错的东西。
+ * <p>
+ * 投影列表：D:/ale-work/complex-list.txt（每行一个 .litematic 路径，UTF-8），没有就用内置的几个。
+ */
+@SuppressWarnings("UnstableApiUsage")
+public final class ComplexPrintGameTest implements FabricClientGameTest {
+    private static final Path LIST = Path.of("D:/ale-work/complex-list.txt");
+    private static final String BASE = "D:/Games/PCL2/.minecraft/schematics/Up 分享后期工业/完整版2413文件/f房屋 居所 类/";
+    private static final List<String> DEFAULTS = List.of(
+            BASE + "不同时代 国家/z中世纪建筑/酒馆旅店/蔚蓝旅店.litematic",
+            BASE + "不同种类 功能/b别墅[]居民区/aa别墅1(三层带泳池).litematic",
+            BASE + "不同时代 国家/z中世纪建筑/中世纪庄园.litematic");
+
+    @Override
+    public void runTest(ClientGameTestContext context) {
+        if (!GTFilter.enabled("complex")) return;
+        List<String> files = new ArrayList<>(DEFAULTS);
+        try {
+            if (Files.exists(LIST)) {
+                files.clear();
+                for (String line : Files.readAllLines(LIST, StandardCharsets.UTF_8)) {
+                    line = line.strip().replace("\uFEFF", "");
+                    if (!line.isEmpty() && !line.startsWith("#")) files.add(line);
+                }
+            }
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
+        int maxTicks = Integer.parseInt(System.getProperty("ale.ticks", "6000"));
+        List<String> summary = new ArrayList<>();
+        int index = 0;
+        for (String file : files) {
+            Path src = Path.of(file);
+            if (!Files.exists(src)) {
+                GT.log("[complex] missing " + file);
+                continue;
+            }
+            summary.add(runOne(context, src, index++, maxTicks));
+        }
+        for (String s : summary) GT.log("[complex] SUMMARY " + s);
+    }
+
+    private String runOne(ClientGameTestContext context, Path src, int index, int maxTicks) {
+        String name = src.getFileName().toString();
+        BlockPos origin = new BlockPos(200 + index * 200, -60, 200);
+        try (TestSingleplayerContext sp = GT.newWorld(context)) {
+            sp.getServer().runCommand("gamemode creative @a");
+            // 关掉随机刻：草蔓延、藤蔓生长、树苗长大这些自然变化不算打印机的错
+            sp.getServer().runCommand("gamerule randomTickSpeed 0");
+            context.runOnClient(c -> c.options.renderDistance().set(8));
+            SchematicPlacement placement = context.computeOnClient(client -> {
+                try {
+                    Path dir = DataManager.getSchematicsBaseDirectory();
+                    Files.copy(src, dir.resolve("ale_complex_" + index + ".litematic"), StandardCopyOption.REPLACE_EXISTING);
+                    LitematicaSchematic schematic = LitematicaSchematic.createFromFile(dir, "ale_complex_" + index + ".litematic");
+                    SchematicPlacement p = SchematicPlacement.createFor(schematic, origin, "complex" + index, true, true);
+                    DataManager.getSchematicPlacementManager().addSchematicPlacement(p, false);
+                    return p;
+                } catch (Exception e) {
+                    throw new AssertionError(e);
+                }
+            });
+            int[] bb = context.computeOnClient(c -> {
+                int[] r = {Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE};
+                for (var b : placement.getSubRegionBoxes(fi.dy.masa.litematica.schematic.placement.SubRegionPlacement.RequiredEnabled.ANY).values()) {
+                    for (BlockPos q : new BlockPos[]{b.getPos1(), b.getPos2()}) {
+                        r[0] = Math.min(r[0], q.getX()); r[1] = Math.min(r[1], q.getY()); r[2] = Math.min(r[2], q.getZ());
+                        r[3] = Math.max(r[3], q.getX()); r[4] = Math.max(r[4], q.getY()); r[5] = Math.max(r[5], q.getZ());
+                    }
+                }
+                return r;
+            });
+            BlockPos min = new BlockPos(bb[0], bb[1], bb[2]);
+            BlockPos max = new BlockPos(bb[3], bb[4], bb[5]);
+            // 站在建筑正上方（飞着），不挡住任何一层
+            double cx = (min.getX() + max.getX() + 1) / 2.0, cz = (min.getZ() + max.getZ() + 1) / 2.0;
+            int standY = max.getY() + 3;
+            double range = Math.min(64, Math.ceil(Math.sqrt(Math.pow((max.getX() - min.getX()) / 2.0 + 1, 2) + Math.pow((max.getZ() - min.getZ()) / 2.0 + 1, 2) + Math.pow(standY + 1.62 - min.getY(), 2))) + 1);
+            sp.getServer().runCommand(String.format(java.util.Locale.ROOT, "tp @a %.1f %d %.1f", cx, standY, cz));
+            context.waitFor(c -> c.player != null && Math.abs(c.player.getX() - cx) < 0.01, 200);
+            context.runOnClient(c -> {
+                c.player.getAbilities().flying = true;
+                c.player.onUpdateAbilities();
+            });
+            context.waitTicks(100);
+            Map<BlockPos, BlockState> expected = context.computeOnClient(c -> {
+                var w = SchematicWorldHandler.getSchematicWorld();
+                Map<BlockPos, BlockState> m = new LinkedHashMap<>();
+                for (BlockPos p : BlockPos.betweenClosed(min, max)) m.put(p.immutable(), w.getBlockState(p));
+                return m;
+            });
+            long nonAir = expected.values().stream().filter(s -> !s.isAir()).count();
+            GT.log("[complex] " + name + " box " + min.toShortString() + " -> " + max.toShortString() + " non-air=" + nonAir + " range=" + range);
+
+            context.runOnClient(c -> {
+                Configs.Core.WORK_RANGE.setDoubleValue(range);
+                Configs.Print.LAYERED_MODE.setBooleanValue(true);
+                Configs.Placement.PLACE_BLOCKS_PER_TICK.setIntegerValue(16);
+                GT.enablePrint();
+            });
+            int last = -1, lastChange = 0, t = 0;
+            for (t = 1; t <= maxTicks; t++) {
+                context.waitTick();
+                if (t <= 100 && t % 5 == 0) {
+                    String st = context.computeOnClient(c -> "layer=" + ModuleManager.PRINT.getCurrentLayer() + " pending=" + ModuleManager.PRINT.getLastPendingPos());
+                    GT.log("[complex] " + name + " early t" + t + " " + st);
+                }
+                if (t % 40 != 0) continue;
+                int placed = countMatching(sp, expected);
+                if (placed != last) {
+                    last = placed;
+                    lastChange = t;
+                }
+                if (t % 400 == 0 || t <= 400 && t % 80 == 0) {
+                    int layer = context.computeOnClient(c -> ModuleManager.PRINT.getCurrentLayer());
+                    GT.log("[complex] " + name + " t" + t + " matching=" + placed + "/" + nonAir + " layer=" + layer);
+                }
+                if (t % 400 == 0 || t - lastChange == 400) {
+                    GT.log("[complex] " + name + " STALL " + context.computeOnClient(c -> {
+                        BlockPos lp = ModuleManager.PRINT.getLastPendingPos();
+                        BlockPos fs = ModuleManager.PRINT.getLastForcedSkipPos();
+                        String forced = " forcedSkips=" + ModuleManager.PRINT.getForcedLayerSkips() + (fs == null ? "" : " lastForced=" + fs.toShortString()
+                                + " want=" + SchematicWorldHandler.getSchematicWorld().getBlockState(fs) + " have=" + c.level.getBlockState(fs)
+                                + " below=" + c.level.getBlockState(fs.below()));
+                        forced += " STATE " + ModuleManager.PRINT.debugState();
+                        if (lp == null) return "no pending pos, layer=" + ModuleManager.PRINT.getCurrentLayer() + forced;
+                        return "layer=" + ModuleManager.PRINT.getCurrentLayer() + " pending=" + lp.toShortString()
+                                + " want=" + SchematicWorldHandler.getSchematicWorld().getBlockState(lp)
+                                + " have=" + c.level.getBlockState(lp)
+                                + " below=" + c.level.getBlockState(lp.below())
+                                + " canInteract=" + com.autyism.printer.utils.PlayerUtils.canInteracted(lp) + forced;
+                    }));
+                }
+                if (placed >= nonAir || t - lastChange >= 600) break;
+            }
+            context.runOnClient(c -> GT.disableAll());
+            context.waitTicks(20);
+            String report = compare(sp, name, expected);
+            // 关世界之前删掉投影放置（关世界时 Litematica 会把放置存进这个世界的配置，下次进同名世界又读回来）
+            GT.removeAllPlacements(context);
+            return name + " ticks=" + t + " " + report;
+        } finally {
+            GT.removeAllPlacements(context);
+            context.runOnClient(c -> GT.disableAll());
+        }
+    }
+
+    private static int countMatching(TestSingleplayerContext sp, Map<BlockPos, BlockState> expected) {
+        return sp.getServer().computeOnServer(server -> {
+            var level = server.overworld();
+            int n = 0;
+            for (var e : expected.entrySet()) {
+                if (!e.getValue().isAir() && level.getBlockState(e.getKey()).getBlock() == e.getValue().getBlock()) n++;
+            }
+            return n;
+        });
+    }
+
+    /** 逐方块比较并汇总问题 */
+    private static String compare(TestSingleplayerContext sp, String name, Map<BlockPos, BlockState> expected) {
+        Map<String, List<String>> issues = new TreeMap<>();
+        int[] counts = new int[5]; // ok, missing, wrongBlock, wrongState, extra
+        sp.getServer().runOnServer(server -> {
+            var level = server.overworld();
+            for (var e : expected.entrySet()) {
+                BlockState want = e.getValue();
+                BlockState have = level.getBlockState(e.getKey());
+                String key;
+                if (want.equals(have)) {
+                    counts[0]++;
+                    continue;
+                }
+                if (want.isAir()) {
+                    if (have.isAir()) {
+                        counts[0]++;
+                        continue;
+                    }
+                    counts[4]++;
+                    key = "EXTRA " + id(have);
+                } else if (have.isAir() || (have.getFluidState().isSource() && !want.getFluidState().isSource() && have.getBlock() != want.getBlock())) {
+                    counts[1]++;
+                    key = "MISSING " + id(want) + (have.isAir() ? "" : " (have " + id(have) + ")");
+                } else if (have.getBlock() != want.getBlock()) {
+                    counts[2]++;
+                    key = "WRONG_BLOCK " + id(want) + " -> " + id(have);
+                } else {
+                    counts[3]++;
+                    StringBuilder diff = new StringBuilder();
+                    for (Property<?> p : want.getProperties()) {
+                        if (!want.getValue(p).equals(have.getValue(p))) {
+                            diff.append(p.getName()).append('=').append(want.getValue(p)).append("->").append(have.getValue(p)).append(' ');
+                        }
+                    }
+                    key = "WRONG_STATE " + id(want) + " " + diff.toString().trim();
+                }
+                String extra = "";
+                if (key.startsWith("MISSING water") && issues.getOrDefault(key, List.of()).size() < 2) {
+                    StringBuilder nb = new StringBuilder(" | ");
+                    for (net.minecraft.core.Direction d : net.minecraft.core.Direction.values()) {
+                        BlockPos n = e.getKey().relative(d);
+                        nb.append(d.getName()).append(": want ").append(id(expected.getOrDefault(n, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState())))
+                                .append(" have ").append(id(level.getBlockState(n))).append("; ");
+                    }
+                    extra = nb.toString();
+                }
+                issues.computeIfAbsent(key, k -> new ArrayList<>()).add(e.getKey().toShortString() + " want=" + want + extra);
+            }
+        });
+        GT.log("[complex] " + name + " RESULT ok=" + counts[0] + " missing=" + counts[1] + " wrongBlock=" + counts[2] + " wrongState=" + counts[3] + " extra=" + counts[4]);
+        // 按“同类问题数量”排序输出
+        issues.entrySet().stream()
+                .sorted((a, b) -> b.getValue().size() - a.getValue().size())
+                .limit(60)
+                .forEach(e -> GT.log("[complex] " + name + "   " + e.getValue().size() + "x " + e.getKey() + "  e.g. " + e.getValue().get(0)));
+        return "ok=" + counts[0] + " missing=" + counts[1] + " wrongBlock=" + counts[2] + " wrongState=" + counts[3] + " extra=" + counts[4];
+    }
+
+    private static String id(BlockState s) {
+        return BuiltInRegistries.BLOCK.getKey(s.getBlock()).getPath();
+    }
+}

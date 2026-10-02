@@ -15,6 +15,8 @@ public final class ReachHelper {
     private static final Minecraft mc = Minecraft.getInstance();
     public static final int VANILLA_ATTRIBUTE_MAX = 64;
     private static int requestedValue = -1;
+    /** 换世界 / 重生后是新的玩家实体，属性回到默认值，需要重新设置 */
+    private static LocalPlayer requestedFor;
 
     private ReachHelper() {
     }
@@ -28,6 +30,10 @@ public final class ReachHelper {
         if (!ConfigUtils.isPrinterEnable() || !Configs.Core.AUTO_RAISE_REACH.getBooleanValue()) return;
         double wanted = Configs.Core.WORK_RANGE.getDoubleValue();
         if (wanted <= 0) return;
+        if (player != requestedFor) {
+            requestedFor = player;
+            requestedValue = -1;
+        }
         AttributeInstance attr = player.getAttribute(Attributes.BLOCK_INTERACTION_RANGE);
         if (attr == null) return;
         int target = (int) Math.min(VANILLA_ATTRIBUTE_MAX, Math.ceil(wanted - 1));

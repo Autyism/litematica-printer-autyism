@@ -315,5 +315,7 @@
   "litematica-printer-autyism.hud.print_errors": "Wrong state: %s  Wrong block: %s",
   "litematica-printer-autyism.hud.layer": "Layer Y=%s: %s / %s",
   "litematica-printer-autyism.config.bedrockBlockList": "Bedrock Mode Block List",
-  "litematica-printer-autyism.config.bedrockBlockList.desc": "Blocks the bedrock mode breaks (e.g. minecraft:end_portal_frame, minecraft:reinforced_deepslate). The list is also added to the bedrock miner mod's own allow list automatically."
+  "litematica-printer-autyism.config.bedrockBlockList.desc": "Blocks the bedrock mode breaks (e.g. minecraft:end_portal_frame, minecraft:reinforced_deepslate). The list is also added to the bedrock miner mod's own allow list automatically.",
+  "litematica-printer-autyism.config.printFluidsWithBucket": "Print Fluids With Buckets",
+  "litematica-printer-autyism.config.printFluidsWithBucket.desc": "Place schematic water / lava source blocks with a water / lava bucket (aiming at the neighbouring block face like a player would), and fill empty cauldrons that should be full of water / lava / powder snow. A source is only placed once the blocks around and below it are printed, so the fluid can't leak out. In survival every bucket places one source (empty buckets stay in your inventory); without a bucket the old 'Break Ice for Water' method is used if enabled."
 }

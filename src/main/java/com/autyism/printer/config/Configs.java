@@ -391,6 +391,11 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 .defaultValue(false)
                 .build();
 
+        // 用桶打印流体（水源 / 岩浆源 / 装满的炼药锅）
+        public static final ConfigBoolean PRINT_FLUIDS_WITH_BUCKET = booleanValue("printFluidsWithBucket")
+                .defaultValue(true)
+                .build();
+
         // 破冰放水
         public static final ConfigBooleanHotkeyed PRINT_ICE_FOR_WATER = booleanHotkey("printIceForWater")
                 .defaultValue(false)
@@ -502,6 +507,7 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 PRINT_REPLACE,
                 REPLACEABLE_LIST,
                 SKIP_WATERLOGGED_BLOCK,
+                PRINT_FLUIDS_WITH_BUCKET,
                 PRINT_ICE_FOR_WATER,
                 SAFELY_OBSERVER,
                 STRIP_LOGS,
