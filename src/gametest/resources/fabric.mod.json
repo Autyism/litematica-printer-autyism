@@ -1,27 +1,27 @@
 {
   "schemaVersion": 1,
-  "id": "autyism-le-gametest",
+  "id": "litematica-printer-autyism-gametest",
   "version": "1.0.0",
-  "name": "ALE GameTests",
+  "name": "Litematica Printer Autyism Edition GameTests",
   "environment": "client",
   "entrypoints": {
     "fabric-client-gametest": [
-      "com.autyism.ale.gametest.PrinterFixGameTest",
-      "com.autyism.ale.gametest.ContainerPauseGameTest",
-      "com.autyism.ale.gametest.ToolSwitchGameTest",
-      "com.autyism.ale.gametest.BedrockGameTest",
-      "com.autyism.ale.gametest.LargeRangeGameTest",
-      "com.autyism.ale.gametest.BigPrintGameTest",
-      "com.autyism.ale.gametest.DragonGameTest"
+      "com.autyism.printer.gametest.PrinterFixGameTest",
+      "com.autyism.printer.gametest.ContainerPauseGameTest",
+      "com.autyism.printer.gametest.ToolSwitchGameTest",
+      "com.autyism.printer.gametest.BedrockGameTest",
+      "com.autyism.printer.gametest.LargeRangeGameTest",
+      "com.autyism.printer.gametest.BigPrintGameTest",
+      "com.autyism.printer.gametest.DragonGameTest"
     ]
   },
   "mixins": [
-    "autyism-le-gametest.mixins.json"
+    "litematica-printer-autyism-gametest.mixins.json"
   ],
   "depends": {
     "fabricloader": "*",
     "fabric-api": "*",
     "minecraft": "*",
-    "autyism-le": "*"
+    "litematica-printer-autyism": "*"
   }
 }

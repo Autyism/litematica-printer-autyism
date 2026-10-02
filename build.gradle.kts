@@ -95,7 +95,7 @@ if (providers.gradleProperty("aleGameTest").isPresent) {
     fabricApi {
         configureTests {
             createSourceSet.set(true)
-            modId.set("autyism-le-gametest")
+            modId.set("litematica-printer-autyism-gametest")
             enableGameTests.set(false)
             enableClientGameTests.set(true)
             eula.set(true)

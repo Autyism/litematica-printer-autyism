@@ -6,4 +6,4 @@ pluginManagement {
         maven("https://maven.fabricmc.net") { name = "Fabric" }
     }
 }
-rootProject.name = "autyism-litematica-enhancement"
+rootProject.name = "litematica-printer-autyism"
