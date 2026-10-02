@@ -166,7 +166,7 @@ public abstract class MixinMultiPlayerGameMode implements MultiPlayerGameModeExt
         }
         // 同 tick 快速破坏：服务端在 STOP 时按 进度 x (已过tick+1) >= 0.7 判定，同 tick 内即 进度 >= 0.7。
         // 原实现阈值为 0.5，进度在 0.5~0.7 的方块客户端先删了但服务端不认，变成幽灵方块。
-        if (Configs.Break.BREAK_INSTANT_MINE.getBooleanValue() && destroyProgress >= 0.7F) {
+        if (Configs.Break.BREAK_INSTANT_MINE.getBooleanValue() && destroyProgress >= MiningUtils.instantThreshold()) {
             if (localPrediction) {
                 destroyBlock(blockPos);
             }

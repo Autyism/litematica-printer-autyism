@@ -296,7 +296,7 @@ public final class PrinterFixGameTest implements FabricClientGameTest {
             Configs.Mine.EXCAVATE_LIMITER.setOptionListValue(MiningFilterType.CUSTOM);
             Configs.Mine.EXCAVATE_LIMIT.setOptionListValue(UsageRestriction.ListType.NONE);
             Configs.Mine.MINE_SELECTION_TYPE.setOptionListValue(SelectionType.LITEMATICA_SELECTION);
-            Configs.Mine.MINE_INSTANT_ONLY.setBooleanValue(true);
+            Configs.Mine.MINE_INSTANT_FIRST_DETECT.setBooleanValue(true);
             Configs.Mine.ENABLED.setBooleanValue(true);
             ModuleManager.MINE.resetScanState();
             Configs.Core.WORK_SWITCH.setBooleanValue(true);
@@ -304,11 +304,17 @@ public final class PrinterFixGameTest implements FabricClientGameTest {
 
         int ticks = waitServer(context, () -> {
             int remaining = remainingMineable(sp);
+            if (remaining > 0 && obsidianLeft(sp) < OBSIDIAN.size()) {
+                throw new AssertionError("[mine] instant-first violated: obsidian was mined while instant blocks remained");
+            }
             String hand = context.computeOnClient(client -> client.player.getMainHandItem().toString()
                     + " slot=" + client.player.getInventory().getSelectedSlot());
             System.out.println("[PrinterFixGameTest] mine tick: remaining=" + remaining + " hand=" + hand);
             return remaining == 0;
         }, 100, "mineable blocks remain");
+        // 可秒破的都挖完后，才开始挖不能秒破的黑曜石
+        int obsidianTicks = waitServer(context, () -> obsidianLeft(sp) == 0, 600, "[mine] obsidian was not mined after the instant blocks");
+        System.out.println("[PrinterFixGameTest] instant-first: obsidian mined afterwards in " + obsidianTicks + " ticks");
         context.waitTicks(20);
         context.runOnClient(client -> Configs.Core.WORK_SWITCH.setBooleanValue(false));
 
@@ -316,10 +322,7 @@ public final class PrinterFixGameTest implements FabricClientGameTest {
             List<String> result = new ArrayList<>();
             for (BlockPos pos : BlockPos.betweenClosed(MINE_MIN, MINE_MAX)) {
                 BlockState state = server.overworld().getBlockState(pos);
-                boolean obsidian = OBSIDIAN.contains(pos);
-                if (obsidian != state.is(Blocks.OBSIDIAN) || (!obsidian && !state.isAir())) {
-                    result.add(pos.toShortString() + "=" + state);
-                }
+                if (!state.isAir()) result.add(pos.toShortString() + "=" + state);
             }
             return result;
         });
@@ -330,10 +333,7 @@ public final class PrinterFixGameTest implements FabricClientGameTest {
             List<String> result = new ArrayList<>();
             for (BlockPos pos : BlockPos.betweenClosed(MINE_MIN, MINE_MAX)) {
                 BlockState clientState = client.level.getBlockState(pos);
-                boolean obsidian = OBSIDIAN.contains(pos);
-                if (obsidian != clientState.is(Blocks.OBSIDIAN) || (!obsidian && !clientState.isAir())) {
-                    result.add(pos.toShortString() + "=" + clientState);
-                }
+                if (!clientState.isAir()) result.add(pos.toShortString() + "=" + clientState);
             }
             return result;
         });
@@ -343,7 +343,15 @@ public final class PrinterFixGameTest implements FabricClientGameTest {
         if (ticks > 10) {
             throw new AssertionError("[mine] instant mining too slow: " + ticks + " ticks for 28 blocks");
         }
-        System.out.println("[PrinterFixGameTest] instant mining: OK (28 blocks in " + ticks + " ticks, obsidian skipped, no ghosts)");
+        System.out.println("[PrinterFixGameTest] instant mining: OK (28 blocks in " + ticks + " ticks, obsidian left for later, no ghosts)");
+    }
+
+    private static int obsidianLeft(TestSingleplayerContext sp) {
+        return sp.getServer().computeOnServer(server -> {
+            int n = 0;
+            for (BlockPos pos : OBSIDIAN) if (server.overworld().getBlockState(pos).is(Blocks.OBSIDIAN)) n++;
+            return n;
+        });
     }
 
     private static int remainingMineable(TestSingleplayerContext sp) {

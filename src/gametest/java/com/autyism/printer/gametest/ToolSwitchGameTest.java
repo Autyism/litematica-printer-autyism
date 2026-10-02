@@ -122,7 +122,7 @@ public final class ToolSwitchGameTest implements FabricClientGameTest {
             Configs.Mine.EXCAVATE_LIMITER.setOptionListValue(MiningFilterType.CUSTOM);
             Configs.Mine.EXCAVATE_LIMIT.setOptionListValue(UsageRestriction.ListType.NONE);
             Configs.Mine.MINE_SELECTION_TYPE.setOptionListValue(SelectionType.LITEMATICA_SELECTION);
-            Configs.Mine.MINE_INSTANT_ONLY.setBooleanValue(false);
+            Configs.Mine.MINE_INSTANT_FIRST_DETECT.setBooleanValue(true);
             Configs.Mine.ENABLED.setBooleanValue(true);
             ModuleManager.MINE.resetScanState();
             Configs.Core.WORK_SWITCH.setBooleanValue(true);
