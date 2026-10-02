@@ -48,9 +48,7 @@ public class MixinLocalPlayer extends AbstractClientPlayer {
 
     @Inject(at = @At("HEAD"), method = "resetPos")
     public void init(CallbackInfo ci) {
-        if (Configs.Core.UPDATE_CHECK.getBooleanValue() && !updateChecked) {
-            CompletableFuture.runAsync(ModUtils::checkForUpdates);
-        }
+        // 原版打印机的更新检查（对比 BiliXWhite 仓库版本）对本模组没有意义，已移除
         updateChecked = true;
     }
 

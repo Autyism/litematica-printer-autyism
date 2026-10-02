@@ -193,6 +193,7 @@ public abstract class Module extends ConfigUtils {
 
                 boolean executed = false;
                 boolean work = needsWork(pos);
+                if (layerY != null && pos.getY() == layerY) onLayerPassPosition(pos);
                 if (layerY != null && !layerPending) {
                     // 分层模式：本层还有没完成的方块（包括刚尝试过、处于冷却中的）就不能进入上一层。
                     // 例外：被实体挡住（例如玩家自己站在那格）或反复尝试仍放不上的格子，不能卡住整层
@@ -291,9 +292,23 @@ public abstract class Module extends ConfigUtils {
     protected void onScanPassFinished() {
     }
 
+    /** 分层模式：本轮遍历到当前层的一个工作区坐标（用于统计） */
+    protected void onLayerPassPosition(BlockPos pos) {
+    }
+
+    /** 分层模式：本轮遍历结束，layerDone 表示当前层已完成即将进入上一层 */
+    protected void onLayerPassFinished(int layer, boolean layerDone) {
+    }
+
+    /** 该坐标在分层模式下是否已被判定为“跳过”（被实体挡住或多次尝试失败） */
+    protected boolean isLayerSkipped(BlockPos pos) {
+        return layerAttempts.getOrDefault(pos.asLong(), 0) >= LAYER_MAX_ATTEMPTS || isObstructedForLayer(pos);
+    }
+
     private void onPassFinished() {
         onScanPassFinished();
         if (layerY == null) return;
+        onLayerPassFinished(layerY, !layerPending);
         if (!layerPending) {
             List<PrinterBox> areaBoxes = getWorkAreaBoxes();
             int[] bounds = areaBoxes == null ? null : layerBounds(areaBoxes);

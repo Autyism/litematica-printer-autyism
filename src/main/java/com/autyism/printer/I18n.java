@@ -29,6 +29,11 @@ public class I18n {
     public static final I18n BLOCK_NO_SUPPORT = of("block.no_support");
     public static final I18n BLOCK_MISMATCH = of("block.mismatch");
     public static final I18n SHULKER_CONTENT_MISMATCH = of("shulker.content_mismatch");
+    public static final I18n LAYER_DONE_ALL = of("layer.done_all");
+    public static final I18n LAYER_DONE_ISSUES = of("layer.done_issues");
+    public static final I18n HUD_PRINT_PROGRESS = of("hud.print_progress");
+    public static final I18n HUD_PRINT_ERRORS = of("hud.print_errors");
+    public static final I18n HUD_LAYER = of("hud.layer");
 
     private static final String PREFIX_CONFIG = "config";
     private static final String PREFIX_COMMENT = "desc";

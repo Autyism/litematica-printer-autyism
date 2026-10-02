@@ -39,10 +39,27 @@ public class GUI extends Module {
         super(NAME, Configs.Core.RENDER_HUD, null, true);
     }
 
+    /** 打印模式下只统计“工作范围 ∩ 投影”的区域（与打印机实际处理的范围一致），其他模式统计整个工作范围 */
     @Override
     protected boolean needsAreaCheck() {
-        return false;
+        return Configs.Print.ENABLED.getBooleanValue() && !Configs.Fluid.ENABLED.getBooleanValue()
+                && !Configs.Fill.ENABLED.getBooleanValue() && !Configs.Mine.ENABLED.getBooleanValue();
     }
+
+    @Override
+    protected java.util.List<com.autyism.printer.printer.PrinterBox> getWorkAreaBoxes() {
+        return com.autyism.printer.utils.LitematicaUtils.getSchematicWorkBoxes();
+    }
+
+    @Override
+    protected com.autyism.printer.handler.IteratorManager.SectionFilter getSectionFilter() {
+        return ModuleManager.PRINT.getPrintSectionFilter();
+    }
+
+    /** 打印模式下错误统计（最近一次完整扫描的结果） */
+    @Getter
+    private long wrongState, wrongBlock;
+    private long scanWrongState, scanWrongBlock;
 
     @Override
     protected boolean canExecute() {
@@ -79,6 +96,7 @@ public class GUI extends Module {
 
     private void startScan() {
         scanning = true;
+        scanWrongState = scanWrongBlock = 0;
         totalProgress.resetCounters();
         printProgress.resetCounters();
         fluidProgress.resetCounters();
@@ -89,6 +107,8 @@ public class GUI extends Module {
 
     private void finishScan() {
         scanning = false;
+        wrongState = scanWrongState;
+        wrongBlock = scanWrongBlock;
         printProgress.calculateProgress();
         fluidProgress.calculateProgress();
         fillProgress.calculateProgress();
@@ -102,9 +122,14 @@ public class GUI extends Module {
             if (schematic != null) {
                 SchematicBlockContext context = new SchematicBlockContext(mc, level, schematic, blockPos);
                 if (!context.requiredState.isAir()) {
-                    if (BlockMatchingType.get(context) == BlockMatchingType.CORRECT) {
+                    BlockMatchingType type = BlockMatchingType.get(context);
+                    if (type == BlockMatchingType.CORRECT) {
                         printProgress.finished++;
                         totalProgress.finished++;
+                    } else if (type == BlockMatchingType.ERROR_BLOCK_STATE) {
+                        scanWrongState++;
+                    } else if (type == BlockMatchingType.ERROR_BLOCK) {
+                        scanWrongBlock++;
                     }
                     printProgress.total++;
                     totalProgress.total++;
@@ -137,23 +162,26 @@ public class GUI extends Module {
         }
     }
 
+    /**
+     * 进度：扫描中的计数与显示用的结果分开（双缓冲），只有一轮扫描完整结束才更新显示，
+     * 避免扫描中途 / 玩家移动重建范围时数字忽大忽小。
+     */
     @Getter
     public static class Progress {
         private final ConfigBase<?> config;
         private long total;
         private long finished;
+        /** 最近一次完整扫描的结果 */
+        private long shownTotal;
+        private long shownFinished;
         private double progress;
-        private double lastProgress;
 
         public Progress(ConfigBase<?> config) {
             this.config = config;
-            this.total = 0;
-            this.finished = 0;
-            this.progress = 0.0;
         }
 
         public double getProgress() {
-            return progress <= 0 ? lastProgress : progress;
+            return progress;
         }
 
         public void resetCounters() {
@@ -162,8 +190,9 @@ public class GUI extends Module {
         }
 
         public void calculateProgress() {
-            progress = total < 1 ? lastProgress : (float) finished / total;
-            lastProgress = progress;
+            shownTotal = total;
+            shownFinished = finished;
+            progress = total < 1 ? 1.0 : (double) finished / total;
         }
     }
 }

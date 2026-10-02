@@ -58,8 +58,12 @@ public final class BigPrintGameTest implements FabricClientGameTest {
                 Configs.Core.WORK_RANGE.setDoubleValue(range);
                 Configs.Print.LAYERED_MODE.setBooleanValue(layered);
                 Configs.Placement.PLACE_BLOCKS_PER_TICK.setIntegerValue(Integer.parseInt(System.getProperty("ale.bpt", "8")));
+                Configs.Core.RENDER_HUD.setBooleanValue(true);
                 GT.enablePrint();
             });
+            int layersBefore = context.computeOnClient(c -> com.autyism.printer.handler.ModuleManager.PRINT.getLayersCompleted());
+            double[] lastHud = {0};
+            boolean[] hudJumped = {false};
             int[] tick = {0}, lastPlaced = {0}, lastProgressTick = {0}, maxStall = {0};
             boolean[] orderViolated = {false};
             long start = System.nanoTime();
@@ -81,6 +85,13 @@ public final class BigPrintGameTest implements FabricClientGameTest {
                     lastProgressTick[0] = tick[0];
                     lastPlaced[0] = placed;
                 }
+                double hud = context.computeOnClient(c -> com.autyism.printer.handler.ModuleManager.GUI.getPrintProgress().getProgress());
+                if (hud + 0.02 < lastHud[0]) {
+                    hudJumped[0] = true;
+                    GT.log("[big] HUD progress went backwards: " + lastHud[0] + " -> " + hud);
+                }
+                lastHud[0] = Math.max(lastHud[0], hud);
+                if (tick[0] == 150) context.takeScreenshot("ale-print-hud");
                 if (tick[0] % 100 == 0) {
                     GT.log("[big] t" + tick[0] + " placed=" + placed + "/" + total + " layers=" + Arrays.toString(perLayer)
                             + " fps=" + context.computeOnClient(c -> c.getFps()));
@@ -91,6 +102,14 @@ public final class BigPrintGameTest implements FabricClientGameTest {
                 return placed >= total;
             }, 6000, "[big] print did not finish");
             double secs = (System.nanoTime() - start) / 1e9;
+            context.waitTicks(40);
+            double finalHud = context.computeOnClient(c -> com.autyism.printer.handler.ModuleManager.GUI.getPrintProgress().getProgress());
+            int layersDone = context.computeOnClient(c -> com.autyism.printer.handler.ModuleManager.PRINT.getLayersCompleted()) - layersBefore;
+            GT.log("[big] HUD final progress=" + finalHud + " layer messages=" + layersDone + " jumped=" + hudJumped[0]);
+            if (hudJumped[0]) throw new AssertionError("[big] HUD progress jumped backwards");
+            if (finalHud < 0.999) throw new AssertionError("[big] HUD did not reach 100%: " + finalHud);
+            int layerCount = MAX.getY() - MIN.getY() + 1;
+            if (layered && (layersDone < layerCount - 1 || layersDone > layerCount)) throw new AssertionError("[big] expected one completion message per layer (" + layerCount + "), got " + layersDone);
             context.runOnClient(client -> GT.disableAll());
             var wrong = GT.mismatches(sp, MIN, MAX, BigPrintGameTest::expected);
             if (!wrong.isEmpty()) throw new AssertionError("[big] " + wrong.size() + " wrong blocks, e.g. " + wrong.subList(0, Math.min(5, wrong.size())));

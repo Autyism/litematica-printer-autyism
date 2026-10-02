@@ -73,6 +73,10 @@ public class Print extends Module {
         this.needSchematic = true;
     }
 
+    public com.autyism.printer.handler.IteratorManager.SectionFilter getPrintSectionFilter() {
+        return getSectionFilter();
+    }
+
     /** 投影里整段都是空气、且不需要清除多余方块时，整段跳过（大型投影 99% 是空气） */
     @Override
     protected com.autyism.printer.handler.IteratorManager.SectionFilter getSectionFilter() {
@@ -86,6 +90,62 @@ public class Print extends Module {
             if (index < 0 || index >= chunk.getSectionsCount()) return true;
             return chunk.getSection(index).hasOnlyAir();
         };
+    }
+
+    // ---------------- 分层统计（每层完成时提示） ----------------
+    public record LayerStats(int layer, int total, int correct, int wrongState, int wrongBlock, int missing, int skipped) {
+    }
+
+    private int lsTotal, lsCorrect, lsWrongState, lsWrongBlock, lsMissing, lsSkipped;
+    @Getter
+    @Nullable
+    private volatile LayerStats lastLayerStats;
+    private final java.util.Set<Integer> announcedLayers = new java.util.HashSet<>();
+
+    /** 已完成（并提示过）的层数 */
+    @Getter
+    private int layersCompleted;
+
+    @Override
+    protected void onLayerPassPosition(BlockPos pos) {
+        WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
+        if (schematic == null) return;
+        BlockState required = schematic.getBlockState(pos);
+        if (required.isAir()) return;
+        lsTotal++;
+        switch (BlockMatchingType.get(required, level.getBlockState(pos))) {
+            case CORRECT -> lsCorrect++;
+            case ERROR_BLOCK_STATE -> lsWrongState++;
+            case ERROR_BLOCK -> lsWrongBlock++;
+            default -> {
+                if (isLayerSkipped(pos)) lsSkipped++;
+                else lsMissing++;
+            }
+        }
+    }
+
+    @Override
+    protected void onLayerPassFinished(int layer, boolean layerDone) {
+        LayerStats stats = new LayerStats(layer, lsTotal, lsCorrect, lsWrongState, lsWrongBlock, lsMissing, lsSkipped);
+        lastLayerStats = stats;
+        lsTotal = lsCorrect = lsWrongState = lsWrongBlock = lsMissing = lsSkipped = 0;
+        if (!layerDone) {
+            // 这一层又有要补的方块：完成后需要重新提示
+            announcedLayers.remove(layer);
+            return;
+        }
+        // 到顶后回到底层复查时，已提示过的层不重复提示
+        if (stats.total() > 0 && announcedLayers.add(layer)) {
+            layersCompleted++;
+            if (stats.correct() == stats.total()) {
+                fi.dy.masa.malilib.util.InfoUtils.showInGameMessage(fi.dy.masa.malilib.gui.Message.MessageType.SUCCESS, 4000,
+                        I18n.LAYER_DONE_ALL.getWithPrefixNameKey(), layer, stats.total());
+            } else {
+                fi.dy.masa.malilib.util.InfoUtils.showInGameMessage(fi.dy.masa.malilib.gui.Message.MessageType.WARNING, 6000,
+                        I18n.LAYER_DONE_ISSUES.getWithPrefixNameKey(), layer, stats.correct(), stats.total(),
+                        stats.wrongState(), stats.wrongBlock(), stats.skipped() + stats.missing());
+            }
+        }
     }
 
     @Override
@@ -355,6 +415,7 @@ public class Print extends Module {
     @Override
     public void resetScanState() {
         super.resetScanState();
+        announcedLayers.clear();
         watingForWaterPos = null;
         watingForWaterTicks = 0;
         placingIceForWater = false;
