@@ -8,6 +8,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -17,13 +18,18 @@ import net.minecraft.world.level.block.state.BlockState;
  * 思路参考 Tweakeroo 的 {@code InventoryUtils.trySwitchToEffectiveTool}：在整个背包里按“挖掘该方块的速度”挑选最优物品，
  * 在快捷栏则直接切过去，否则用 Litematica 的可拾取槽位规则换到手上。
  * <p>
- * 额外加入耐久保护：剩余耐久不高于阈值的工具不会被选中；若手上正拿着这种工具，会换成不消耗耐久的物品（空手/方块），
- * 实在没有可换的就拒绝挖掘，并在屏幕上提示，保证工具绝不会被打印机用坏。
+ * 耐久保护：如果要用的工具（自动挑选出的最佳工具，或关闭自动切换时手上的工具）剩余耐久不高于阈值，
+ * 不会改用别的工具凑合，而是直接停止打印机的所有挖掘，把手上换成不会损坏的物品（优先方块），并在屏幕上提示。
+ * 修理/更换工具后，关闭再打开打印机即可继续。
  */
 public final class ToolSwitchUtils {
     private static final Minecraft mc = Minecraft.getInstance();
-    private static final long WARN_INTERVAL_MS = 3000L;
+    private static final long WARN_INTERVAL_MS = 4000L;
     private static long lastWarnTime;
+    /** 已因工具耐久不足而停止挖掘 */
+    private static boolean halted;
+    private static String haltedToolName = "";
+    private static int haltedRemaining;
 
     private ToolSwitchUtils() {
     }
@@ -39,10 +45,19 @@ public final class ToolSwitchUtils {
         return Configs.Break.TOOL_DURABILITY_PROTECT.getBooleanValue();
     }
 
+    public static boolean isHalted() {
+        return halted;
+    }
+
+    /** 打印机重新开启时调用：解除停止状态 */
+    public static void resetHalt() {
+        halted = false;
+    }
+
     /**
-     * 挖掘前调用：按配置自动换到最合适的工具，并保证手上的工具不会被用坏。
+     * 挖掘前调用：按配置自动换到最合适的工具，并保证工具不会被用坏。
      *
-     * @return true 表示可以继续挖掘；false 表示为了保护工具本次不要挖
+     * @return true 表示可以继续挖掘；false 表示已停止挖掘
      */
     public static boolean prepareToolForBreaking(BlockPos pos) {
         LocalPlayer player = mc.player;
@@ -50,50 +65,76 @@ public final class ToolSwitchUtils {
         if (player == null || level == null) return false;
         if (player.getAbilities().instabuild) return true;
 
-        BlockState state = level.getBlockState(pos);
-        if (Configs.Break.AUTO_TOOL_SWITCH.getBooleanValue()) {
-            trySwitchToEffectiveTool(player, state);
+        if (halted) {
+            ensureSafeItemInHand(player);
+            warnHalted();
+            return false;
         }
 
-        ItemStack held = player.getMainHandItem();
-        if (protectEnabled() && isNearlyBroken(held)) {
-            warnLowDurability(held);
-            // 换成一个不会掉耐久的物品再挖
-            return switchAwayFromDamageable(player);
+        BlockState state = level.getBlockState(pos);
+        ItemStack tool;
+        if (Configs.Break.AUTO_TOOL_SWITCH.getBooleanValue()) {
+            int best = findBestSlot(player, state);
+            tool = best == -1 ? player.getMainHandItem() : player.getInventory().getItem(best);
+            if (protectEnabled() && isNearlyBroken(tool)) {
+                halt(player, tool);
+                return false;
+            }
+            if (best != -1 && best != player.getInventory().getSelectedSlot()) {
+                moveSlotToHand(player, best);
+            }
+        } else {
+            tool = player.getMainHandItem();
+            if (protectEnabled() && isNearlyBroken(tool)) {
+                halt(player, tool);
+                return false;
+            }
         }
         return true;
     }
 
-    /** 在整个背包中挑选挖掘该方块最快的物品并拿到主手。 */
-    public static boolean trySwitchToEffectiveTool(LocalPlayer player, BlockState state) {
+    private static void halt(LocalPlayer player, ItemStack tool) {
+        halted = true;
+        haltedToolName = tool.getHoverName().getString();
+        haltedRemaining = tool.getMaxDamage() - tool.getDamageValue();
+        lastWarnTime = 0;
+        // 停止当前正在进行的挖掘
+        if (mc.gameMode != null) mc.gameMode.stopDestroyBlock();
+        ensureSafeItemInHand(player);
+        warnHalted();
+    }
+
+    /** 保险起见：手上若是可损坏的物品，换成不会损坏的物品（优先方块，其次其他物品/空手） */
+    private static void ensureSafeItemInHand(LocalPlayer player) {
+        if (!player.getMainHandItem().isDamageableItem()) return;
+        Inventory inventory = player.getInventory();
+        int blockSlot = -1, otherSlot = -1, emptySlot = -1;
+        for (int slot = 0; slot < 36; slot++) {
+            ItemStack stack = inventory.getItem(slot);
+            if (stack.isEmpty()) {
+                if (emptySlot == -1 || (Inventory.isHotbarSlot(slot) && !Inventory.isHotbarSlot(emptySlot))) emptySlot = slot;
+            } else if (!stack.isDamageableItem()) {
+                if (stack.getItem() instanceof BlockItem) {
+                    if (blockSlot == -1 || (Inventory.isHotbarSlot(slot) && !Inventory.isHotbarSlot(blockSlot))) blockSlot = slot;
+                } else if (otherSlot == -1 || (Inventory.isHotbarSlot(slot) && !Inventory.isHotbarSlot(otherSlot))) {
+                    otherSlot = slot;
+                }
+            }
+        }
+        int target = blockSlot != -1 ? blockSlot : otherSlot != -1 ? otherSlot : emptySlot;
+        if (target != -1) moveSlotToHand(player, target);
+    }
+
+    /** 在整个背包中挑选挖掘该方块最快的物品，返回槽位（-1 = 手上的已经最好） */
+    private static int findBestSlot(LocalPlayer player, BlockState state) {
         Inventory inventory = player.getInventory();
         ItemStack held = player.getMainHandItem();
-        boolean protect = protectEnabled();
-
-        // 因耐久不足而被放弃、但本来是更好选择的工具：用于屏幕提示
-        ItemStack skipped = ItemStack.EMPTY;
-        float skippedScore = -1F;
-        float heldScore;
-        if (protect && isNearlyBroken(held)) {
-            heldScore = -1F;
-            skipped = held;
-            skippedScore = score(player, state, held);
-        } else {
-            heldScore = score(player, state, held);
-        }
+        float bestScore = score(player, state, held);
         int bestSlot = -1;
-        float bestScore = heldScore;
         for (int slot = 0; slot < 36; slot++) {
             if (slot == inventory.getSelectedSlot()) continue;
             ItemStack stack = inventory.getItem(slot);
             float s = score(player, state, stack);
-            if (protect && isNearlyBroken(stack)) {
-                if (s > skippedScore) {
-                    skipped = stack;
-                    skippedScore = s;
-                }
-                continue;
-            }
             // 只有明显更好才切换，避免来回抖动；同速时优先不消耗耐久的物品
             if (s > bestScore + 1.0E-4F
                     || (Math.abs(s - bestScore) <= 1.0E-4F && bestSlot == -1 && held.isDamageableItem() && !stack.isDamageableItem() && s > 0)) {
@@ -101,11 +142,13 @@ public final class ToolSwitchUtils {
                 bestSlot = slot;
             }
         }
-        if (!skipped.isEmpty() && skippedScore > bestScore + 1.0E-4F) {
-            warnLowDurability(skipped);
-        }
-        if (bestSlot == -1) return false;
-        return moveSlotToHand(player, bestSlot);
+        return bestSlot;
+    }
+
+    /** 在整个背包中挑选挖掘该方块最快的物品并拿到主手（不做耐久判断）。 */
+    public static boolean trySwitchToEffectiveTool(LocalPlayer player, BlockState state) {
+        int best = findBestSlot(player, state);
+        return best != -1 && moveSlotToHand(player, best);
     }
 
     /**
@@ -115,32 +158,6 @@ public final class ToolSwitchUtils {
         float progress = PlayerUtils.getDestroyProgressWithStack(player, state, stack);
         boolean correct = !state.requiresCorrectToolForDrops() || stack.isCorrectToolForDrops(state);
         return correct ? progress + 1000F : progress;
-    }
-
-    private static boolean switchAwayFromDamageable(LocalPlayer player) {
-        Inventory inventory = player.getInventory();
-        // 先找快捷栏里不会损耗的物品（空格最好）
-        int best = -1;
-        for (int slot = 0; slot < 9; slot++) {
-            ItemStack stack = inventory.getItem(slot);
-            if (stack.isEmpty()) {
-                best = slot;
-                break;
-            }
-            if (!stack.isDamageableItem() && best == -1) best = slot;
-        }
-        if (best != -1) {
-            InventoryUtils.setHotbarSlot(best, inventory);
-            return true;
-        }
-        // 快捷栏全是可损坏物品：从背包换一个不会损耗的物品到当前槽位
-        for (int slot = 9; slot < 36; slot++) {
-            ItemStack stack = inventory.getItem(slot);
-            if (stack.isEmpty() || !stack.isDamageableItem()) {
-                return moveSlotToHand(player, slot) && !isNearlyBroken(player.getMainHandItem());
-            }
-        }
-        return false;
     }
 
     private static boolean moveSlotToHand(LocalPlayer player, int slot) {
@@ -165,12 +182,11 @@ public final class ToolSwitchUtils {
         return lastWarnTime;
     }
 
-    public static void warnLowDurability(ItemStack stack) {
+    private static void warnHalted() {
         long now = System.currentTimeMillis();
         if (now - lastWarnTime < WARN_INTERVAL_MS) return;
         lastWarnTime = now;
-        int remaining = stack.getMaxDamage() - stack.getDamageValue();
-        InfoUtils.showGuiAndInGameMessage(Message.MessageType.WARNING, 3000,
-                "autyism-le.message.tool_low_durability", stack.getHoverName().getString(), remaining);
+        InfoUtils.showGuiAndInGameMessage(Message.MessageType.WARNING, 4000,
+                "autyism-le.message.tool_low_durability", haltedToolName, haltedRemaining);
     }
 }

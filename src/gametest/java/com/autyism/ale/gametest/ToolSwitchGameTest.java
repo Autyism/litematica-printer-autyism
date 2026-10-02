@@ -9,6 +9,7 @@ import fi.dy.masa.litematica.data.DataManager;
 import fi.dy.masa.litematica.selection.AreaSelection;
 import fi.dy.masa.litematica.selection.Box;
 import fi.dy.masa.litematica.selection.SelectionMode;
+import fi.dy.masa.malilib.util.LayerMode;
 import fi.dy.masa.malilib.util.restrictions.UsageRestriction;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
@@ -20,7 +21,8 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 
 /**
- * 需求 14：挖掘模式自动切换工具不依赖 Tweakeroo；工具耐久快耗尽时停止使用并提示。
+ * 需求 14：挖掘模式自动切换工具不依赖 Tweakeroo；
+ * 要用的工具耐久快耗尽时：不改用别的工具，直接停止挖掘，手上换成不会坏的物品（方块），并提示。
  */
 @SuppressWarnings("UnstableApiUsage")
 public final class ToolSwitchGameTest implements FabricClientGameTest {
@@ -34,42 +36,45 @@ public final class ToolSwitchGameTest implements FabricClientGameTest {
             throw new AssertionError("[tool] Tweakeroo must NOT be loaded for this test");
         }
         try (TestSingleplayerContext sp = GT.newWorld(context)) {
-            // 场景 A：快捷栏有一把快坏的下界合金镐和一把满耐久的石镐，背包里有铁铲 → 挖石头用石镐，快坏的镐不掉耐久
-            int badDamageBefore = setup(context, sp, true);
-            GT.waitServer(context, () -> remaining(sp) == 0, 600, "[tool] area A was not mined");
-            int[] after = damages(sp);
-            if (after[0] != badDamageBefore) throw new AssertionError("[tool] nearly broken pickaxe was used: damage " + badDamageBefore + " -> " + after[0]);
-            if (after[1] <= 0) throw new AssertionError("[tool] stone pickaxe was not used (damage " + after[1] + ")");
-            GT.log("[tool] scenario A OK: stone pickaxe used (damage " + after[1] + "), nearly broken netherite pickaxe untouched");
+            // 场景 1：快捷栏有满耐久石镐、背包有铁铲 → 挖石头自动换上石镐，全部挖完
+            setup(context, sp, false, true);
+            GT.waitServer(context, () -> remaining(sp) == 0, 600, "[tool] auto switch: area was not mined");
+            int stoneDmg = damage(sp, Items.STONE_PICKAXE);
+            if (stoneDmg <= 0) throw new AssertionError("[tool] auto switch did not use the stone pickaxe");
+            GT.log("[tool] auto switch OK: stone pickaxe chosen automatically (damage " + stoneDmg + ")");
 
-            // 场景 B：只有一把快坏的镐 → 不能用它挖（改用空手），耐久不变，并显示提示
+            // 场景 2：最佳工具（下界合金镐）快坏了，另有石镐 → 不能改用石镐，必须停止挖掘、手上换成方块、提示
             long warnBefore = ToolSwitchUtils.getLastWarnTime();
-            int damageB = setup(context, sp, false);
-            int[] tick = {0};
-            GT.waitServer(context, () -> {
-                if (tick[0]++ % 200 == 0) {
-                    String c = context.computeOnClient(client -> client.player.getInventory().getSelectedSlot() + " " + client.player.getMainHandItem()
-                            + " dmg=" + client.player.getMainHandItem().getDamageValue() + " slot0=" + client.player.getInventory().getItem(0)
-                            + "/" + client.player.getInventory().getItem(0).getDamageValue());
-                    String s = sp.getServer().computeOnServer(server -> {
-                        var p = server.getPlayerList().getPlayers().getFirst();
-                        return p.getInventory().getSelectedSlot() + " " + p.getMainHandItem() + " slot0=" + p.getInventory().getItem(0)
-                                + "/" + p.getInventory().getItem(0).getDamageValue();
-                    });
-                    GT.log("[tool] B t" + tick[0] + " remaining=" + remaining(sp) + " client " + c + " | server " + s);
-                }
-                return remaining(sp) == 0;
-            }, 1500, "[tool] area B was not mined by hand");
-            int[] afterB = damages(sp);
-            if (afterB[0] != damageB) throw new AssertionError("[tool] nearly broken pickaxe was used in B: " + damageB + " -> " + afterB[0]);
-            if (ToolSwitchUtils.getLastWarnTime() <= warnBefore) throw new AssertionError("[tool] no low-durability warning was shown");
-            GT.log("[tool] scenario B OK: nearly broken pickaxe never used, warning shown, blocks mined by hand");
+            int badBefore = setup(context, sp, true, true);
+            context.waitTicks(80);
+            int left = remaining(sp);
+            if (left != 9) throw new AssertionError("[tool] mining did not stop: " + (9 - left) + " blocks were mined");
+            if (damage(sp, Items.NETHERITE_PICKAXE) != badBefore) throw new AssertionError("[tool] nearly broken pickaxe was used");
+            if (damage(sp, Items.STONE_PICKAXE) != 0) throw new AssertionError("[tool] fell back to another tool (stone pickaxe was used)");
+            boolean handIsBlock = context.computeOnClient(client -> client.player.getMainHandItem().is(Items.DIRT));
+            if (!handIsBlock) throw new AssertionError("[tool] hand was not switched to a non-damageable block");
+            if (ToolSwitchUtils.getLastWarnTime() <= warnBefore) throw new AssertionError("[tool] no on-screen warning was shown");
+            context.takeScreenshot("ale-tool-durability-warning");
+            GT.log("[tool] protection OK: mining stopped, no tool used, hand switched to dirt, warning shown");
+
+            // 修好工具后关闭再开启打印机 → 继续挖掘
+            sp.getServer().runOnServer(server -> {
+                var inv = server.getPlayerList().getPlayers().getFirst().getInventory();
+                for (int i = 0; i < 36; i++) if (inv.getItem(i).is(Items.NETHERITE_PICKAXE)) inv.getItem(i).setDamageValue(0);
+                server.getPlayerList().getPlayers().getFirst().inventoryMenu.sendAllDataToRemote();
+            });
+            context.waitTicks(5);
+            context.runOnClient(client -> Configs.Core.WORK_SWITCH.setBooleanValue(false));
+            context.waitTicks(2);
+            context.runOnClient(client -> Configs.Core.WORK_SWITCH.setBooleanValue(true));
+            GT.waitServer(context, () -> remaining(sp) == 0, 400, "[tool] mining did not resume after repairing");
+            GT.log("[tool] resume OK: after repair + printer toggle, mining finished");
         } finally {
             context.runOnClient(client -> GT.disableAll());
         }
     }
 
-    private static int setup(ClientGameTestContext context, TestSingleplayerContext sp, boolean withGoodPick) {
+    private static int setup(ClientGameTestContext context, TestSingleplayerContext sp, boolean badPick, boolean goodPick) {
         context.runOnClient(client -> GT.disableAll());
         GT.clearArena(sp, 56, -3, 66, 6, 70);
         sp.getServer().runOnServer(server -> {
@@ -77,26 +82,28 @@ public final class ToolSwitchGameTest implements FabricClientGameTest {
             for (BlockPos pos : BlockPos.betweenClosed(MIN, MAX)) level.setBlockAndUpdate(pos, Blocks.STONE.defaultBlockState());
             var player = server.getPlayerList().getPlayers().getFirst();
             player.getInventory().clearContent();
-            ItemStack bad = new ItemStack(Items.NETHERITE_PICKAXE);
-            bad.setDamageValue(bad.getMaxDamage() - 5);
-            player.getInventory().setItem(0, bad);
-            if (withGoodPick) {
-                player.getInventory().setItem(4, new ItemStack(Items.STONE_PICKAXE));
-                player.getInventory().setItem(20, new ItemStack(Items.IRON_SHOVEL));
+            if (badPick) {
+                ItemStack bad = new ItemStack(Items.NETHERITE_PICKAXE);
+                bad.setDamageValue(bad.getMaxDamage() - 5);
+                player.getInventory().setItem(0, bad);
             }
+            if (goodPick) player.getInventory().setItem(4, new ItemStack(Items.STONE_PICKAXE));
+            player.getInventory().setItem(20, new ItemStack(Items.IRON_SHOVEL));
+            player.getInventory().setItem(7, new ItemStack(Items.DIRT, 16));
             player.getInventory().setSelectedSlot(0);
             player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetHeldSlotPacket(0));
             player.inventoryMenu.sendAllDataToRemote();
         });
         sp.getServer().runCommand("tp @a 61.5 64 -1.5 0 30");
         context.waitFor(client -> client.player != null && client.level.getBlockState(MIN).is(Blocks.STONE)
-                && client.player.getInventory().getItem(0).is(Items.NETHERITE_PICKAXE)
-                && client.player.getInventory().getItem(4).is(withGoodPick ? Items.STONE_PICKAXE : Items.AIR)
+                && client.player.getInventory().getItem(7).is(Items.DIRT)
+                && client.player.getInventory().getItem(0).is(badPick ? Items.NETHERITE_PICKAXE : Items.AIR)
                 && client.player.getInventory().getSelectedSlot() == 0
                 && Math.abs(client.player.getZ() + 1.5) < 0.01, 200);
         context.waitTicks(3);
-        int damage = sp.getServer().computeOnServer(server -> server.getPlayerList().getPlayers().getFirst().getInventory().getItem(0).getDamageValue());
+        int damage = damage(sp, Items.NETHERITE_PICKAXE);
         context.runOnClient(client -> {
+            DataManager.getRenderLayerRange().setLayerMode(LayerMode.ALL);
             var selectionManager = DataManager.getSelectionManager();
             if (selectionManager.getSelectionMode() != SelectionMode.SIMPLE) selectionManager.switchSelectionMode();
             AreaSelection selection = DataManager.getSimpleArea();
@@ -130,17 +137,15 @@ public final class ToolSwitchGameTest implements FabricClientGameTest {
         });
     }
 
-    /** [0] = 快坏的下界合金镐当前损耗（找不到返回 -1），[1] = 石镐损耗 */
-    private static int[] damages(TestSingleplayerContext sp) {
+    /** 背包中某种工具的损耗值（找不到返回 -1） */
+    private static int damage(TestSingleplayerContext sp, net.minecraft.world.item.Item item) {
         return sp.getServer().computeOnServer(server -> {
             var inv = server.getPlayerList().getPlayers().getFirst().getInventory();
-            int bad = -1, good = 0;
             for (int i = 0; i < inv.getContainerSize(); i++) {
                 ItemStack s = inv.getItem(i);
-                if (s.is(Items.NETHERITE_PICKAXE)) bad = s.getDamageValue();
-                if (s.is(Items.STONE_PICKAXE)) good = s.getDamageValue();
+                if (s.is(item)) return s.getDamageValue();
             }
-            return new int[]{bad, good};
+            return -1;
         });
     }
 }
