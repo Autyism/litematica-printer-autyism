@@ -292,10 +292,6 @@
   "litematica-printer-autyism.config.pauseOnContainer.desc": "从右键箱子/潜影盒/容器实体的那一刻起暂停打印机，直到容器关闭后稍等片刻再恢复。避免客户端和服务端对背包状态不一致（这会导致去箱子里拿材料时打印出错误方块）。",
   "litematica-printer-autyism.config.bedrockBackend": "破基岩模组",
   "litematica-printer-autyism.config.bedrockBackend.desc": "破基岩模式调用哪个破基岩模组。自动：优先 bedrock-miner (lxyan2333)，其次 bedrockminer (bunnyi116)，再其次 blockminer。",
-  "litematica-printer-autyism.bedrockBackend.auto": "自动",
-  "litematica-printer-autyism.bedrockBackend.bunnyi": "bedrockminer (bunnyi116)",
-  "litematica-printer-autyism.bedrockBackend.lxyan": "bedrock-miner (lxyan2333)",
-  "litematica-printer-autyism.bedrockBackend.blockminer": "blockminer",
   "litematica-printer-autyism.config.bedrockIgnoreRenderLayer": "忽略渲染层",
   "litematica-printer-autyism.config.bedrockIgnoreRenderLayer.desc": "处理 Litematica 框选范围内的所有基岩，不受当前渲染层范围限制。",
   "litematica-printer-autyism.config.printLayeredMode": "分层打印（从下往上）",
@@ -318,5 +314,11 @@
   "litematica-printer-autyism.config.bedrockBlockList": "破基岩方块列表",
   "litematica-printer-autyism.config.bedrockBlockList.desc": "破基岩模式要破除的方块（例如末地传送门框架 minecraft:end_portal_frame、强化深板岩）。会自动加入破基岩模组自己的允许列表。",
   "litematica-printer-autyism.config.printFluidsWithBucket": "用桶打印流体",
-  "litematica-printer-autyism.config.printFluidsWithBucket.desc": "（默认关闭）用水桶 / 岩浆桶放置投影里的水源、岩浆源（像玩家一样瞄准相邻方块的面），并给投影里应该装满水 / 岩浆 / 细雪的空炼药锅倒满。只有整片水体四周和下方的方块都打印好之后才放，不会漏出去。站的位置看不到相邻方块面的水格会等你走到能看到的地方。生存模式每桶放一格。"
+  "litematica-printer-autyism.config.printFluidsWithBucket.desc": "（默认关闭）用水桶 / 岩浆桶放置投影里的水源、岩浆源（像玩家一样瞄准相邻方块的面），并给投影里应该装满水 / 岩浆 / 细雪的空炼药锅倒满。只有整片水体四周和下方的方块都打印好之后才放，不会漏出去。站的位置看不到相邻方块面的水格会等你走到能看到的地方。生存模式每桶放一格。",
+  "litematica-printer-autyism.config.category.bedrock": "§6破基岩",
+  "litematica-printer-autyism.config.category.bedrock.desc": "破基岩模式相关设置（使用哪个破基岩模组、要破的方块列表）",
+  "litematica-printer-autyism.config.bedrockBackend.auto": "自动",
+  "litematica-printer-autyism.config.bedrockBackend.blockminer": "blockminer",
+  "litematica-printer-autyism.config.bedrockBackend.bunnyi": "bedrockminer (bunnyi116)",
+  "litematica-printer-autyism.config.bedrockBackend.lxyan": "bedrock-miner (lxyan2333)"
 }

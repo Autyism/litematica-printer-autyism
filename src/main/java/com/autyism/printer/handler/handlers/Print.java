@@ -230,7 +230,15 @@ public class Print extends Module {
         }
 
         Action action = guide.getAction(ctx);
-        if (action == null) return false;
+        if (action == null) {
+            // “侦测器安全放置”判定现在不能放的侦测器/活塞：按规则跳过，分层模式下不让它卡住这一层
+            if (Configs.Print.SAFELY_OBSERVER.getBooleanValue()
+                    && (required.getBlock() instanceof net.minecraft.world.level.block.ObserverBlock
+                    || required.getBlock() instanceof net.minecraft.world.level.block.piston.PistonBaseBlock)) {
+                deferToUpperLayer(blockPos);
+            }
+            return false;
+        }
         this.action = action;
         return true;
     }

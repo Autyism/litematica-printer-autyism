@@ -3,6 +3,7 @@ package com.autyism.printer.printer;
 import com.autyism.printer.I18n;
 import com.autyism.printer.Reference;
 import com.autyism.printer.printer.action.Action;
+import com.autyism.printer.handler.ModuleManager;
 import com.autyism.printer.printer.action.ClickAction;
 import com.autyism.printer.config.Configs;
 import com.autyism.printer.enums.BlockMatchingType;
@@ -461,6 +462,29 @@ public class PlacementGuide {
                     shape = ctx.requiredState.getValue(RailBlock.SHAPE);
                 else shape = ctx.requiredState.getValue(BlockStateProperties.RAIL_SHAPE_STRAIGHT);
 
+                // 上坡铁轨：原版只有在高处那一节铁轨已经存在时，才会把新放的铁轨连成上坡；
+                // 先放低处的话会和旁边的铁轨连成平的/拐弯。所以等高处那一节放好再放
+                if (shape.isSlope()) {
+                    Direction up = switch (shape) {
+                        case ASCENDING_EAST -> Direction.EAST;
+                        case ASCENDING_WEST -> Direction.WEST;
+                        case ASCENDING_NORTH -> Direction.NORTH;
+                        default -> Direction.SOUTH;
+                    };
+                    SchematicBlockContext upper = ctx.offset(up).offset(Direction.UP);
+                    if (upper.requiredState.getBlock() instanceof BaseRailBlock
+                            && !(upper.currentState.getBlock() instanceof BaseRailBlock)) {
+                        ModuleManager.PRINT.deferToUpperLayer(ctx.blockPos);
+                        return null;
+                    }
+                }
+                // 旁边平行的铁轨还有空着的一端、自己这条线的下一节还没放：现在放会被拉成横的，先等一等（见 RailHelper）
+                if (RailHelper.shouldWait(ctx.level, ctx.schematic, ctx.blockPos, shape, Reference.MINECRAFT.player.tickCount)) {
+                    ModuleManager.PRINT.deferToUpperLayer(ctx.blockPos);
+                    return null;
+                }
+                // 铁轨的初始方向取玩家水平朝向，服务端按头部朝向判断：和活塞一样要等转头生效
+                action.setNeedWaitModifyLook();
                 switch (shape) {
                     case EAST_WEST, ASCENDING_EAST -> action.setLookDirection(Direction.EAST);
                     case NORTH_SOUTH, ASCENDING_NORTH -> action.setLookDirection(Direction.NORTH);
@@ -783,7 +807,9 @@ public class PlacementGuide {
             }
             case REPEATER -> {
                 if (!ctx.requiredState.getValue(RepeaterBlock.DELAY).equals(ctx.currentState.getValue(RepeaterBlock.DELAY))) {
-                    return new ClickAction();
+                    // 每点一下延迟 +1（4 之后回到 1）：一次点够
+                    int clicks = Math.floorMod(ctx.requiredState.getValue(RepeaterBlock.DELAY) - ctx.currentState.getValue(RepeaterBlock.DELAY), 4);
+                    return new ClickAction().setClicks(clicks);
                 }
                 if (printBreakWrongStateBlock &&
                         ctx.requiredState.getValue(RepeaterBlock.POWERED) == ctx.currentState.getValue(RepeaterBlock.POWERED) &&
@@ -848,7 +874,9 @@ public class PlacementGuide {
             }
             case NOTE_BLOCK -> {
                 if (Configs.Print.NOTE_BLOCK_TUNING.getBooleanValue() && !Objects.equals(ctx.requiredState.getValue(NoteBlock.NOTE), ctx.currentState.getValue(NoteBlock.NOTE))) {
-                    return new ClickAction();
+                    // 每点一下音高 +1（24 之后回到 0）：一次点够
+                    int clicks = Math.floorMod(ctx.requiredState.getValue(NoteBlock.NOTE) - ctx.currentState.getValue(NoteBlock.NOTE), 25);
+                    return new ClickAction().setClicks(clicks);
                 }
             }
             case CAMPFIRE -> {

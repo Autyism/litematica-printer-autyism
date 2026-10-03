@@ -206,7 +206,7 @@ public abstract class Module extends ConfigUtils {
                     boolean unfinished = work || (isOnCooldown(pos) && LitematicaUtils.isPositionWithinRange(pos) && !isCorrectBlock(pos)
                             && canProcessPos(pos));
                     layerPending = unfinished && layerAttempts.getOrDefault(pos.asLong(), 0) < LAYER_MAX_ATTEMPTS
-                            && !isObstructedForLayer(pos);
+                            && !isObstructedForLayer(pos) && !layerDeferred.contains(pos.asLong());
                     if (layerPending) lastPendingPos = pos.immutable();
                 }
                 if (work) {
@@ -238,11 +238,34 @@ public abstract class Module extends ConfigUtils {
     private final it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap layerAttempts = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap();
     private static final int LAYER_MAX_ATTEMPTS = 6;
 
+    /** 每个格子上一次尝试时看到的方块状态：状态变了说明上一次尝试有进展（例如音符盒调音、中继器调延迟），不算失败 */
+    private final it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap<net.minecraft.world.level.block.state.BlockState> layerAttemptStates =
+            new it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap<>();
+
     /** 记录一次放置尝试（由具体模块在真正发出放置时调用） */
     protected void notePlacementAttempt(BlockPos pos) {
-        if (layerY != null) layerAttempts.addTo(pos.asLong(), 1);
+        if (layerY != null) {
+            long key = pos.asLong();
+            net.minecraft.world.level.block.state.BlockState now = level == null ? null : level.getBlockState(pos);
+            net.minecraft.world.level.block.state.BlockState before = layerAttemptStates.put(key, now);
+            if (before != null && now != null && !before.equals(now)) {
+                // 上次尝试改变了这个格子（调了一下音、换了一档延迟……）：有进展，重新计数
+                layerAttempts.put(key, 1);
+            } else {
+                layerAttempts.addTo(key, 1);
+            }
+        }
         layerIdleTicks = 0;
     }
+
+    /** 分层模式：本层里要等上一层的方块放好之后才能放的格子（例如上坡铁轨要等高处那一节），不阻塞换层，回到这一层复查时再放 */
+    private final it.unimi.dsi.fastutil.longs.LongOpenHashSet layerDeferred = new it.unimi.dsi.fastutil.longs.LongOpenHashSet();
+
+    /** 见 {@link #layerDeferred} */
+    public void deferToUpperLayer(BlockPos pos) {
+        if (layerY != null) layerDeferred.add(pos.asLong());
+    }
+
 
     /** 当前层连续多少个“实际在工作的 tick”没有任何放置尝试（暂停、离开范围时不计） */
     private int layerIdleTicks;
@@ -332,6 +355,9 @@ public abstract class Module extends ConfigUtils {
             layerY = bounds[0];
             layerPending = false;
             layerAttempts.clear();
+            layerAttemptStates.clear();
+            layerDeferred.clear();
+
             layerIdleTicks = 0;
             lastLayerBounds = areaKey;
         }
@@ -369,7 +395,8 @@ public abstract class Module extends ConfigUtils {
 
     /** 该坐标在分层模式下是否已被判定为“跳过”（被实体挡住或多次尝试失败） */
     protected boolean isLayerSkipped(BlockPos pos) {
-        return layerAttempts.getOrDefault(pos.asLong(), 0) >= LAYER_MAX_ATTEMPTS || isObstructedForLayer(pos);
+        return layerAttempts.getOrDefault(pos.asLong(), 0) >= LAYER_MAX_ATTEMPTS || isObstructedForLayer(pos)
+                || layerDeferred.contains(pos.asLong());
     }
 
     /** 本轮扫描是否遇到了还没载入完的投影区域（子类实现；分层模式下这样的层不算完成） */
@@ -397,6 +424,8 @@ public abstract class Module extends ConfigUtils {
             if (bounds != null) {
                 layerY = layerY + 1 > bounds[1] ? bounds[0] : layerY + 1;
                 layerAttempts.clear();
+                layerAttemptStates.clear();
+                layerDeferred.clear();
             }
         }
         layerPending = false;
@@ -470,6 +499,8 @@ public abstract class Module extends ConfigUtils {
     public void resetScanState() {
         layerY = null;
         layerAttempts.clear();
+        layerAttemptStates.clear();
+        layerDeferred.clear();
         layerPending = false;
         scanState = ScanState.RUNNING;
         waitingPos = null;

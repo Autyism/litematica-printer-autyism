@@ -32,7 +32,9 @@ import java.util.TreeMap;
  */
 @SuppressWarnings("UnstableApiUsage")
 public final class ComplexPrintGameTest implements FabricClientGameTest {
-    private static final Path LIST = Path.of("D:/Dev/Projects/ale-work/complex-list.txt");
+    private static final Path LIST = Path.of(prop("ale.list", "D:/Dev/Projects/ale-work/complex-list.txt"));
+    /** 红石运行时状态：电路自己会改（充能、点亮、活塞伸出……），打印机不需要也不可能放成一样，单独统计 */
+    private static final java.util.Set<String> RUNTIME_PROPS = java.util.Set.of("powered", "lit", "power", "triggered", "extended", "enabled", "locked", "short", "occupied", "attached", "disarmed");
     private static final String BASE = "D:/Games/PCL2/.minecraft/schematics/Up 分享后期工业/完整版2413文件/f房屋 居所 类/";
     private static final List<String> DEFAULTS = List.of(
             BASE + "不同时代 国家/z中世纪建筑/酒馆旅店/蔚蓝旅店.litematic",
@@ -54,7 +56,7 @@ public final class ComplexPrintGameTest implements FabricClientGameTest {
         } catch (Exception e) {
             throw new AssertionError(e);
         }
-        int maxTicks = Integer.parseInt(System.getProperty("ale.ticks", "6000"));
+        int maxTicks = Integer.parseInt(prop("ale.ticks", "6000"));
         List<String> summary = new ArrayList<>();
         int index = 0;
         for (String file : files) {
@@ -204,16 +206,25 @@ public final class ComplexPrintGameTest implements FabricClientGameTest {
             var level = server.overworld();
             int n = 0;
             for (var e : expected.entrySet()) {
-                if (!e.getValue().isAir() && level.getBlockState(e.getKey()).getBlock() == e.getValue().getBlock()) n++;
+                if (!e.getValue().isAir() && sameIgnoringRuntime(e.getValue(), level.getBlockState(e.getKey()))) n++;
             }
             return n;
         });
     }
 
+    /** 方块相同，并且除了红石运行时属性以外的属性都相同（音符盒音高、中继器延迟、朝向……） */
+    private static boolean sameIgnoringRuntime(BlockState want, BlockState have) {
+        if (want.getBlock() != have.getBlock()) return false;
+        for (Property<?> p : want.getProperties()) {
+            if (!RUNTIME_PROPS.contains(p.getName()) && !want.getValue(p).equals(have.getValue(p))) return false;
+        }
+        return true;
+    }
+
     /** 逐方块比较并汇总问题 */
     private static String compare(TestSingleplayerContext sp, String name, Map<BlockPos, BlockState> expected) {
         Map<String, List<String>> issues = new TreeMap<>();
-        int[] counts = new int[5]; // ok, missing, wrongBlock, wrongState, extra
+        int[] counts = new int[6]; // ok, missing, wrongBlock, wrongState, extra, runtimeState
         sp.getServer().runOnServer(server -> {
             var level = server.overworld();
             for (var e : expected.entrySet()) {
@@ -238,14 +249,17 @@ public final class ComplexPrintGameTest implements FabricClientGameTest {
                     counts[2]++;
                     key = "WRONG_BLOCK " + id(want) + " -> " + id(have);
                 } else {
-                    counts[3]++;
                     StringBuilder diff = new StringBuilder();
+                    boolean runtimeOnly = true;
                     for (Property<?> p : want.getProperties()) {
                         if (!want.getValue(p).equals(have.getValue(p))) {
                             diff.append(p.getName()).append('=').append(want.getValue(p)).append("->").append(have.getValue(p)).append(' ');
+                            if (!RUNTIME_PROPS.contains(p.getName())) runtimeOnly = false;
                         }
                     }
-                    key = "WRONG_STATE " + id(want) + " " + diff.toString().trim();
+                    if (runtimeOnly) counts[5]++;
+                    else counts[3]++;
+                    key = (runtimeOnly ? "RUNTIME_STATE " : "WRONG_STATE ") + id(want) + " " + diff.toString().trim();
                 }
                 String extra = "";
                 if (key.startsWith("MISSING water") && issues.getOrDefault(key, List.of()).size() < 2) {
@@ -260,13 +274,19 @@ public final class ComplexPrintGameTest implements FabricClientGameTest {
                 issues.computeIfAbsent(key, k -> new ArrayList<>()).add(e.getKey().toShortString() + " want=" + want + extra);
             }
         });
-        GT.log("[complex] " + name + " RESULT ok=" + counts[0] + " missing=" + counts[1] + " wrongBlock=" + counts[2] + " wrongState=" + counts[3] + " extra=" + counts[4]);
+        GT.log("[complex] " + name + " RESULT ok=" + counts[0] + " missing=" + counts[1] + " wrongBlock=" + counts[2] + " wrongState=" + counts[3] + " extra=" + counts[4] + " runtimeState=" + counts[5]);
         // 按“同类问题数量”排序输出
         issues.entrySet().stream()
                 .sorted((a, b) -> b.getValue().size() - a.getValue().size())
                 .limit(60)
                 .forEach(e -> GT.log("[complex] " + name + "   " + e.getValue().size() + "x " + e.getKey() + "  e.g. " + e.getValue().get(0)));
-        return "ok=" + counts[0] + " missing=" + counts[1] + " wrongBlock=" + counts[2] + " wrongState=" + counts[3] + " extra=" + counts[4];
+        return "ok=" + counts[0] + " missing=" + counts[1] + " wrongBlock=" + counts[2] + " wrongState=" + counts[3] + " extra=" + counts[4] + " runtimeState=" + counts[5];
+    }
+
+    /** 系统属性；没设置或是空字符串（真实实例启动脚本里变量为空）时用默认值 */
+    private static String prop(String key, String def) {
+        String v = System.getProperty(key);
+        return v == null || v.isBlank() ? def : v.strip();
     }
 
     private static String id(BlockState s) {

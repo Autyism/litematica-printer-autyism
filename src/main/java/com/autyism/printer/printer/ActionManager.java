@@ -78,6 +78,14 @@ public class ActionManager {
         this.side = side;
         this.hitModifier = hitModifier;
         this.useShift = useShift;
+        this.repeat = 1;
+    }
+
+    /** 同一次点击连续发几下（音符盒调音、中继器调延迟：一次把需要的次数点完，不用一下一下等冷却） */
+    private int repeat = 1;
+
+    public void setRepeat(int repeat) {
+        this.repeat = Math.max(1, repeat);
     }
 
     public ActionManager sendQueue(LocalPlayer player) {
@@ -140,7 +148,9 @@ public class ActionManager {
         if (gameModeExtension != null) {
             boolean localPrediction = !Configs.Placement.PRINT_USE_PACKET.getBooleanValue();
             BlockHitResult blockHitResult = new BlockHitResult(hitVec, side, target, false);
-            gameModeExtension.litematica_printer$useItemOn(localPrediction, InteractionHand.MAIN_HAND, blockHitResult);
+            for (int i = 0; i < repeat; i++) {
+                gameModeExtension.litematica_printer$useItemOn(localPrediction, InteractionHand.MAIN_HAND, blockHitResult);
+            }
         }
         if (useShift && !wasSneak) {
             setShift(player, false);
@@ -172,5 +182,6 @@ public class ActionManager {
         this.needWaitModifyLook = false;
         this.actionRequiresWaitModifyLook = false;
         this.look = null;
+        this.repeat = 1;
     }
 }
