@@ -227,6 +227,12 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 .range(0, 64)
                 .build();
 
+        // 转头后等几个 tick 再放有朝向的方块（0 = 自动：单人 2，服务器 4）
+        public static final ConfigInteger ROTATION_WAIT_TICKS = integerValue("rotationWaitTicks")
+                .defaultValue(0)
+                .range(0, 20)
+                .build();
+
         // 下落方块检查
         public static final ConfigBoolean FALLING_CHECK = booleanValue("printFallingBlockCheck")
             .defaultValue(true)
@@ -237,6 +243,7 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 PLACE_INTERVAL,
                 PLACE_BLOCKS_PER_TICK,
                 PLACE_COOLDOWN,
+                ROTATION_WAIT_TICKS,
                 FALLING_CHECK
         );
     }
@@ -348,8 +355,9 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 .build();
 
         // 投影轻松放置协议
+        // 轻松放置协议：服务端认得（单人游戏 / 装了 Servux）时直接按投影的状态放，不用转头；不认得的服务器自动用普通方式
         public static final ConfigBoolean EASY_PLACE_PROTOCOL = booleanValue("easyPlaceProtocol")
-                .defaultValue(false)
+                .defaultValue(true)
                 .build();
 
         // 凭空放置

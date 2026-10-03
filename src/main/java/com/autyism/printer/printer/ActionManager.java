@@ -36,7 +36,15 @@ public class ActionManager {
     public PlayerLook look;
     public boolean needWaitModifyLook = false;
     /** 水平转头后至少等这么多 tick 再放置 */
-    private static final int LOOK_WAIT_TICKS = 2;
+    /**
+     * 转头后至少等几个 tick 再放（服务端按“头部朝向”判断，头部朝向要等服务端下一个 tick 才跟上）。
+     * 单人 2 tick；连服务器时网络抖动可能把转头包和放置包挤进服务端同一个 tick，默认等 4 tick。设置里可以改。
+     */
+    private static int lookWaitTicks() {
+        int configured = Configs.Placement.ROTATION_WAIT_TICKS.getIntegerValue();
+        if (configured > 0) return configured;
+        return Reference.MINECRAFT.hasSingleplayerServer() ? 2 : 4;
+    }
     private int lookWaitTicks;
     /** 服务端最后收到的水平朝向，以及从哪个 tick 开始一直是这个朝向 */
     @Nullable
@@ -78,14 +86,6 @@ public class ActionManager {
         this.side = side;
         this.hitModifier = hitModifier;
         this.useShift = useShift;
-        this.repeat = 1;
-    }
-
-    /** 同一次点击连续发几下（音符盒调音、中继器调延迟：一次把需要的次数点完，不用一下一下等冷却） */
-    private int repeat = 1;
-
-    public void setRepeat(int repeat) {
-        this.repeat = Math.max(1, repeat);
     }
 
     public ActionManager sendQueue(LocalPlayer player) {
@@ -112,11 +112,11 @@ public class ActionManager {
                 // 服务端按“头部朝向”(yHeadRot) 判断水平朝向，而头部朝向要等服务端给玩家 tick 之后才跟上转头包；
                 // 只等 1 tick 时转头包和放置包常常落在同一个服务端 tick 里，结果用的是上一个方块的朝向。
                 // （不能用“客户端视角已经朝那边”来省掉等待：打印机自己发的转头包会把服务端的头转走）
-                // 服务端的头已经朝这个水平方向至少 LOOK_WAIT_TICKS 个 tick 了（例如连续放同朝向的楼梯）就不用再等
-                boolean headReady = serverHeadDir == lookDirection && tickNow() - serverHeadDirSince >= LOOK_WAIT_TICKS;
+                // 服务端的头已经朝这个水平方向至少 lookWaitTicks() 个 tick 了（例如连续放同朝向的楼梯）就不用再等
+                boolean headReady = serverHeadDir == lookDirection && tickNow() - serverHeadDirSince >= lookWaitTicks();
                 if (lookDirection.getAxis().isHorizontal() && !headReady) {
                     needWaitModifyLook = true;
-                    lookWaitTicks = LOOK_WAIT_TICKS;
+                    lookWaitTicks = lookWaitTicks();
                     return this;
                 }
             }
@@ -148,8 +148,15 @@ public class ActionManager {
         if (gameModeExtension != null) {
             boolean localPrediction = !Configs.Placement.PRINT_USE_PACKET.getBooleanValue();
             BlockHitResult blockHitResult = new BlockHitResult(hitVec, side, target, false);
-            for (int i = 0; i < repeat; i++) {
-                gameModeExtension.litematica_printer$useItemOn(localPrediction, InteractionHand.MAIN_HAND, blockHitResult);
+            if (DEBUG_LOOK) {
+                System.out.println("[printer-use] target=" + target.toShortString() + " hand=" + player.getMainHandItem().getItem()
+                        + " slot=" + player.getInventory().getSelectedSlot() + " stateId=" + player.inventoryMenu.getStateId()
+                        + " tick=" + player.tickCount);
+            }
+            gameModeExtension.litematica_printer$useItemOn(localPrediction, InteractionHand.MAIN_HAND, blockHitResult);
+            // 记下这次动作的序号：服务端确认之前不再碰这个格子（见 ActionConfirm）
+            if (Reference.MINECRAFT.level instanceof com.autyism.printer.utils.PacketUtils.SequenceExtension seq) {
+                ActionConfirm.sent(Reference.MINECRAFT.level, target, side, seq.litematica_printer3$currentSequence(), player.tickCount);
             }
         }
         if (useShift && !wasSneak) {
@@ -182,6 +189,5 @@ public class ActionManager {
         this.needWaitModifyLook = false;
         this.actionRequiresWaitModifyLook = false;
         this.look = null;
-        this.repeat = 1;
     }
 }

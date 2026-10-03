@@ -81,7 +81,13 @@ public class PacketUtils {
     }
 
     public interface SequenceExtension {
+        /** 申请一个新的动作序号（发包模式用） */
         default int litematica_printer3$getSequence() {
+            return 0;
+        }
+
+        /** 最近一次动作用的序号（不申请新的） */
+        default int litematica_printer3$currentSequence() {
             return 0;
         }
     }
