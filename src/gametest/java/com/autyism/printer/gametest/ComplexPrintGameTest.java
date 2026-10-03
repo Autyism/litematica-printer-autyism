@@ -76,7 +76,7 @@ public final class ComplexPrintGameTest implements FabricClientGameTest {
         try (TestSingleplayerContext sp = GT.newWorld(context)) {
             sp.getServer().runCommand("gamemode creative @a");
             // 关掉随机刻：草蔓延、藤蔓生长、树苗长大这些自然变化不算打印机的错
-            sp.getServer().runCommand("gamerule randomTickSpeed 0");
+            GT.randomTicksOff(sp);
             context.runOnClient(c -> c.options.renderDistance().set(8));
             SchematicPlacement placement = context.computeOnClient(client -> {
                 try {

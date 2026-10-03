@@ -44,7 +44,7 @@ public final class PerfGameTest implements FabricClientGameTest {
         net.minecraft.client.InactivityFpsLimit[] savedInactive = new net.minecraft.client.InactivityFpsLimit[1];
         try (TestSingleplayerContext sp = GT.newWorld(context)) {
             sp.getServer().runCommand("gamemode creative @a");
-            sp.getServer().runCommand("gamerule randomTickSpeed 0");
+            GT.randomTicksOff(sp);
             sp.getServer().runCommand("time set noon");
             context.runOnClient(c -> {
                 savedFps[0] = c.options.framerateLimit().get();
