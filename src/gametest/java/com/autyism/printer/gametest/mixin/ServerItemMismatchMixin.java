@@ -50,11 +50,44 @@ public abstract class ServerItemMismatchMixin {
                 + " tick=" + this.player.tickCount + " recentRot=[" + UseRecord.recentServerRotations() + "]");
     }
 
-    /** 服务端收到的视角（最近 8 个） */
-    @Inject(method = "handleMovePlayer", at = @At("HEAD"))
+    /** 服务端收到的视角包，以及处理之后服务端的身体 / 头部朝向 */
+    @Inject(method = "handleMovePlayer", at = @At("TAIL"))
     private void gt$noteRotation(net.minecraft.network.protocol.game.ServerboundMovePlayerPacket packet, CallbackInfo ci) {
         if (!this.player.level().getServer().isSameThread() || !packet.hasRotation()) return;
-        UseRecord.noteServerRotation("t" + this.player.tickCount + " " + packet.getClass().getSimpleName() + " " + packet.getYRot(0f) + "/" + packet.getXRot(0f));
+        UseRecord.noteServerRotation("t" + this.player.tickCount + " " + packet.getClass().getSimpleName() + " " + packet.getYRot(0f) + "/" + packet.getXRot(0f)
+                + " -> " + this.player.getYRot() + "/head " + this.player.getYHeadRot());
+    }
+
+    /** 所有收到的移动包（包括服务端中途 return 的情况）：处理前的值 */
+    @Inject(method = "handleMovePlayer", at = @At("HEAD"))
+    private void gt$noteMoveIn(net.minecraft.network.protocol.game.ServerboundMovePlayerPacket packet, CallbackInfo ci) {
+        if (!this.player.level().getServer().isSameThread()) return;
+        if (!packet.hasRotation() && !packet.hasPosition()) return;
+        UseRecord.noteServerRotation("t" + this.player.tickCount + " in:" + packet.getClass().getSimpleName()
+                + (packet.hasRotation() ? " rot " + packet.getYRot(0f) + "/" + packet.getXRot(0f) : "")
+                + (packet.hasPosition() ? String.format(java.util.Locale.ROOT, " pos %.2f,%.2f,%.2f", packet.getX(0), packet.getY(0), packet.getZ(0)) : "")
+                + " now " + this.player.getYRot() + "/" + this.player.getXRot());
+    }
+
+    /** 服务端主动传送玩家（客户端会用真实视角回一个 PosRot）：谁调用的 */
+    @Inject(method = "teleport(Lnet/minecraft/world/entity/PositionMoveRotation;Ljava/util/Set;)V", at = @At("HEAD"))
+    private void gt$noteServerTeleport(net.minecraft.world.entity.PositionMoveRotation pos, java.util.Set<net.minecraft.world.entity.Relative> relatives, CallbackInfo ci) {
+        StringBuilder by = new StringBuilder();
+        StackTraceElement[] st = Thread.currentThread().getStackTrace();
+        for (int i = 2, n = 0; i < st.length && n < 5; i++) {
+            String cls = st[i].getClassName();
+            if (cls.startsWith("java.") || cls.contains("ServerItemMismatchMixin")) continue;
+            by.append(cls.substring(cls.lastIndexOf('.') + 1)).append('.').append(st[i].getMethodName()).append(' ');
+            n++;
+        }
+        UseRecord.noteServerRotation("t" + this.player.tickCount + " SERVER-TELEPORT " + pos + " rel=" + relatives + " by=" + by);
+    }
+
+    /** 传送确认（服务端在等它的时候会无视所有移动 / 视角包） */
+    @Inject(method = "handleAcceptTeleportPacket", at = @At("TAIL"))
+    private void gt$noteTeleportAccept(net.minecraft.network.protocol.game.ServerboundAcceptTeleportationPacket packet, CallbackInfo ci) {
+        if (!this.player.level().getServer().isSameThread()) return;
+        UseRecord.noteServerRotation("t" + this.player.tickCount + " teleport-accept " + this.player.getYRot() + "/head " + this.player.getYHeadRot());
     }
 
     /** 每个世界开头的“切换格子”服务端都打印出来（和客户端的 [client-carried-send] 对照） */

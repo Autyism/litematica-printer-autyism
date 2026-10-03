@@ -17,7 +17,7 @@ public final class UseRecord {
 
     public static synchronized void noteServerRotation(String s) {
         SERVER_ROTATIONS.addLast(s);
-        while (SERVER_ROTATIONS.size() > 8) SERVER_ROTATIONS.removeFirst();
+        while (SERVER_ROTATIONS.size() > 30) SERVER_ROTATIONS.removeFirst();
     }
 
     public static synchronized String recentServerRotations() {

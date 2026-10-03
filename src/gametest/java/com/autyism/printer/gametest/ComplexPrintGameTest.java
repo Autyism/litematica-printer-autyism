@@ -58,7 +58,8 @@ public final class ComplexPrintGameTest implements FabricClientGameTest {
         }
         int maxTicks = Integer.parseInt(prop("ale.ticks", "6000"));
         List<String> summary = new ArrayList<>();
-        int index = 0;
+        // -Pstartindex=N：第一个投影放在第 N 个位置（x = 200 + N*200），用来单独复现排在后面的投影的问题
+        int index = Integer.parseInt(prop("ale.startindex", "0"));
         for (String file : files) {
             Path src = Path.of(file);
             if (!Files.exists(src)) {
