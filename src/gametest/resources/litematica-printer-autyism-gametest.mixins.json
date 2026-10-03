@@ -7,7 +7,11 @@
     "LitematicaUtilsMixin",
     "OpenScreenDelayMixin",
     "NoGhostBlocksMixin",
-    "NoGhostBreakMixin"
+    "NoGhostBreakMixin",
+    "ClientUseRecordMixin",
+    "GameModeCarriedAccessor",
+    "ClientHeldSlotDebugMixin",
+    "SlotDedupeMixin"
   ],
   "mixins": [
     "ServerUseItemOnDebugMixin",
@@ -15,7 +19,8 @@
     "ConnectionLagMixin",
     "ServerCarriedItemDebugMixin",
     "ServerContainerClickDebugMixin",
-    "PistonMoveDebugMixin"
+    "PistonMoveDebugMixin",
+    "ServerItemMismatchMixin"
   ],
   "injectors": {
     "defaultRequire": 1
