@@ -190,7 +190,8 @@ public final class GT {
 
     public static void configureCommon() {
         Configs.Core.WORK_SWITCH.setBooleanValue(false);
-        Configs.Core.LAG_CHECK.setBooleanValue(false);
+        // 默认关掉延迟过大暂停（测试环境没有延迟）；-Plagcheck=true 测它
+        Configs.Core.LAG_CHECK.setBooleanValue(Boolean.getBoolean("ale.lagcheck"));
         Configs.Core.WORK_RANGE.setDoubleValue(5.0D);
         Configs.Core.ITERATOR_SHAPE.setOptionListValue(RadiusShapeType.SPHERE);
         Configs.Core.PAUSE_ON_CONTAINER.setBooleanValue(true);

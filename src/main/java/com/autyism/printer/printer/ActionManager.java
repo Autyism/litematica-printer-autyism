@@ -35,25 +35,30 @@ public class ActionManager {
     @Nullable
     public PlayerLook look;
     public boolean needWaitModifyLook = false;
-    /** 水平转头后至少等这么多 tick 再放置 */
     /**
-     * 转头后至少等几个 tick 再放（服务端按“头部朝向”判断，头部朝向要等服务端下一个 tick 才跟上）。
-     * 单人 2 tick；连服务器时网络抖动可能把转头包和放置包挤进服务端同一个 tick，默认等 4 tick。设置里可以改。
+     * 服务端判断活塞、侦测器、发射器、贴墙方块等的朝向时用的是“头部朝向”，而头部朝向要等服务端处理这个玩家的
+     * 下一个 tick 才跟上视角包。固定等几个 tick 不可靠：网络卡一下时转头包和放置包会一起到达、挤进同一次处理。
+     * <p>
+     * 可靠的办法：转头之后发一个“停止挖掘一个够不着的格子”的包当标记（服务端什么都不做，只回确认），
+     * 收到它的确认再放。服务端回确认之后才会在同一个 tick 里更新头部朝向，而我们之后发的放置包
+     * 要等这个 tick 结束才会被处理，所以那时头一定已经转过去了。
      */
-    private static int lookWaitTicks() {
-        int configured = Configs.Placement.ROTATION_WAIT_TICKS.getIntegerValue();
-        if (configured > 0) return configured;
-        return Reference.MINECRAFT.hasSingleplayerServer() ? 2 : 4;
-    }
-    private int lookWaitTicks;
-    /** 服务端最后收到的水平朝向，以及从哪个 tick 开始一直是这个朝向 */
     @Nullable
     private Direction serverHeadDir;
-    private int serverHeadDirSince;
+    /** 最后一次改变水平朝向的视角包发出时的动作序号：之后发出的动作被确认 = 服务端已经按新朝向 tick 过 */
+    private int headRotationSeq = Integer.MIN_VALUE;
+    private boolean headMarkerSent;
+    private int headWaitStart;
+    /** 收不到确认时最多等多久（之后照常放，避免卡住） */
+    private static final int HEAD_WAIT_TIMEOUT_TICKS = 40;
 
     private static int tickNow() {
         var p = net.minecraft.client.Minecraft.getInstance().player;
         return p == null ? 0 : p.tickCount;
+    }
+
+    private static int currentSequence() {
+        return Reference.MINECRAFT.level instanceof PacketUtils.SequenceExtension seq ? seq.litematica_printer3$currentSequence() : 0;
     }
 
     /** 每个发出去的带视角的移动包都会调用（见 PacketUtils.getFixedPacket） */
@@ -61,8 +66,22 @@ public class ActionManager {
         Direction d = Direction.fromYRot(yaw);
         if (d != serverHeadDir) {
             serverHeadDir = d;
-            serverHeadDirSince = tickNow();
+            headRotationSeq = currentSequence();
+            headMarkerSent = false;
         }
+    }
+
+    /** 服务端的头已经确定朝 d 了 */
+    private boolean headReady(Direction d) {
+        return serverHeadDir == d && Reference.MINECRAFT.level != null
+                && ActionConfirm.lastAcked(Reference.MINECRAFT.level) > headRotationSeq;
+    }
+
+    /** 发标记包：停止挖掘一个远在触及范围之外的格子（服务端判定“太远”，什么都不做，只回确认） */
+    private void sendHeadMarker(LocalPlayer player) {
+        BlockPos far = player.blockPosition().offset(512, 0, 0);
+        PacketUtils.sendPacket(sequence -> new net.minecraft.network.protocol.game.ServerboundPlayerActionPacket(
+                net.minecraft.network.protocol.game.ServerboundPlayerActionPacket.Action.ABORT_DESTROY_BLOCK, far, Direction.DOWN, sequence));
     }
 
     private static final boolean DEBUG_LOOK = Boolean.getBoolean("ale.debuglook");
@@ -106,26 +125,22 @@ public class ActionManager {
                     + " requiresWait=" + actionRequiresWaitModifyLook + " playerRot=" + player.getYRot() + "/" + player.getXRot());
         }
 
-        if (!useProtocol && !needWaitModifyLook && actionRequiresWaitModifyLook) {
-            if (look != null) {
-                Direction lookDirection = BlockUtils.orderedByNearest(look.yaw(), look.pitch())[0];
-                // 服务端按“头部朝向”(yHeadRot) 判断水平朝向，而头部朝向要等服务端给玩家 tick 之后才跟上转头包；
-                // 只等 1 tick 时转头包和放置包常常落在同一个服务端 tick 里，结果用的是上一个方块的朝向。
-                // （不能用“客户端视角已经朝那边”来省掉等待：打印机自己发的转头包会把服务端的头转走）
-                // 服务端的头已经朝这个水平方向至少 lookWaitTicks() 个 tick 了（例如连续放同朝向的楼梯）就不用再等
-                boolean headReady = serverHeadDir == lookDirection && tickNow() - serverHeadDirSince >= lookWaitTicks();
-                if (lookDirection.getAxis().isHorizontal() && !headReady) {
+        if (!useProtocol && actionRequiresWaitModifyLook && look != null) {
+            Direction lookDirection = BlockUtils.orderedByNearest(look.yaw(), look.pitch())[0];
+            // 水平朝向：等服务端确认头已经转过去（见 serverHeadDir 的说明）；连续放同朝向的方块不用再等
+            if (lookDirection.getAxis().isHorizontal() && !headReady(lookDirection)) {
+                if (!headMarkerSent) {
+                    sendHeadMarker(player); // 在上面的视角包之后发，服务端按顺序处理
+                    headMarkerSent = true;
+                    headWaitStart = tickNow();
+                }
+                if (tickNow() - headWaitStart <= HEAD_WAIT_TIMEOUT_TICKS && tickNow() >= headWaitStart) {
                     needWaitModifyLook = true;
-                    lookWaitTicks = lookWaitTicks();
                     return this;
                 }
             }
         }
-
-        if (needWaitModifyLook) {
-            if (--lookWaitTicks > 0) return this;
-            needWaitModifyLook = false;
-        }
+        needWaitModifyLook = false;
 
         Vec3 hitVec;
         if (!useProtocol) {
@@ -156,7 +171,8 @@ public class ActionManager {
             gameModeExtension.litematica_printer$useItemOn(localPrediction, InteractionHand.MAIN_HAND, blockHitResult);
             // 记下这次动作的序号：服务端确认之前不再碰这个格子（见 ActionConfirm）
             if (Reference.MINECRAFT.level instanceof com.autyism.printer.utils.PacketUtils.SequenceExtension seq) {
-                ActionConfirm.sent(Reference.MINECRAFT.level, target, side, seq.litematica_printer3$currentSequence(), player.tickCount);
+                ActionConfirm.sent(Reference.MINECRAFT.level, target, side, seq.litematica_printer3$currentSequence(), player.tickCount,
+                        player.getMainHandItem().getItem());
             }
         }
         if (useShift && !wasSneak) {

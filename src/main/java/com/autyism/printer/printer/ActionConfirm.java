@@ -23,6 +23,8 @@ public final class ActionConfirm {
 
     /** 位置 → {序号, 发出时的 tick} */
     private static final Long2ObjectOpenHashMap<int[]> PENDING = new Long2ObjectOpenHashMap<>();
+    /** 序号 → 这次动作手里拿的物品（用来算某种物品还有几次放置没被确认） */
+    private static final it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<net.minecraft.world.item.Item> ITEMS = new it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<>();
     private static int lastAcked = -1;
     private static ClientLevel trackedLevel;
 
@@ -30,11 +32,13 @@ public final class ActionConfirm {
     }
 
     /** 记录一个发出去的动作：被点的格子和方块会出现的格子 */
-    public static void sent(ClientLevel level, BlockPos clicked, Direction side, int sequence, int tick) {
+    public static void sent(ClientLevel level, BlockPos clicked, Direction side, int sequence, int tick, net.minecraft.world.item.Item item) {
         sync(level);
         int[] entry = {sequence, tick};
         PENDING.put(clicked.asLong(), entry);
         PENDING.put(clicked.relative(side).asLong(), entry);
+        ITEMS.put(sequence, item);
+        if (ITEMS.size() > 4096) ITEMS.clear();
     }
 
     /** 服务端确认处理到了 sequence（由 BlockStatePredictionHandler.endPredictionsUpTo 调用） */
@@ -42,6 +46,24 @@ public final class ActionConfirm {
         sync(level);
         if (sequence > lastAcked) lastAcked = sequence;
         PENDING.values().removeIf(e -> e[0] <= lastAcked);
+        ITEMS.int2ObjectEntrySet().removeIf(e -> e.getIntKey() <= lastAcked);
+    }
+
+    /** 用这种物品、已经发出但还没被服务端确认的动作数（按序号去重；超时的不算） */
+    public static int inFlightCount(ClientLevel level, int tick, net.minecraft.world.item.Item item) {
+        sync(level);
+        PENDING.values().removeIf(e -> e[0] <= lastAcked || tick - e[1] > TIMEOUT_TICKS || tick < e[1]);
+        java.util.HashSet<Integer> seqs = new java.util.HashSet<>();
+        for (int[] e : PENDING.values()) {
+            if (ITEMS.get(e[0]) == item) seqs.add(e[0]);
+        }
+        return seqs.size();
+    }
+
+    /** 服务端确认处理到的最大序号 */
+    public static int lastAcked(ClientLevel level) {
+        sync(level);
+        return lastAcked;
     }
 
     /** 这个格子上有还没被服务端确认的动作 */
@@ -101,6 +123,7 @@ public final class ActionConfirm {
         if (level != trackedLevel) {
             trackedLevel = level;
             PENDING.clear();
+            ITEMS.clear();
             lastAcked = -1;
             inventoryClickSeq = Integer.MIN_VALUE;
         }

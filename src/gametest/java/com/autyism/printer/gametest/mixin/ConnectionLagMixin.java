@@ -27,6 +27,11 @@ public abstract class ConnectionLagMixin {
     private static final int[] LAG = parse(System.getProperty("ale.lag", ""));
     @Unique
     private static final ThreadLocal<Boolean> REPLAY = ThreadLocal.withInitial(() -> false);
+    /** ale.lagspike = "间隔毫秒,时长毫秒"：每隔一段时间网络完全卡住一会儿 */
+    @Unique
+    private static final int[] SPIKE = parse(System.getProperty("ale.lagspike", ""));
+    @Unique
+    private static final long START = System.nanoTime();
 
     /** 等待处理的包：{放行时间(纳秒), ctx, packet}，按到达顺序 */
     @Unique
@@ -49,6 +54,12 @@ public abstract class ConnectionLagMixin {
         long now = System.nanoTime();
         long delay = active ? TimeUnit.MILLISECONDS.toNanos(LAG[0] + (LAG[1] > 0 ? ThreadLocalRandom.current().nextInt(LAG[1] + 1) : 0)) : 0;
         long release = Math.max(now + delay, ale$lastRelease);
+        // 网络卡顿：卡住期间的包全部压到卡顿结束时一起到达（TCP 的行为）
+        if (active && SPIKE != null) {
+            long every = TimeUnit.MILLISECONDS.toNanos(SPIKE[0]), duration = TimeUnit.MILLISECONDS.toNanos(SPIKE[1]);
+            long phase = Math.floorMod(release - START, every);
+            if (phase < duration) release += duration - phase;
+        }
         ale$lastRelease = release;
         ale$queue.addLast(new Object[]{release, ctx, packet});
         ci.cancel();
