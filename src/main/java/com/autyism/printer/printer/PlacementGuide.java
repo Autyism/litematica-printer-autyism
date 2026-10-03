@@ -456,46 +456,30 @@ public class PlacementGuide {
                 return new Action().setSides(facing);
             }
             case RAIL -> {
-                Action action = new Action();
                 RailShape shape;
                 if (ctx.requiredState.getBlock() instanceof RailBlock)
                     shape = ctx.requiredState.getValue(RailBlock.SHAPE);
                 else shape = ctx.requiredState.getValue(BlockStateProperties.RAIL_SHAPE_STRAIGHT);
 
-                // 上坡铁轨：原版只有在高处那一节铁轨已经存在时，才会把新放的铁轨连成上坡；
-                // 先放低处的话会和旁边的铁轨连成平的/拐弯。所以等高处那一节放好再放
-                if (shape.isSlope()) {
-                    Direction up = switch (shape) {
-                        case ASCENDING_EAST -> Direction.EAST;
-                        case ASCENDING_WEST -> Direction.WEST;
-                        case ASCENDING_NORTH -> Direction.NORTH;
-                        default -> Direction.SOUTH;
-                    };
-                    SchematicBlockContext upper = ctx.offset(up).offset(Direction.UP);
-                    if (upper.requiredState.getBlock() instanceof BaseRailBlock
-                            && !(upper.currentState.getBlock() instanceof BaseRailBlock)) {
+                // 铁轨安全放置：按原版规则模拟“现在放会怎样”，只有这节形状正确、不会把旁边已经放好的铁轨拉歪、
+                // 不会出现没支撑而掉落的上坡铁轨时才放；否则等别的铁轨放好再试，放不对的就不放（见 RailSim）
+                if (Configs.Print.SAFE_RAILS.getBooleanValue()) {
+                    // 先按规划好的顺序（排在前面的铁轨放好了才轮到这节），再做实时的安全判断
+                    Direction look = !RailPlanner.isTurn(ctx.level, ctx.schematic, ctx.blockPos) ? null : RailSim.findSafeLook(ctx.level, ctx.schematic, ctx.blockPos, ctx.requiredState,
+                            Reference.MINECRAFT.player.tickCount);
+                    if (look == null) {
                         ModuleManager.PRINT.deferToUpperLayer(ctx.blockPos);
                         return null;
                     }
+                    // 铁轨的初始方向取玩家水平朝向，服务端按头部朝向判断：要等转头生效
+                    return new Action().setLookDirection(look).setNeedWaitModifyLook();
                 }
-                // 旁边平行的铁轨还有空着的一端、自己这条线的下一节还没放：现在放会被拉成横的，先等一等（见 RailHelper）
-                if (RailHelper.shouldWait(ctx.level, ctx.schematic, ctx.blockPos, shape, Reference.MINECRAFT.player.tickCount)) {
-                    ModuleManager.PRINT.deferToUpperLayer(ctx.blockPos);
-                    return null;
-                }
-                // 铁轨的初始方向取玩家水平朝向，服务端按头部朝向判断：和活塞一样要等转头生效
-                action.setNeedWaitModifyLook();
+                Action action = new Action().setNeedWaitModifyLook();
                 switch (shape) {
                     case EAST_WEST, ASCENDING_EAST -> action.setLookDirection(Direction.EAST);
                     case NORTH_SOUTH, ASCENDING_NORTH -> action.setLookDirection(Direction.NORTH);
                     case ASCENDING_WEST -> action.setLookDirection(Direction.WEST);
                     case ASCENDING_SOUTH -> action.setLookDirection(Direction.SOUTH);
-                }
-                if (ctx.requiredState.getBlock() instanceof RailBlock) {
-                    if (shape == RailShape.SOUTH_EAST) {
-                        return action;
-                    }
-                    // TODO)) 完成这非常恶心的铁轨算法
                 }
                 return action;
             }

@@ -320,5 +320,7 @@
   "litematica-printer-autyism.config.bedrockBackend.auto": "自动",
   "litematica-printer-autyism.config.bedrockBackend.blockminer": "blockminer",
   "litematica-printer-autyism.config.bedrockBackend.bunnyi": "bedrockminer (bunnyi116)",
-  "litematica-printer-autyism.config.bedrockBackend.lxyan": "bedrock-miner (lxyan2333)"
+  "litematica-printer-autyism.config.bedrockBackend.lxyan": "bedrock-miner (lxyan2333)",
+  "litematica-printer-autyism.config.printSafeRails": "铁轨安全放置",
+  "litematica-printer-autyism.config.printSafeRails.desc": "放铁轨之前按原版的铁轨连接规则模拟一遍：只有这节铁轨形状会和投影一致、不会把旁边已经放好的铁轨拉成别的形状、也不会有上坡铁轨因为没支撑而掉落时才放；否则先放别的铁轨再试。怎么排都放不对的铁轨会留空（不会先放错再敲掉）。"
 }
