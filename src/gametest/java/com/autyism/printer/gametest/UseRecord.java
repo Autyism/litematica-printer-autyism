@@ -7,7 +7,21 @@ import java.util.concurrent.ConcurrentHashMap;
  * 单人世界客户端和服务端在同一个进程里，所以可以直接共享。只在对不上时打印 [ITEM-MISMATCH]。
  */
 public final class UseRecord {
-    public record Entry(String item, int slot, int tick, String target) {
+    public record Entry(String item, int slot, int tick, String target,
+                        @org.jetbrains.annotations.Nullable net.minecraft.core.BlockPos workPos,
+                        @org.jetbrains.annotations.Nullable net.minecraft.world.level.block.state.BlockState wanted) {
+    }
+
+    /** 服务端最近收到的带视角的移动包：{tick, yRot, xRot, 类型} */
+    public static final java.util.ArrayDeque<String> SERVER_ROTATIONS = new java.util.ArrayDeque<>();
+
+    public static synchronized void noteServerRotation(String s) {
+        SERVER_ROTATIONS.addLast(s);
+        while (SERVER_ROTATIONS.size() > 8) SERVER_ROTATIONS.removeFirst();
+    }
+
+    public static synchronized String recentServerRotations() {
+        return String.join(" | ", SERVER_ROTATIONS);
     }
 
     private static final ConcurrentHashMap<Integer, Entry> MAP = new ConcurrentHashMap<>();

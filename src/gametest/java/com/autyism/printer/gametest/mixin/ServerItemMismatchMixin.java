@@ -20,6 +20,43 @@ public abstract class ServerItemMismatchMixin {
     @Shadow
     public ServerPlayer player;
 
+    @org.spongepowered.asm.mixin.Unique
+    private UseRecord.Entry gt$current;
+
+    /** 方向类属性：只有这些不一样时才算“朝向放错” */
+    @org.spongepowered.asm.mixin.Unique
+    private static final java.util.Set<String> GT_ORIENT_PROPS = java.util.Set.of("facing", "axis", "rotation", "orientation", "hinge", "half", "face");
+
+    /** 放完之后：方块对了但朝向类属性和投影不一样 → 打印 [ORIENT-MISMATCH]（服务端此刻的视角 + 最近收到的视角包） */
+    @Inject(method = "handleUseItemOn", at = @At("TAIL"))
+    private void gt$checkOrientation(ServerboundUseItemOnPacket packet, CallbackInfo ci) {
+        if (!this.player.level().getServer().isSameThread()) return;
+        UseRecord.Entry client = gt$current;
+        gt$current = null;
+        if (client == null || client.workPos() == null || client.wanted() == null) return;
+        var placed = this.player.level().getBlockState(client.workPos());
+        var wanted = client.wanted();
+        if (placed.getBlock() != wanted.getBlock()) return;
+        StringBuilder diff = new StringBuilder();
+        for (var prop : wanted.getProperties()) {
+            if (!GT_ORIENT_PROPS.contains(prop.getName())) continue;
+            if (!placed.getValue(prop).equals(wanted.getValue(prop))) {
+                diff.append(prop.getName()).append('=').append(wanted.getValue(prop)).append("->").append(placed.getValue(prop)).append(' ');
+            }
+        }
+        if (diff.isEmpty()) return;
+        System.out.println("[ORIENT-MISMATCH] seq=" + packet.getSequence() + " pos=" + client.workPos().toShortString() + " " + diff
+                + "click=" + client.target() + " serverRot=" + this.player.getYRot() + "/" + this.player.getXRot() + " head=" + this.player.getYHeadRot()
+                + " tick=" + this.player.tickCount + " recentRot=[" + UseRecord.recentServerRotations() + "]");
+    }
+
+    /** 服务端收到的视角（最近 8 个） */
+    @Inject(method = "handleMovePlayer", at = @At("HEAD"))
+    private void gt$noteRotation(net.minecraft.network.protocol.game.ServerboundMovePlayerPacket packet, CallbackInfo ci) {
+        if (!this.player.level().getServer().isSameThread() || !packet.hasRotation()) return;
+        UseRecord.noteServerRotation("t" + this.player.tickCount + " " + packet.getClass().getSimpleName() + " " + packet.getYRot(0f) + "/" + packet.getXRot(0f));
+    }
+
     /** 每个世界开头的“切换格子”服务端都打印出来（和客户端的 [client-carried-send] 对照） */
     @Inject(method = "handleSetCarriedItem", at = @At("TAIL"))
     private void gt$logEarlyCarried(ServerboundSetCarriedItemPacket packet, CallbackInfo ci) {
@@ -32,6 +69,7 @@ public abstract class ServerItemMismatchMixin {
     private void gt$checkItem(ServerboundUseItemOnPacket packet, CallbackInfo ci) {
         if (!this.player.level().getServer().isSameThread()) return; // 网络线程那一次只是转交给主线程
         UseRecord.Entry client = UseRecord.take(packet.getSequence());
+        gt$current = client;
         if (client == null || client.item().equals("minecraft:air")) return; // 生存模式最后一个用掉后客户端手里是空的：不算
         String server = this.player.getItemInHand(packet.getHand()).getItem().toString();
         if (server.equals(client.item())) return;
