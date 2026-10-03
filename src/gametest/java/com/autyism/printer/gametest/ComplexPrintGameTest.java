@@ -262,7 +262,8 @@ public final class ComplexPrintGameTest implements FabricClientGameTest {
                     key = (runtimeOnly ? "RUNTIME_STATE " : "WRONG_STATE ") + id(want) + " " + diff.toString().trim();
                 }
                 String extra = "";
-                if (key.startsWith("MISSING water") && issues.getOrDefault(key, List.of()).size() < 2) {
+                // 每类问题的前两个附上六个邻居“投影 vs 世界”（排查连接状态、被推动等问题）
+                if (!key.startsWith("RUNTIME_STATE") && issues.getOrDefault(key, List.of()).size() < 2) {
                     StringBuilder nb = new StringBuilder(" | ");
                     for (net.minecraft.core.Direction d : net.minecraft.core.Direction.values()) {
                         BlockPos n = e.getKey().relative(d);

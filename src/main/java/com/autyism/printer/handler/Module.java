@@ -274,6 +274,9 @@ public abstract class Module extends ConfigUtils {
     }
 
 
+    /** 当前这一轮分层是在多大的可达范围下开始的（范围变大就回到新的最底层） */
+    private double layerRange = Double.NaN;
+
     /** 当前层连续多少个“实际在工作的 tick”没有任何放置尝试（暂停、离开范围时不计） */
     private int layerIdleTicks;
     @Nullable
@@ -358,8 +361,15 @@ public abstract class Module extends ConfigUtils {
             areaKey[0] = Math.min(areaKey[0], b.minY);
             areaKey[1] = Math.max(areaKey[1], b.maxY);
         }
-        if (layerY == null || layerY < bounds[0] || layerY > bounds[1] || !java.util.Arrays.equals(areaKey, lastLayerBounds)) {
+        // 可达范围变大了（单人世界自动调高交互距离生效、或者调大了工作半径）：下面多出来的层要先打，回到新的最底层。
+        // 以前这里不管，开打印机的头几 tick 还是原版 4.5 格的范围，站在建筑上方时会先打靠近眼睛的上层、再绕回最底层
+        //（红石机器先放了上面的活塞 / 侦测器，下面搭起来时电路会动）
+        double range = ConfigUtils.getEffectiveRange();
+        boolean rangeGrew = !Double.isNaN(layerRange) && range > layerRange + 0.25;
+        if (Double.isNaN(layerRange) || range < layerRange) layerRange = range;
+        if (layerY == null || layerY < bounds[0] || layerY > bounds[1] || !java.util.Arrays.equals(areaKey, lastLayerBounds) || rangeGrew) {
             layerY = bounds[0];
+            layerRange = range;
             layerPending = false;
             layerAttempts.clear();
             layerAttemptRemaining.clear();
@@ -521,6 +531,7 @@ public abstract class Module extends ConfigUtils {
 
     public void resetScanState() {
         layerY = null;
+        layerRange = Double.NaN;
         layerAttempts.clear();
         layerAttemptRemaining.clear();
         layerDeferred.clear();
