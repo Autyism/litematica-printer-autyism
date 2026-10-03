@@ -281,6 +281,7 @@
   "litematica-printer-autyism.update.recommendation": "强烈建议升级至最新版本，以修复潜在的严重问题。",
   "litematica-printer-autyism.update.repository": "代码仓库：",
   "litematica-printer-autyism.bedrock.not_support": "暂不支持原版 Bedrock Miner，请使用 bunnyi 分支版",
+  "litematica-printer-autyism.bedrock.noghost_conflict": "bunnyi 版破基岩模组（bedrockminer）在 Meteor 的 NoGhostBlocks（防幽灵方块）开着时破不掉任何方块：请关掉 NoGhostBlocks，或改用 lxyan 版（bedrock-miner）",
   "litematica-printer-autyism.config.breakAutoToolSwitch": "自动切换工具",
   "litematica-printer-autyism.config.breakAutoToolSwitch.desc": "挖掘前自动从整个背包中切换到最合适的工具（内置实现，不需要 Tweakeroo）。",
   "litematica-printer-autyism.config.breakToolDurabilityProtect": "工具耐久保护",

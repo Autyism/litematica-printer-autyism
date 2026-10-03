@@ -281,6 +281,7 @@
   "litematica-printer-autyism.config.highlightStyleType.filled": "填充",
   "litematica-printer-autyism.config.highlightStyleType.both": "兩者",
   "litematica-printer-autyism.bedrock.not_support": "暫不支援原版 Bedrock Miner，請使用 bunnyi 分支版",
+  "litematica-printer-autyism.bedrock.noghost_conflict": "bunnyi 版破基岩模組（bedrockminer）在 Meteor 的 NoGhostBlocks（防幽靈方塊）開著時破不掉任何方塊：請關掉 NoGhostBlocks，或改用 lxyan 版（bedrock-miner）",
   "litematica-printer-autyism.config.breakAutoToolSwitch": "自动切换工具",
   "litematica-printer-autyism.config.breakAutoToolSwitch.desc": "挖掘前自动从整个背包中切换到最合适的工具（内置实现，不需要 Tweakeroo）。",
   "litematica-printer-autyism.config.breakToolDurabilityProtect": "工具耐久保护",

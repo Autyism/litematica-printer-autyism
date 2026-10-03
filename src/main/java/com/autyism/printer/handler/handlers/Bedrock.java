@@ -39,6 +39,11 @@ public class Bedrock extends Module {
             MessageUtils.setOverlayMessage(I18n.BEDROCK_MOD_MISSING.getName());
             return false;
         }
+        // bunnyi116 的破基岩模组在 Meteor 的 NoGhostBlocks（防幽灵方块）开着时什么都破不掉（测试过放置、挖掘两部分都会这样），
+        // lxyan2333 的版本没问题。不拦着（也许以后的版本修好了），只提示
+        if (BedrockCompat.isBunnyiBackend() && com.autyism.printer.compat.MeteorCompat.isNoGhostBlocksActive()) {
+            MessageUtils.setOverlayMessage(I18n.BEDROCK_NOGHOST_CONFLICT.getName());
+        }
         BedrockCompat.ensureWorking();
         BedrockCompat.syncAllowList();
         return true;

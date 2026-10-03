@@ -37,6 +37,8 @@ public final class BedrockGameTest implements FabricClientGameTest {
         if (!FabricLoader.getInstance().isModLoaded("bedrockminer")) {
             throw new AssertionError("[bedrock] bedrockminer is not loaded in the test environment");
         }
+        // 真实实例里装着 Meteor：确认能检测到 NoGhostBlocks（bunnyi 版破基岩模组和它不兼容，打印机会提示）
+        GT.log("[bedrock] Meteor NoGhostBlocks active=" + context.computeOnClient(c -> com.autyism.printer.compat.MeteorCompat.isNoGhostBlocksActive()));
         try (TestSingleplayerContext sp = GT.newWorld(context)) {
             String order = System.getProperty("ale.backends", "BUNNYI,LXYAN");
             java.util.List<String> failures = new java.util.ArrayList<>();
