@@ -38,7 +38,7 @@ public class Action {
     protected Boolean needWaitModifyLook = false;
 
     public Action() {
-        this.sides = new HashMap<>();
+        this.sides = new java.util.EnumMap<>(Direction.class);
         for (Direction direction : Direction.values()) {
             sides.put(direction, new Vec3(0, 0, 0));
         }
@@ -74,7 +74,7 @@ public class Action {
 
     public @NotNull Map<Direction, Vec3> getSides() {
         if (this.sides == null) {
-            this.sides = new HashMap<>();
+            this.sides = new java.util.EnumMap<>(Direction.class);
             for (Direction d : Direction.values()) {
                 this.sides.put(d, new Vec3(0, 0, 0));
             }
@@ -83,7 +83,7 @@ public class Action {
     }
 
     public Action setSides(Direction.Axis... axis) {
-        Map<Direction, Vec3> sides = new HashMap<>();
+        Map<Direction, Vec3> sides = new java.util.EnumMap<>(Direction.class);
         for (Direction.Axis a : axis) {
             for (Direction d : Direction.values()) {
                 if (d.getAxis() == a) {
@@ -96,12 +96,14 @@ public class Action {
     }
 
     public Action setSides(Map<Direction, Vec3> sides) {
-        this.sides = sides;
+        // 固定顺序（EnumMap）：HashMap 的迭代顺序取决于对象哈希，每次启动都可能不同，
+        // 会让“点哪个面”在开发环境和真实环境里不一样（门轴、台阶、箱子都因此出过错）
+        this.sides = sides.isEmpty() ? new java.util.EnumMap<>(Direction.class) : new java.util.EnumMap<>(sides);
         return this;
     }
 
     public Action setSides(Direction... directions) {
-        Map<Direction, Vec3> sides = new HashMap<>();
+        Map<Direction, Vec3> sides = new java.util.EnumMap<>(Direction.class);
         for (Direction d : directions) {
             sides.put(d, new Vec3(0, 0, 0));
         }

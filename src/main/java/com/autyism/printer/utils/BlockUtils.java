@@ -321,7 +321,7 @@ public class BlockUtils {
             Level world, BlockPos pos, SlabType requiredHalf) {
         if (requiredHalf == SlabType.DOUBLE) requiredHalf = SlabType.BOTTOM;
         Direction requiredDir = requiredHalf == SlabType.TOP ? Direction.UP : Direction.DOWN;
-        Map<Direction, Vec3> sides = new HashMap<>();
+        Map<Direction, Vec3> sides = new java.util.EnumMap<>(Direction.class);
         sides.put(requiredDir, new Vec3(0, 0, 0));
         if (world.getBlockState(pos).hasProperty(SlabBlock.TYPE)) {
             sides.put(

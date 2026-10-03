@@ -149,7 +149,7 @@ public class PlacementGuide {
             case STAIR -> {
                 Direction facing = ctx.requiredState.getValue(StairBlock.FACING);
                 Half half = ctx.requiredState.getValue(StairBlock.HALF);
-                Map<Direction, Vec3> sides = new HashMap<>();
+                Map<Direction, Vec3> sides = new java.util.EnumMap<>(Direction.class);
                 if (half == Half.BOTTOM) {
                     sides.put(Direction.DOWN, new Vec3(0, 0, 0));
                     sides.put(facing, new Vec3(0, 0, 0));
@@ -212,7 +212,7 @@ public class PlacementGuide {
             case CHEST -> {
                 Direction facing = ctx.requiredState.getValue(BlockStateProperties.HORIZONTAL_FACING).getOpposite();
                 ChestType type = ctx.requiredState.getValue(BlockStateProperties.CHEST_TYPE);
-                Map<Direction, Vec3> noChestSides = new HashMap<>();
+                Map<Direction, Vec3> noChestSides = new java.util.EnumMap<>(Direction.class);
 
                 for (Direction side : Direction.values()) {
                     if (ctx.level.getBlockState(ctx.blockPos.relative(side)).getBlock() instanceof ChestBlock) {
@@ -272,10 +272,10 @@ public class PlacementGuide {
                 Direction hingeSide = hinge == DoorHingeSide.LEFT ? facing.getCounterClockWise() : facing.getClockWise();
                 Vec3 hingeVec = new Vec3(hingeSide.getStepX() * 0.25, 0, hingeSide.getStepZ() * 0.25);
 
-                Map<Direction, Vec3> sides = new HashMap<>();
-                sides.put(hingeSide, Vec3.ZERO); // 靠墙方向需要支撑
-                sides.put(Direction.DOWN, hingeVec); // 底部点击偏移
-                sides.put(facing, hingeVec); // 正面点击偏移
+                // 只点脚下的方块（门本来就必须放在方块上），点击位置往门轴一侧偏：
+                // 以前还会点“门轴那一侧”的面，但那一面的点击坐标正好落在另一边，门轴会反
+                Map<Direction, Vec3> sides = new java.util.EnumMap<>(Direction.class);
+                sides.put(Direction.DOWN, hingeVec);
 
                 // 获取左右方块状态
                 Direction left = facing.getCounterClockWise();
@@ -696,9 +696,8 @@ public class PlacementGuide {
             case SNOW -> {
                 int layers = ctx.currentState.getValue(SnowLayerBlock.LAYERS);
                 if (layers < ctx.requiredState.getValue(SnowLayerBlock.LAYERS)) {
-                    Map<Direction, Vec3> sides = new HashMap<>() {{
-                        put(Direction.UP, new Vec3(0, (layers / 8d) - 1, 0));
-                    }};
+                    Map<Direction, Vec3> sides = new java.util.EnumMap<>(Direction.class);
+                    sides.put(Direction.UP, new Vec3(0, (layers / 8d) - 1, 0));
                     return new ClickAction().setItem(Items.SNOW).setSides(sides);
                 }
                 if (printBreakWrongStateBlock) {
