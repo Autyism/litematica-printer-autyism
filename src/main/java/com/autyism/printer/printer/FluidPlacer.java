@@ -39,6 +39,7 @@ import java.util.ArrayDeque;
 public final class FluidPlacer {
     private static final Minecraft mc = Minecraft.getInstance();
     private static final boolean DEBUG = Boolean.getBoolean("ale.debuglook");
+    private static final boolean DEBUG_ALL = Boolean.getBoolean("ale.debugfluid");
 
     public enum Kind { SOURCE, CAULDRON }
 
@@ -50,7 +51,7 @@ public final class FluidPlacer {
     }
 
     private static void dbg(BlockPos pos, String msg) {
-        if (DEBUG && (pos.getX() + pos.getZ()) % 7 == 0) System.out.println("[fluid-plan] " + pos.toShortString() + " " + msg);
+        if (DEBUG && (DEBUG_ALL || (pos.getX() + pos.getZ()) % 7 == 0)) System.out.println("[fluid-plan] " + pos.toShortString() + " " + msg);
     }
 
     @Nullable

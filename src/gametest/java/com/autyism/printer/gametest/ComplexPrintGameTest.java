@@ -280,6 +280,13 @@ public final class ComplexPrintGameTest implements FabricClientGameTest {
                 .sorted((a, b) -> b.getValue().size() - a.getValue().size())
                 .limit(60)
                 .forEach(e -> GT.log("[complex] " + name + "   " + e.getValue().size() + "x " + e.getKey() + "  e.g. " + e.getValue().get(0)));
+        // -Pdumpmissing=true：列出每一类问题的全部坐标（排查用）
+        if (Boolean.getBoolean("ale.dumpmissing")) {
+            issues.forEach((k, v) -> {
+                if (k.startsWith("RUNTIME_STATE")) return;
+                for (String pos : v) GT.log("[complex] " + name + "   ALL " + k + " @ " + pos.replaceAll(" want=.*", ""));
+            });
+        }
         return "ok=" + counts[0] + " missing=" + counts[1] + " wrongBlock=" + counts[2] + " wrongState=" + counts[3] + " extra=" + counts[4] + " runtimeState=" + counts[5];
     }
 
