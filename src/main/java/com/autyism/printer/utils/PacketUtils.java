@@ -53,12 +53,8 @@ public class PacketUtils {
     }
 
     public static Packet<?> getFixedPacket(Packet<?> packet) {
-        Packet<?> fixed = getFixedPacket0(packet);
-        // 记录服务端最后收到的视角（用来判断服务端的头部朝向是否已经转过去）
-        if (fixed instanceof ServerboundMovePlayerPacket move && move.hasRotation()) {
-            ActionManager.INSTANCE.noteSentRotation(move.getYRot(0));
-        }
-        return fixed;
+        // 服务端最后收到的视角在 MixinConnectionRotationNote 里记（所有真正发出去的包，包括使用物品包）
+        return getFixedPacket0(packet);
     }
 
     private static Packet<?> getFixedPacket0(Packet<?> packet) {
