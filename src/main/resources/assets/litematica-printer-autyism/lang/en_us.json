@@ -61,7 +61,7 @@
   "litematica-printer-autyism.config.debugOutput": "Show Debug Information",
   "litematica-printer-autyism.config.debugOutput.desc": "When enabled, console will output printer debug information.\nIf §6§lShow Work Status§r is also enabled, some information will also be displayed in the operation interface.",
   "litematica-printer-autyism.config.easyPlaceProtocol": "Use Easy Place Protocol",
-  "litematica-printer-autyism.config.easyPlaceProtocol.desc": "Use Servex's easy place protocol to handle block placement correction during printing.\n§lNote:§r This feature only works in single-player or on servers with Servux installed.",
+  "litematica-printer-autyism.config.easyPlaceProtocol.desc": "When the server understands Litematica's easy place protocol (singleplayer, or a server with Servux), blocks are placed directly in the schematic's state (facing, half, axis...) without turning. On other servers the printer automatically falls back to sending a fake look direction. Carpet's older protocol (V2) is only used if you select V2 in Litematica's settings, because it needs the accurateBlockPlacement rule on the server.",
   "litematica-printer-autyism.config.excavateBlacklist": "Custom Blacklist",
   "litematica-printer-autyism.config.excavateBlacklist.desc": "Prohibit mining blocks in this list.\nCan input item ID or translated name in current language, example: §bminecraft:stone§r §bsandstone§r.\nPrefix §b#§r for tag matching, example: §l#minecraft:logs§r.\nInput text and filter conditions simultaneously (separated by English comma), example: §lglazed_terracotta,c§r.\nWhere \"c\" represents contains matching, prioritizing pinyin or direct matching.",
   "litematica-printer-autyism.config.excavateLimit": "Custom Limit Mode",
@@ -322,5 +322,7 @@
   "litematica-printer-autyism.config.bedrockBackend.bunnyi": "bedrockminer (bunnyi116)",
   "litematica-printer-autyism.config.bedrockBackend.lxyan": "bedrock-miner (lxyan2333)",
   "litematica-printer-autyism.config.printSafeRails": "Safe Rail Placement",
-  "litematica-printer-autyism.config.printSafeRails.desc": "Before placing a rail, simulate vanilla rail connection logic. Only place it when its shape will match the schematic, no rail already placed nearby gets pulled into a different shape, and no slope would pop off for lack of support. Otherwise wait for other rails first; rails that can never be placed correctly are left out (nothing is placed wrong and broken again)."
+  "litematica-printer-autyism.config.printSafeRails.desc": "Before placing a rail, simulate vanilla rail connection logic. Only place it when its shape will match the schematic, no rail already placed nearby gets pulled into a different shape, and no slope would pop off for lack of support. Otherwise wait for other rails first; rails that can never be placed correctly are left out (nothing is placed wrong and broken again).",
+  "litematica-printer-autyism.config.rotationWaitTicks": "Rotation Wait Ticks",
+  "litematica-printer-autyism.config.rotationWaitTicks.desc": "How many ticks to wait after turning before placing a block whose facing depends on where you look. The server only updates your head direction on its next tick, and on a real server network jitter can deliver the turn and the placement in the same server tick, which places the block facing the wrong way. 0 = automatic (2 in singleplayer, 4 on servers). Raise it if blocks still come out facing wrong on a laggy server. Consecutive blocks facing the same way do not wait again."
 }

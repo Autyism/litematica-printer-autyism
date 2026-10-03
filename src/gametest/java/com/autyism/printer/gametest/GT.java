@@ -203,7 +203,8 @@ public final class GT {
         Configs.Print.PRINT_SKIP.setBooleanValue(false);
         Configs.Print.BREAK_WRONG_BLOCK.setBooleanValue(false);
         Configs.Print.BREAK_EXTRA_BLOCK.setBooleanValue(false);
-        Configs.Print.EASY_PLACE_PROTOCOL.setBooleanValue(false);
+        // 默认测普通模式（发假视角）；-Pprotocol=true 测轻松放置协议模式
+        Configs.Print.EASY_PLACE_PROTOCOL.setBooleanValue(Boolean.getBoolean("ale.protocol"));
         Configs.Print.USE_QUICK_SHULKER.setBooleanValue(false);
         disableAll();
     }

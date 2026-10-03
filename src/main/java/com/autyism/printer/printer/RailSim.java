@@ -79,9 +79,14 @@ public final class RailSim {
             // 红石信号只影响普通铁轨在丁字路口时拐向哪边：有没有信号都要安全才放
             Map<BlockPos, BlockState> withSignal = simulate(level, pos, placed, true);
             Map<BlockPos, BlockState> noSignal = simulate(level, pos, placed, false);
-            if (clean(level, schematic, pos, wanted, withSignal) && clean(level, schematic, pos, wanted, noSignal)) {
-                return new Safe(look, noSignal);
+            if (!clean(level, schematic, pos, wanted, withSignal) || !clean(level, schematic, pos, wanted, noSignal)) continue;
+            // 用轻松放置协议时，服务端可能直接把初始形状设成投影里的形状（也可能不管铁轨）：两种都要安全
+            if (com.autyism.printer.utils.LitematicaUtils.usePrecisionPlacement(pos, required) != null) {
+                BlockState asWanted = rail.defaultBlockState().setValue(rail.getShapeProperty(), wanted);
+                if (!clean(level, schematic, pos, wanted, simulate(level, pos, asWanted, true))
+                        || !clean(level, schematic, pos, wanted, simulate(level, pos, asWanted, false))) continue;
             }
+            return new Safe(look, noSignal);
         }
         return null;
     }

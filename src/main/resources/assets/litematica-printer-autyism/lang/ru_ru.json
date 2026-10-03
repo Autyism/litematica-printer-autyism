@@ -60,8 +60,8 @@
   "litematica-printer-autyism.config.containerReturnInterval.desc": "Задержка между попытками возврата в контейнер (в игровых тактах). Более высокие значения снижают нагрузку на сеть, но увеличивают задержку.",
   "litematica-printer-autyism.config.debugOutput": "Показывать отладочную информацию",
   "litematica-printer-autyism.config.debugOutput.desc": "При включении консоль выводит отладочную информацию принтера.\nЕсли также включено §6§lПоказывать статус работы§r, часть информации отображается в интерфейсе.",
-  "litematica-printer-autyism.config.easyPlaceProtocol": "Использовать протокол Easy Place",
-  "litematica-printer-autyism.config.easyPlaceProtocol.desc": "Использует протокол Easy Place от Servux для корректировки размещения блоков при печати.\n§lПримечание:§r Работает только в одиночной игре или на серверах с установленным Servux.",
+  "litematica-printer-autyism.config.easyPlaceProtocol": "Use Easy Place Protocol",
+  "litematica-printer-autyism.config.easyPlaceProtocol.desc": "When the server understands Litematica's easy place protocol (singleplayer, or a server with Servux), blocks are placed directly in the schematic's state (facing, half, axis...) without turning. On other servers the printer automatically falls back to sending a fake look direction. Carpet's older protocol (V2) is only used if you select V2 in Litematica's settings, because it needs the accurateBlockPlacement rule on the server.",
   "litematica-printer-autyism.config.excavateBlacklist": "Пользовательский чёрный список",
   "litematica-printer-autyism.config.excavateBlacklist.desc": "Запрещает добычу блоков из этого списка.\nМожно вводить ID предмета или переведённое название, пример: §bminecraft:stone§r §bsandstone§r.\nПрефикс §b#§r для сопоставления по тегу, пример: §l#minecraft:logs§r.\nМожно вводить текст и условие фильтрации одновременно (через запятую), пример: §lglazed_terracotta,c§r.\nГде «c» означает поиск по вхождению.",
   "litematica-printer-autyism.config.excavateLimit": "Режим пользовательского ограничения",
@@ -321,5 +321,7 @@
   "litematica-printer-autyism.config.bedrockBackend.bunnyi": "bedrockminer (bunnyi116)",
   "litematica-printer-autyism.config.bedrockBackend.lxyan": "bedrock-miner (lxyan2333)",
   "litematica-printer-autyism.config.printSafeRails": "Safe Rail Placement",
-  "litematica-printer-autyism.config.printSafeRails.desc": "Before placing a rail, simulate vanilla rail connection logic. Only place it when its shape will match the schematic, no rail already placed nearby gets pulled into a different shape, and no slope would pop off for lack of support. Otherwise wait for other rails first; rails that can never be placed correctly are left out (nothing is placed wrong and broken again)."
+  "litematica-printer-autyism.config.printSafeRails.desc": "Before placing a rail, simulate vanilla rail connection logic. Only place it when its shape will match the schematic, no rail already placed nearby gets pulled into a different shape, and no slope would pop off for lack of support. Otherwise wait for other rails first; rails that can never be placed correctly are left out (nothing is placed wrong and broken again).",
+  "litematica-printer-autyism.config.rotationWaitTicks": "Rotation Wait Ticks",
+  "litematica-printer-autyism.config.rotationWaitTicks.desc": "How many ticks to wait after turning before placing a block whose facing depends on where you look. The server only updates your head direction on its next tick, and on a real server network jitter can deliver the turn and the placement in the same server tick, which places the block facing the wrong way. 0 = automatic (2 in singleplayer, 4 on servers). Raise it if blocks still come out facing wrong on a laggy server. Consecutive blocks facing the same way do not wait again."
 }

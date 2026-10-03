@@ -60,8 +60,8 @@
   "litematica-printer-autyism.config.containerReturnInterval.desc": "歸塞操作間之冷刻。高則減網耗而增延。",
   "litematica-printer-autyism.config.debugOutput": "示除錯訊",
   "litematica-printer-autyism.config.debugOutput.desc": "啟之，控制台出印機除錯訊。\n若兼開§6§l示工狀§r，則介面亦顯。",
-  "litematica-printer-autyism.config.easyPlaceProtocol": "用易置協定",
-  "litematica-printer-autyism.config.easyPlaceProtocol.desc": "印時用 Servex 易置協定以矯方位。\n§l註：§r 惟單人或裝 Servux 之伺服可用。",
+  "litematica-printer-autyism.config.easyPlaceProtocol": "使用轻松放置协议",
+  "litematica-printer-autyism.config.easyPlaceProtocol.desc": "服务器认得 Litematica 的轻松放置协议时（单人游戏，或装了 Servux 的服务器），直接按投影里的状态（朝向、上下半、轴向……）放置，不需要转头。其他服务器自动改用发送假视角的普通方式。Carpet 的旧协议（V2）只有在 Litematica 设置里手动选了 V2 才用，因为它需要服务器打开 accurateBlockPlacement 规则。",
   "litematica-printer-autyism.config.excavateBlacklist": "自定黑名",
   "litematica-printer-autyism.config.excavateBlacklist.desc": "禁掘此表之方塊。\n可入 ID 或譯名，例：§bminecraft:stone§r §b砂岩§r。\n加 §b#§r 則標籤配，例：§l#minecraft:logs§r。\n併入文與濾（英文逗分），例：§l帶釉陶瓦,c§r。\n“c”表含配，先拼或直配。",
   "litematica-printer-autyism.config.excavateLimit": "自定限模",
@@ -322,5 +322,7 @@
   "litematica-printer-autyism.config.bedrockBackend.bunnyi": "bedrockminer (bunnyi116)",
   "litematica-printer-autyism.config.bedrockBackend.lxyan": "bedrock-miner (lxyan2333)",
   "litematica-printer-autyism.config.printSafeRails": "铁轨安全放置",
-  "litematica-printer-autyism.config.printSafeRails.desc": "放铁轨之前按原版的铁轨连接规则模拟一遍：只有这节铁轨形状会和投影一致、不会把旁边已经放好的铁轨拉成别的形状、也不会有上坡铁轨因为没支撑而掉落时才放；否则先放别的铁轨再试。怎么排都放不对的铁轨会留空（不会先放错再敲掉）。"
+  "litematica-printer-autyism.config.printSafeRails.desc": "放铁轨之前按原版的铁轨连接规则模拟一遍：只有这节铁轨形状会和投影一致、不会把旁边已经放好的铁轨拉成别的形状、也不会有上坡铁轨因为没支撑而掉落时才放；否则先放别的铁轨再试。怎么排都放不对的铁轨会留空（不会先放错再敲掉）。",
+  "litematica-printer-autyism.config.rotationWaitTicks": "转头等待 tick",
+  "litematica-printer-autyism.config.rotationWaitTicks.desc": "转头后等几个 tick 再放“朝向由视角决定”的方块。服务端要到它的下一个 tick 才更新你的头部朝向；真服务器上网络抖动可能把转头和放置挤进服务端同一个 tick，方块就会朝错。0 = 自动（单人 2，服务器 4）。在卡的服务器上还出现朝向错误就调大。连续放同一朝向的方块不会重复等。"
 }

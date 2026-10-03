@@ -61,7 +61,7 @@
   "litematica-printer-autyism.config.debugOutput": "显示调试信息",
   "litematica-printer-autyism.config.debugOutput.desc": "启用后，控制台会输出打印机的调试信息。\n如果同时开启了§6§l显示工作状态§r,那么在操作界面也会显示一些信息。",
   "litematica-printer-autyism.config.easyPlaceProtocol": "使用轻松放置协议",
-  "litematica-printer-autyism.config.easyPlaceProtocol.desc": "打印时使用Servex的轻松放置协议处理放置方块时的矫正。\n§l提示:§r 此功能仅在单人游戏或安装了Servux的服务器上生效。",
+  "litematica-printer-autyism.config.easyPlaceProtocol.desc": "服务器认得 Litematica 的轻松放置协议时（单人游戏，或装了 Servux 的服务器），直接按投影里的状态（朝向、上下半、轴向……）放置，不需要转头。其他服务器自动改用发送假视角的普通方式。Carpet 的旧协议（V2）只有在 Litematica 设置里手动选了 V2 才用，因为它需要服务器打开 accurateBlockPlacement 规则。",
   "litematica-printer-autyism.config.excavateBlacklist": "自定义黑名单",
   "litematica-printer-autyism.config.excavateBlacklist.desc": "禁止挖掘此列表中的方块。\n可输入物品ID或当前语言的翻译名称，示例：§bminecraft:stone§r §b砂岩§r。\n前缀添加§b#§r表示标签匹配，示例：§l#minecraft:logs§r。\n同时输入文本和过滤条件(英文逗号分隔)，示例：§l带釉陶瓦,c§r。\n其中“c”表示包含匹配，优先尝试拼音或直接匹配。",
   "litematica-printer-autyism.config.excavateLimit": "自定义限制模式",
@@ -322,5 +322,7 @@
   "litematica-printer-autyism.config.bedrockBackend.bunnyi": "bedrockminer (bunnyi116)",
   "litematica-printer-autyism.config.bedrockBackend.lxyan": "bedrock-miner (lxyan2333)",
   "litematica-printer-autyism.config.printSafeRails": "铁轨安全放置",
-  "litematica-printer-autyism.config.printSafeRails.desc": "放铁轨之前按原版的铁轨连接规则模拟一遍：只有这节铁轨形状会和投影一致、不会把旁边已经放好的铁轨拉成别的形状、也不会有上坡铁轨因为没支撑而掉落时才放；否则先放别的铁轨再试。怎么排都放不对的铁轨会留空（不会先放错再敲掉）。"
+  "litematica-printer-autyism.config.printSafeRails.desc": "放铁轨之前按原版的铁轨连接规则模拟一遍：只有这节铁轨形状会和投影一致、不会把旁边已经放好的铁轨拉成别的形状、也不会有上坡铁轨因为没支撑而掉落时才放；否则先放别的铁轨再试。怎么排都放不对的铁轨会留空（不会先放错再敲掉）。",
+  "litematica-printer-autyism.config.rotationWaitTicks": "转头等待 tick",
+  "litematica-printer-autyism.config.rotationWaitTicks.desc": "转头后等几个 tick 再放“朝向由视角决定”的方块。服务端要到它的下一个 tick 才更新你的头部朝向；真服务器上网络抖动可能把转头和放置挤进服务端同一个 tick，方块就会朝错。0 = 自动（单人 2，服务器 4）。在卡的服务器上还出现朝向错误就调大。连续放同一朝向的方块不会重复等。"
 }

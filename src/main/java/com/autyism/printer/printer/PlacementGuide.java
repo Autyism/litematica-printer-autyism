@@ -116,9 +116,15 @@ public class PlacementGuide {
                 action = buildActionMissingBlock(ctx, requiredType, skip);
                 break;
             case ERROR_BLOCK:
+                // 已有方块要拆 / 要改：这一格上一次的动作还没被服务端确认时，客户端看到的只是预测
+                // （例如用假视角放的方块，客户端按玩家真实视角预测了朝向），先不动，免得把放对了的方块拆掉或点乱
+                if (ActionConfirm.pending(ctx.level, ctx.blockPos, Reference.MINECRAFT.player.tickCount)) return null;
                 action = buildActionErrorBlock(ctx, requiredType, skip);
                 break;
             case ERROR_BLOCK_STATE:
+                // 点一下调整（音符盒、中继器、栅栏门开关……）或再放一次（雪层、蜡烛……）：上一次的点击被服务端确认、
+                // 客户端看到真实结果之后才点下一次，否则有延迟时会按旧状态多点（音符盒点过头、栅栏门来回开关）
+                if (ActionConfirm.pending(ctx.level, ctx.blockPos, Reference.MINECRAFT.player.tickCount)) return null;
                 action = buildActionErrorBlockState(ctx, requiredType, skip);
                 break;
             default:
@@ -804,9 +810,8 @@ public class PlacementGuide {
             }
             case REPEATER -> {
                 if (!ctx.requiredState.getValue(RepeaterBlock.DELAY).equals(ctx.currentState.getValue(RepeaterBlock.DELAY))) {
-                    // 每点一下延迟 +1（4 之后回到 1）：一次点够
-                    int clicks = Math.floorMod(ctx.requiredState.getValue(RepeaterBlock.DELAY) - ctx.currentState.getValue(RepeaterBlock.DELAY), 4);
-                    return new ClickAction().setClicks(clicks);
+                    // 每次只点一下（延迟 +1），等服务端结果回到客户端后再点下一下：真服务器有延迟，连点会按旧状态多点
+                    return new ClickAction();
                 }
                 if (printBreakWrongStateBlock &&
                         ctx.requiredState.getValue(RepeaterBlock.POWERED) == ctx.currentState.getValue(RepeaterBlock.POWERED) &&
@@ -871,9 +876,8 @@ public class PlacementGuide {
             }
             case NOTE_BLOCK -> {
                 if (Configs.Print.NOTE_BLOCK_TUNING.getBooleanValue() && !Objects.equals(ctx.requiredState.getValue(NoteBlock.NOTE), ctx.currentState.getValue(NoteBlock.NOTE))) {
-                    // 每点一下音高 +1（24 之后回到 0）：一次点够
-                    int clicks = Math.floorMod(ctx.requiredState.getValue(NoteBlock.NOTE) - ctx.currentState.getValue(NoteBlock.NOTE), 25);
-                    return new ClickAction().setClicks(clicks);
+                    // 每次只点一下（音高 +1），等服务端结果回到客户端后再点下一下（分层模式下“状态有变化”的点击不算失败）
+                    return new ClickAction();
                 }
             }
             case CAMPFIRE -> {

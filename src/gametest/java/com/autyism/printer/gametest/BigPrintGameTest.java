@@ -19,8 +19,13 @@ import java.util.Arrays;
 @SuppressWarnings("UnstableApiUsage")
 public final class BigPrintGameTest implements FabricClientGameTest {
     private static final BlockPos MIN = new BlockPos(200, 64, 10);
-    private static final BlockPos MAX = new BlockPos(215, 70, 25);
-    private static final Block[] MATERIALS = {Blocks.STONE, Blocks.OAK_PLANKS, Blocks.COBBLESTONE, Blocks.DIRT};
+    /** -Pbigmats=12：12 种材料（比快捷栏的 9 格多），生存模式下要不停从背包换到快捷栏，用来测延迟下换物品会不会放错 */
+    private static final boolean MANY = Integer.getInteger("ale.bigmats", 4) > 4;
+    private static final BlockPos MAX = MANY ? new BlockPos(215, 67, 25) : new BlockPos(215, 70, 25);
+    private static final Block[] MATERIALS = MANY
+            ? new Block[]{Blocks.STONE, Blocks.OAK_PLANKS, Blocks.COBBLESTONE, Blocks.DIRT, Blocks.GRANITE, Blocks.DIORITE,
+            Blocks.ANDESITE, Blocks.BRICKS, Blocks.SPRUCE_PLANKS, Blocks.BIRCH_PLANKS, Blocks.SANDSTONE, Blocks.TERRACOTTA}
+            : new Block[]{Blocks.STONE, Blocks.OAK_PLANKS, Blocks.COBBLESTONE, Blocks.DIRT};
 
     private static BlockState expected(BlockPos pos) {
         return MATERIALS[Math.floorMod(pos.getX() + pos.getZ() * 3 + pos.getY(), MATERIALS.length)].defaultBlockState();
@@ -45,7 +50,7 @@ public final class BigPrintGameTest implements FabricClientGameTest {
                 for (BlockPos p : BlockPos.betweenClosed(MIN, MAX)) server.overworld().setBlockAndUpdate(p, Blocks.AIR.defaultBlockState());
                 var player = server.getPlayerList().getPlayers().getFirst();
                 player.getInventory().clearContent();
-                for (int i = 0; i < 28; i++) player.getInventory().setItem(i + 8, new ItemStack(MATERIALS[i % 4].asItem(), 64));
+                for (int i = 0; i < 28; i++) player.getInventory().setItem(i + 8, new ItemStack(MATERIALS[i % MATERIALS.length].asItem(), 64));
                 player.inventoryMenu.sendAllDataToRemote();
             });
             GT.waitSchematicBlock(context, MIN, expected(MIN).getBlock());

@@ -9,7 +9,9 @@
   ],
   "mixins": [
     "ServerUseItemOnDebugMixin",
-    "ServerUseItemDebugMixin"
+    "ServerUseItemDebugMixin",
+    "ConnectionLagMixin",
+    "ServerCarriedItemDebugMixin"
   ],
   "injectors": {
     "defaultRequire": 1

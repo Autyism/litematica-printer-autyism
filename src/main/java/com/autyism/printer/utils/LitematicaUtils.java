@@ -38,7 +38,10 @@ public class LitematicaUtils {
             Vec3 hitPos = Vec3.atLowerCornerOf(pos);
             if (protocol == EasyPlaceProtocol.V3) {
                 return WorldUtils.applyPlacementProtocolV3(pos, stateSchematic, hitPos);
-            } else if (protocol == EasyPlaceProtocol.V2) {
+            } else if (protocol == EasyPlaceProtocol.V2
+                    && fi.dy.masa.litematica.config.Configs.Generic.EASY_PLACE_PROTOCOL.getOptionListValue() == EasyPlaceProtocol.V2) {
+                // Carpet 的协议要服务器打开 accurateBlockPlacement 规则，没开时服务端会直接拒绝这种放置：
+                // 只有玩家在 Litematica 里明确选了 V2 才用，“自动”时只用确定可用的 V3（单人 / Servux）
                 // Carpet Accurate Block placements protocol support, plus slab support
                 return WorldUtils.applyCarpetProtocolHitVec(pos, stateSchematic, hitPos);
             }

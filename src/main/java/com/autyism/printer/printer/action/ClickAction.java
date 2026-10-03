@@ -11,18 +11,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class ClickAction extends Action {
-    /** 连续点几下（例如音符盒从 3 调到 16 要点 13 下） */
-    private int clicks = 1;
-
-    public ClickAction setClicks(int clicks) {
-        this.clicks = Math.max(1, clicks);
-        return this;
-    }
-
     @Override
     public Action queueAction(@NotNull BlockPos blockPos, @NotNull Direction side, boolean useShift, @NotNull LocalPlayer player) {
         ActionManager.INSTANCE.queueClick(blockPos, side, getSides().get(side), false, blockPos);
-        ActionManager.INSTANCE.setRepeat(clicks);
         return this;
     }
 

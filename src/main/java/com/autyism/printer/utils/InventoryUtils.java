@@ -345,7 +345,6 @@ public class InventoryUtils {
                 );
             }
         }
-
         return true;
     }
 
@@ -442,7 +441,13 @@ public class InventoryUtils {
             if (player.containerMenu != player.inventoryMenu) {
                 return ItemSwitchResult.WAITING;
             }
+            // 有延迟时：之前的动作还没被服务端确认、或上一次交换还没被处理，先等（见 ActionConfirm.readyForInventoryClick）
+            int sequenceNow = client.level instanceof PacketUtils.SequenceExtension seq ? seq.litematica_printer3$currentSequence() : 0;
+            if (!com.autyism.printer.printer.ActionConfirm.readyForInventoryClick(client.level, sequenceNow, player.tickCount)) {
+                return ItemSwitchResult.WAITING;
+            }
             boolean switched = InventoryUtils.setPickedItemToHand(slot, itemStack, client);
+            if (switched) com.autyism.printer.printer.ActionConfirm.noteInventoryClick(client.level, sequenceNow, player.tickCount);
             return switched || player.getMainHandItem().is(item) ? ItemSwitchResult.WAITING : ItemSwitchResult.UNAVAILABLE;
         }
         boolean requestStarted = QuickShulkerUtils.requestShulkerItem(player, items);
