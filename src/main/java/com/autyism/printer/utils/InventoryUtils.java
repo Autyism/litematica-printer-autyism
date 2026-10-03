@@ -417,7 +417,7 @@ public class InventoryUtils {
         ItemStack mainHand = player.getMainHandItem();
         for (Item item : items) {
             if (mainHand.is(item) && passesFilter(mainHand)) {
-                return ItemSwitchResult.READY;
+                return stackMayBeUsedUp(player, mainHand) ? ItemSwitchResult.WAITING : ItemSwitchResult.READY;
             }
         }
         Inventory inventory = player.getInventory();
@@ -434,8 +434,8 @@ public class InventoryUtils {
             orderlyStoreItem = itemStack.copy();
             if (Inventory.isHotbarSlot(slot)) {
                 setHotbarSlot(slot, inventory);
-                return player.getMainHandItem().is(item) && passesFilter(player.getMainHandItem())
-                        ? ItemSwitchResult.READY : ItemSwitchResult.UNAVAILABLE;
+                if (!player.getMainHandItem().is(item) || !passesFilter(player.getMainHandItem())) return ItemSwitchResult.UNAVAILABLE;
+                return stackMayBeUsedUp(player, player.getMainHandItem()) ? ItemSwitchResult.WAITING : ItemSwitchResult.READY;
             }
             // 打开着其他容器（如快捷潜影盒延迟关闭）时不能对玩家背包做交换
             if (player.containerMenu != player.inventoryMenu) {
@@ -448,6 +448,15 @@ public class InventoryUtils {
             }
             boolean switched = InventoryUtils.setPickedItemToHand(slot, itemStack, client);
             if (switched) com.autyism.printer.printer.ActionConfirm.noteInventoryClick(client.level, sequenceNow, player.tickCount);
+            if (Boolean.getBoolean("ale.debuglook")) {
+                StringBuilder sb = new StringBuilder("[printer-swap] from=" + slot + " item=" + item + " switched=" + switched
+                        + " selected=" + inventory.getSelectedSlot() + " stateId=" + player.inventoryMenu.getStateId() + " tick=" + player.tickCount + " hotbar=");
+                for (int i = 0; i < 9; i++) {
+                    ItemStack h = inventory.getItem(i);
+                    sb.append(i).append(':').append(h.isEmpty() ? "-" : h.getItem().toString().replace("minecraft:", "") + "x" + h.getCount()).append(' ');
+                }
+                System.out.println(sb);
+            }
             return switched || player.getMainHandItem().is(item) ? ItemSwitchResult.WAITING : ItemSwitchResult.UNAVAILABLE;
         }
         boolean requestStarted = QuickShulkerUtils.requestShulkerItem(player, items);
@@ -455,6 +464,16 @@ public class InventoryUtils {
             return ItemSwitchResult.WAITING;
         }
         return ItemSwitchResult.UNAVAILABLE;
+    }
+
+    /**
+     * 生存模式这一组可能已经用完：服务端发来的“剩几个”有延迟，会把客户端自己算好的数量改大，
+     * 客户端以为还有、服务端其实已经用完（放置被拒、方块闪一下又消失）。
+     * 客户端显示的数量最多比真实数量多出“用这种物品、已发出但还没被确认的放置数”，所以数量不多于这个数时先等确认回来。
+     */
+    private static boolean stackMayBeUsedUp(LocalPlayer player, ItemStack stack) {
+        if (PlayerUtils.getAbilities(player).instabuild || client.level == null) return false;
+        return stack.getCount() <= com.autyism.printer.printer.ActionConfirm.inFlightCount(client.level, player.tickCount, stack.getItem());
     }
 
     private static int findItemInInventory(Inventory inventory, Item item) {

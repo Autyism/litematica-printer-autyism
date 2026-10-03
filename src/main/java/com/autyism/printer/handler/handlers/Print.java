@@ -477,7 +477,11 @@ public class Print extends Module {
             skipIteration.set(true);
             return;
         }
-        Vec3 hitModifier = LitematicaUtils.usePrecisionPlacement(blockPos, ctx.requiredState);
+        // 轻松放置协议只用在“放新方块”上：在已有方块上再放一次（台阶合成双层、蜡烛 / 雪层再加一个）或点一下调整时，
+        // 原版要按真实的点击位置判断，协议编码过的点击位置会让它失败（协议模式下双层台阶曾经一直合不上）
+        boolean placingNewBlock = ctx.currentState.canBeReplaced() && ctx.currentState.getBlock() != ctx.requiredState.getBlock()
+                && !(action instanceof ClickAction);
+        Vec3 hitModifier = placingNewBlock ? LitematicaUtils.usePrecisionPlacement(blockPos, ctx.requiredState) : null;
         if (hitModifier != null) {
             ActionManager.INSTANCE.hitModifier = hitModifier;
             ActionManager.INSTANCE.useProtocol = true;
@@ -485,7 +489,9 @@ public class Print extends Module {
         ActionManager.INSTANCE.setLook(action.getPlayerLook());
         ActionManager.INSTANCE.setNeedWaitModifyLookFromAction(action.getNeedWaitModifyLook());
         boolean needWait = ActionManager.INSTANCE.sendQueue(player).needWaitModifyLook;
-        if (needWait || hitModifier != null) {
+        // 原来用协议放完一个方块就结束本 tick 的扫描：协议不需要转头、每个放置包各自带着状态，没有理由限速，
+        // 和普通模式一样按“每 tick 放几个”的设置来（默认 1）
+        if (needWait) {
             skipIteration.set(true);
         }
         setCooldown(blockPos, ConfigUtils.getPlaceCooldown());

@@ -11,7 +11,8 @@
     "ServerUseItemOnDebugMixin",
     "ServerUseItemDebugMixin",
     "ConnectionLagMixin",
-    "ServerCarriedItemDebugMixin"
+    "ServerCarriedItemDebugMixin",
+    "ServerContainerClickDebugMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -340,7 +340,9 @@ public final class PrinterFixGameTest implements FabricClientGameTest {
         if (!ghosts.isEmpty()) {
             throw new AssertionError("[mine] client/server mismatch (ghost blocks): " + ghosts);
         }
-        if (ticks > 10) {
+        // 速度标准按没有延迟时定的；模拟延迟时每个动作都要等服务端回应，放宽（对不对由上面的 ghost 检查保证）
+        int limit = System.getProperty("ale.lag", "").isBlank() ? 10 : 60;
+        if (ticks > limit) {
             throw new AssertionError("[mine] instant mining too slow: " + ticks + " ticks for 28 blocks");
         }
         System.out.println("[PrinterFixGameTest] instant mining: OK (28 blocks in " + ticks + " ticks, obsidian left for later, no ghosts)");
