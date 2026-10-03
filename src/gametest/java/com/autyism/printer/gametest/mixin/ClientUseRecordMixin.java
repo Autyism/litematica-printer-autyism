@@ -34,8 +34,12 @@ public abstract class ClientUseRecordMixin {
                     + " carried=" + carried + " tick=" + player.tickCount + " by=" + by);
         }
         if (!(packet instanceof ServerboundUseItemOnPacket p)) return;
+        net.minecraft.core.BlockPos work = com.autyism.printer.printer.ActionManager.INSTANCE.workPos;
+        net.minecraft.world.level.block.state.BlockState wanted = null;
+        var schematic = fi.dy.masa.litematica.world.SchematicWorldHandler.getSchematicWorld();
+        if (work != null && schematic != null) wanted = schematic.getBlockState(work);
         UseRecord.put(p.getSequence(), new UseRecord.Entry(player.getItemInHand(p.getHand()).getItem().toString(),
                 player.getInventory().getSelectedSlot(), player.tickCount, p.getHitResult().getBlockPos().toShortString()
-                        + " " + p.getHitResult().getDirection() + " carried=" + carried));
+                        + " " + p.getHitResult().getDirection() + " carried=" + carried, work == null ? null : work.immutable(), wanted));
     }
 }
