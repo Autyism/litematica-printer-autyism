@@ -280,6 +280,13 @@ public class PlacementGuide {
                 // 获取左右方块状态
                 Direction left = facing.getCounterClockWise();
                 Direction right = facing.getClockWise();
+                // 原版按左右（上下两格）的邻居决定门轴：这些邻居在投影里有方块的，必须先放好、并且客户端已经看到，
+                // 否则服务端已经有墙 / 另一扇门而打印机还没看到时，会按点击位置放、被服务端改成另一侧
+                // （只看同一层：上一层分层模式下一定比门晚放；另一扇门不用等，两扇门互相决定的门轴本来就一致，等了会死锁）
+                for (BlockPos n : new BlockPos[]{ctx.blockPos.relative(left), ctx.blockPos.relative(right)}) {
+                    BlockState want = ctx.schematic.getBlockState(n);
+                    if (!want.isAir() && !(want.getBlock() instanceof DoorBlock) && ctx.level.getBlockState(n).getBlock() != want.getBlock()) return null;
+                }
                 BlockState leftState = ctx.level.getBlockState(ctx.blockPos.relative(left));
                 BlockState leftUpperState = ctx.level.getBlockState(upperPos.relative(left));
                 BlockState rightState = ctx.level.getBlockState(ctx.blockPos.relative(right));
