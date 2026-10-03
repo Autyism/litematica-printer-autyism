@@ -40,6 +40,8 @@ public final class OrientationGameTest implements FabricClientGameTest {
     private static final Direction[] HORIZONTAL = {Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST};
 
     private final Map<BlockPos, BlockState> states = new HashMap<>();
+    /** 门轴在中间的双开门（原版做不到两扇都对） */
+    private final List<BlockPos[]> innerPairs = new java.util.ArrayList<>();
     private int cursor;
 
     /** 每个用例占一个 3x3 的格子，中心放测试方块 */
@@ -50,6 +52,13 @@ public final class OrientationGameTest implements FabricClientGameTest {
 
     private void put(BlockPos p, BlockState s) {
         states.put(p, s);
+    }
+
+    private void door(BlockPos p, net.minecraft.world.level.block.Block block, Direction facing, DoorHingeSide hinge) {
+        BlockState lower = block.defaultBlockState().setValue(DoorBlock.FACING, facing).setValue(DoorBlock.HINGE, hinge)
+                .setValue(DoorBlock.HALF, DoubleBlockHalf.LOWER);
+        put(p, lower);
+        put(p.above(), lower.setValue(DoorBlock.HALF, DoubleBlockHalf.UPPER));
     }
 
     private void build() {
@@ -108,6 +117,28 @@ public final class OrientationGameTest implements FabricClientGameTest {
             put(next(), Blocks.FURNACE.defaultBlockState().setValue(BlockStateProperties.HORIZONTAL_FACING, d));
         }
         put(next(), Blocks.HOPPER.defaultBlockState().setValue(HopperBlock.FACING, Direction.DOWN));
+        // 铁门（单扇）、双开门（门轴在两边 / 门轴在中间，木门和铁门）
+        for (Direction d : HORIZONTAL) {
+            for (DoorHingeSide hinge : DoorHingeSide.values()) door(next(), Blocks.IRON_DOOR, d, hinge);
+            for (var block : List.of(Blocks.OAK_DOOR, Blocks.IRON_DOOR)) {
+                // 面朝 d 时，hinge=LEFT 的门轴在逆时针那一侧：左扇 LEFT + 右扇 RIGHT = 门轴在外侧
+                BlockPos p = next();
+                door(p, block, d, DoorHingeSide.LEFT);
+                door(p.relative(d.getClockWise()), block, d, DoorHingeSide.RIGHT);
+                // 门轴在中间的双开门：原版放第二扇时总会把门轴放到外侧，所以先放的那扇能放对、后放的那扇放不对 ——
+                // 这两扇里允许有一扇留空，但绝不能放错
+                BlockPos q = next();
+                door(q, block, d, DoorHingeSide.RIGHT);
+                door(q.relative(d.getClockWise()), block, d, DoorHingeSide.LEFT);
+                innerPairs.add(new BlockPos[]{q, q.relative(d.getClockWise())});
+            }
+            // 铁活板门（上 / 下半）、打开着的木活板门（上 / 下半）
+            for (Half h : Half.values()) {
+                put(next(), Blocks.IRON_TRAPDOOR.defaultBlockState().setValue(TrapDoorBlock.FACING, d).setValue(TrapDoorBlock.HALF, h));
+                put(next(), Blocks.SPRUCE_TRAPDOOR.defaultBlockState().setValue(TrapDoorBlock.FACING, d).setValue(TrapDoorBlock.HALF, h)
+                        .setValue(TrapDoorBlock.OPEN, true));
+            }
+        }
         // 大箱子：两半 LEFT / RIGHT，4 个朝向
         for (Direction d : HORIZONTAL) {
             BlockPos p = next();
@@ -174,13 +205,28 @@ public final class OrientationGameTest implements FabricClientGameTest {
             }
             context.runOnClient(c -> GT.disableAll());
             List<String> wrong = sp.getServer().computeOnServer(s -> {
-                List<String> out = new java.util.ArrayList<>();
+                List<String> out = new java.util.ArrayList<>(); // 可修改：下面会去掉允许留空的门
                 for (var e : states.entrySet()) {
                     BlockState have = s.overworld().getBlockState(e.getKey());
                     if (!have.equals(e.getValue())) out.add(e.getKey().toShortString() + " want=" + e.getValue() + " have=" + have);
                 }
                 return out;
             });
+            // 门轴在中间的双开门：每对最多一扇（上下两格）可以留空；不能放错
+            int innerEmpty = 0;
+            for (BlockPos[] pair : innerPairs) {
+                int emptyDoors = 0;
+                for (BlockPos p : pair) {
+                    boolean empty = sp.getServer().computeOnServer(s -> s.overworld().getBlockState(p).isAir() && s.overworld().getBlockState(p.above()).isAir());
+                    if (empty) {
+                        emptyDoors++;
+                        wrong.removeIf(w -> w.startsWith(p.toShortString() + " ") || w.startsWith(p.above().toShortString() + " "));
+                    }
+                }
+                if (emptyDoors > 1) wrong.add("inner-hinge pair at " + pair[0].toShortString() + ": both doors empty");
+                innerEmpty += emptyDoors;
+            }
+            GT.log("[orientation] inner-hinge double doors: " + innerPairs.size() + " pairs, " + innerEmpty + " doors left empty (vanilla can't place them), none wrong");
             for (String w : wrong) GT.log("[orientation] WRONG " + w);
             if (!wrong.isEmpty()) {
                 BlockPos first = states.keySet().stream().filter(p -> wrong.stream().anyMatch(w -> w.startsWith(p.toShortString() + " "))).findFirst().orElse(null);
