@@ -122,7 +122,9 @@ public class ActionManager {
         }
         if (DEBUG_LOOK) {
             System.out.println("[printer-look] target=" + target + " side=" + side + " look=" + look + " needWait=" + needWaitModifyLook
-                    + " requiresWait=" + actionRequiresWaitModifyLook + " playerRot=" + player.getYRot() + "/" + player.getXRot());
+                    + " requiresWait=" + actionRequiresWaitModifyLook + " playerRot=" + player.getYRot() + "/" + player.getXRot()
+                    + " clientAt=" + player.level().getBlockState(target) + " clientNext=" + player.level().getBlockState(target.relative(side))
+                    + " workPos=" + workPos + " tick=" + player.tickCount);
         }
 
         if (!useProtocol && actionRequiresWaitModifyLook && look != null) {
