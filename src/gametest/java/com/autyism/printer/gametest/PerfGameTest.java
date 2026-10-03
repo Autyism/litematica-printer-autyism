@@ -41,6 +41,7 @@ public final class PerfGameTest implements FabricClientGameTest {
         BlockPos origin = new BlockPos(200, -60, 200);
         int[] savedFps = new int[1];
         boolean[] savedVsync = new boolean[1];
+        net.minecraft.client.InactivityFpsLimit[] savedInactive = new net.minecraft.client.InactivityFpsLimit[1];
         try (TestSingleplayerContext sp = GT.newWorld(context)) {
             sp.getServer().runCommand("gamemode creative @a");
             sp.getServer().runCommand("gamerule randomTickSpeed 0");
@@ -49,6 +50,9 @@ public final class PerfGameTest implements FabricClientGameTest {
                 savedFps[0] = c.options.framerateLimit().get();
                 savedVsync[0] = c.options.enableVsync().get();
                 c.options.framerateLimit().set(260);
+                // 测试期间没有键鼠输入，原版会当成挂机把帧数限制到 30 / 10：关掉，只在最小化时限制
+                savedInactive[0] = c.options.inactivityFpsLimit().get();
+                c.options.inactivityFpsLimit().set(net.minecraft.client.InactivityFpsLimit.MINIMIZED);
                 c.options.enableVsync().set(false);
                 c.options.renderDistance().set(12);
             });
@@ -105,6 +109,7 @@ public final class PerfGameTest implements FabricClientGameTest {
                 GT.disableAll();
                 if (savedFps[0] > 0) c.options.framerateLimit().set(savedFps[0]);
                 c.options.enableVsync().set(savedVsync[0]);
+                if (savedInactive[0] != null) c.options.inactivityFpsLimit().set(savedInactive[0]);
             });
             setAll(context, ale, true);
         }
