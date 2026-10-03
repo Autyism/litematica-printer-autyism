@@ -38,8 +38,15 @@ public final class RedstoneGameTest implements FabricClientGameTest {
             "north", "south", "east", "west");
 
     private final Map<BlockPos, BlockState> build = new LinkedHashMap<>();
-    /** 铁轨：直接写进投影的“应有状态”（不在世界里搭，搭的时候铁轨自己会互相连歪） */
+    /** 铁轨部分：主体搭好后按这个顺序逐个放（带方块更新，和玩家手放一样会自动连接） */
     private final Map<BlockPos, BlockState> rails = new LinkedHashMap<>();
+
+    /** 只要求“不放错”的格子（缺失可以接受） */
+    private final java.util.Set<BlockPos> adversarial = new java.util.HashSet<>();
+
+    private void rail(int x, int dy, int z, BlockState s) {
+        rails.put(BASE.offset(x, dy, z), s);
+    }
 
     private void put(int x, int z, BlockState s) {
         build.put(BASE.offset(x, 1, z), s);
@@ -80,23 +87,46 @@ public final class RedstoneGameTest implements FabricClientGameTest {
             put(x, 15, Blocks.NOTE_BLOCK.defaultBlockState().setValue(NoteBlock.NOTE, x));
             put(x, 16, Blocks.NOTE_BLOCK.defaultBlockState().setValue(NoteBlock.NOTE, 24 - x));
         }
-        // 铁轨：6 条并排的南北向动力铁轨（互相紧贴）、6 条并排的东西向激活铁轨、一段上坡（普通铁轨）
-        BlockState ns = Blocks.POWERED_RAIL.defaultBlockState().setValue(net.minecraft.world.level.block.PoweredRailBlock.SHAPE, net.minecraft.world.level.block.state.properties.RailShape.NORTH_SOUTH);
-        // 普通铁轨能拐弯，并排的普通铁轨线两端在原版里无论怎么放都会互相拐过去（实际机器不会这么摆），所以用只能直的激活铁轨
-        BlockState ew = Blocks.ACTIVATOR_RAIL.defaultBlockState().setValue(net.minecraft.world.level.block.PoweredRailBlock.SHAPE, net.minecraft.world.level.block.state.properties.RailShape.EAST_WEST);
-        for (int x = 0; x < 6; x++) for (int z = 22; z < 30; z++) rails.put(BASE.offset(x, 1, z), ns);
-        for (int x = 8; x < 16; x++) for (int z = 22; z < 28; z++) rails.put(BASE.offset(x, 1, z), ew);
-        BlockState rail = Blocks.RAIL.defaultBlockState();
-        var shape = net.minecraft.world.level.block.RailBlock.SHAPE;
-        rails.put(BASE.offset(18, 1, 22), rail.setValue(shape, net.minecraft.world.level.block.state.properties.RailShape.ASCENDING_SOUTH));
-        rails.put(BASE.offset(18, 1, 23), Blocks.STONE.defaultBlockState());
-        rails.put(BASE.offset(18, 2, 23), rail.setValue(shape, net.minecraft.world.level.block.state.properties.RailShape.ASCENDING_SOUTH));
-        rails.put(BASE.offset(18, 1, 24), Blocks.STONE.defaultBlockState());
-        rails.put(BASE.offset(18, 2, 24), Blocks.STONE.defaultBlockState());
-        rails.put(BASE.offset(18, 3, 24), rail.setValue(shape, net.minecraft.world.level.block.state.properties.RailShape.NORTH_SOUTH));
-        rails.put(BASE.offset(18, 1, 25), Blocks.STONE.defaultBlockState());
-        rails.put(BASE.offset(18, 2, 25), Blocks.STONE.defaultBlockState());
-        rails.put(BASE.offset(18, 3, 25), rail.setValue(shape, net.minecraft.world.level.block.state.properties.RailShape.NORTH_SOUTH));
+        // 铁轨（按“正常玩家会怎么放”的顺序真的在世界里放出来，读回的形状就是原版能做到的样子）：
+        // 6 条紧贴的南北向动力铁轨、6 条紧贴的东西向激活铁轨、普通铁轨绕的一圈（带拐角）、普通铁轨上坡、
+        // 三条紧贴并排的动力铁轨上坡（打包机里出过错的那种）
+        BlockState powered = Blocks.POWERED_RAIL.defaultBlockState();
+        BlockState activator = Blocks.ACTIVATOR_RAIL.defaultBlockState();
+        BlockState plain = Blocks.RAIL.defaultBlockState();
+        BlockState stone = Blocks.STONE.defaultBlockState();
+        for (int x = 0; x < 6; x++) for (int z = 22; z < 30; z++) rail(x, 1, z, powered);
+        // 东西向的每条线先放中间、最后放两头（两头挨着旁边那条线的两头，先放会被拉过去）
+        for (int z = 22; z < 28; z++) {
+            for (int x = 9; x < 15; x++) rail(x, 1, z, activator.setValue(net.minecraft.world.level.block.PoweredRailBlock.SHAPE, net.minecraft.world.level.block.state.properties.RailShape.EAST_WEST));
+            rail(8, 1, z, activator.setValue(net.minecraft.world.level.block.PoweredRailBlock.SHAPE, net.minecraft.world.level.block.state.properties.RailShape.EAST_WEST));
+            rail(15, 1, z, activator.setValue(net.minecraft.world.level.block.PoweredRailBlock.SHAPE, net.minecraft.world.level.block.state.properties.RailShape.EAST_WEST));
+        }
+        int[][] loop = {{18, 22}, {19, 22}, {20, 22}, {21, 22}, {22, 22}, {22, 23}, {22, 24}, {22, 25}, {22, 26},
+                {21, 26}, {20, 26}, {19, 26}, {18, 26}, {18, 25}, {18, 24}, {18, 23}};
+        for (int[] q : loop) rail(q[0], 1, q[1], plain);
+        rail(24, 1, 23, stone);
+        rail(24, 1, 24, stone);
+        rail(24, 2, 24, stone);
+        rail(24, 1, 25, stone);
+        rail(24, 2, 25, stone);
+        rail(24, 3, 25, plain);
+        rail(24, 3, 24, plain);
+        rail(24, 2, 23, plain);
+        rail(24, 1, 22, plain);
+        // 故意刁难：三条紧贴并排的上坡，原版很多形状只能靠“先放歪再被邻居拉正”得到 —— 这里只要求不放错（可以留空）
+        for (int z = 28; z <= 30; z++) {
+            rail(19, 1, z, stone);
+            rail(18, 1, z, stone);
+            rail(18, 2, z, stone);
+        }
+        for (int z = 28; z <= 30; z++) {
+            adversarial.add(BASE.offset(18, 3, z));
+            adversarial.add(BASE.offset(19, 2, z));
+            adversarial.add(BASE.offset(20, 1, z));
+            rail(18, 3, z, powered);
+            rail(19, 2, z, powered);
+            rail(20, 1, z, powered);
+        }
         // 红石线 + 红石火把
         put(0, 18, Blocks.REDSTONE_TORCH.defaultBlockState());
         for (int x = 1; x <= 15; x++) put(x, 18, Blocks.REDSTONE_WIRE.defaultBlockState());
@@ -124,6 +154,9 @@ public final class RedstoneGameTest implements FabricClientGameTest {
             sp.getServer().runOnServer(server -> {
                 for (var e : build.entrySet()) server.overworld().setBlockAndUpdate(e.getKey(), e.getValue());
             });
+            sp.getServer().runOnServer(server -> {
+                for (var e : rails.entrySet()) server.overworld().setBlockAndUpdate(e.getKey(), e.getValue());
+            });
             // 音符盒的乐器由下面的方块决定，但直接写方块不会更新它：把下面的方块拿掉再放回去触发更新
             sp.getServer().runOnServer(server -> {
                 for (var e : build.entrySet()) {
@@ -138,7 +171,6 @@ public final class RedstoneGameTest implements FabricClientGameTest {
             Map<BlockPos, BlockState> expected = sp.getServer().computeOnServer(server -> {
                 Map<BlockPos, BlockState> m = new LinkedHashMap<>();
                 for (BlockPos p : BlockPos.betweenClosed(min, max)) m.put(p.immutable(), server.overworld().getBlockState(p));
-                m.putAll(rails);
                 return m;
             });
             long locked = expected.values().stream().filter(s -> s.is(Blocks.REPEATER) && s.getValue(RepeaterBlock.LOCKED)).count();
@@ -188,6 +220,8 @@ public final class RedstoneGameTest implements FabricClientGameTest {
             for (String w : wrong) kinds.merge(w.substring(0, w.indexOf(" @")), 1, Integer::sum);
             kinds.forEach((k, v) -> GT.log("[redstone]   " + v + "x " + k));
             for (int i = 0; i < Math.min(10, wrong.size()); i++) GT.log("[redstone] WRONG " + wrong.get(i));
+            long advMissing = sp.getServer().computeOnServer(server -> adversarial.stream().filter(p -> server.overworld().getBlockState(p).isAir()).count());
+            GT.log("[redstone] adversarial side-by-side ramps: " + (adversarial.size() - advMissing) + "/" + adversarial.size() + " placed, " + advMissing + " left empty, 0 wrong");
             GT.log("[redstone] RESULT " + (nonAir - wrong.size()) + "/" + nonAir + " correct, ticks=" + t);
             if (!wrong.isEmpty()) throw new AssertionError("[redstone] " + wrong.size() + " blocks wrong, first: " + wrong.get(0));
         } finally {
@@ -197,7 +231,7 @@ public final class RedstoneGameTest implements FabricClientGameTest {
     }
 
     /** 逐格比较（忽略电路运行时属性），返回问题列表：“类型 方块 属性 @ 坐标” */
-    private static List<String> compare(TestSingleplayerContext sp, Map<BlockPos, BlockState> expected) {
+    private List<String> compare(TestSingleplayerContext sp, Map<BlockPos, BlockState> expected) {
         return sp.getServer().computeOnServer(server -> {
             List<String> out = new ArrayList<>();
             for (var e : expected.entrySet()) {
@@ -205,8 +239,9 @@ public final class RedstoneGameTest implements FabricClientGameTest {
                 if (want.isAir()) continue;
                 BlockState have = server.overworld().getBlockState(e.getKey());
                 String id = BuiltInRegistries.BLOCK.getKey(want.getBlock()).getPath();
+                if (have.isAir() && adversarial.contains(e.getKey())) continue;
                 if (have.getBlock() != want.getBlock()) {
-                    out.add((have.isAir() ? "MISSING " : "WRONG_BLOCK ") + id + " @" + e.getKey().toShortString());
+                    out.add((have.isAir() ? "MISSING " : "WRONG_BLOCK ") + id + " @" + e.getKey().toShortString() + " want=" + want);
                     continue;
                 }
                 StringBuilder diff = new StringBuilder();

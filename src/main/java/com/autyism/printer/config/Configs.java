@@ -416,6 +416,11 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 .defaultValue(true)
                 .build();
 
+        // 铁轨安全放置：只在不会放错方向、不会把旁边铁轨拉歪时才放
+        public static final ConfigBoolean SAFE_RAILS = booleanValue("printSafeRails")
+                .defaultValue(true)
+                .build();
+
         // 堆肥桶自动填充
         public static final ConfigBoolean FILL_COMPOSTER = booleanValue("printAutoFillComposter")
                 .defaultValue(false)
@@ -510,6 +515,7 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 PRINT_FLUIDS_WITH_BUCKET,
                 PRINT_ICE_FOR_WATER,
                 SAFELY_OBSERVER,
+                SAFE_RAILS,
                 STRIP_LOGS,
                 NOTE_BLOCK_TUNING,
                 REPLACE_CORAL,

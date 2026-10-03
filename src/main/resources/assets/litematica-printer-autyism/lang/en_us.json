@@ -320,5 +320,7 @@
   "litematica-printer-autyism.config.bedrockBackend.auto": "Auto",
   "litematica-printer-autyism.config.bedrockBackend.blockminer": "blockminer",
   "litematica-printer-autyism.config.bedrockBackend.bunnyi": "bedrockminer (bunnyi116)",
-  "litematica-printer-autyism.config.bedrockBackend.lxyan": "bedrock-miner (lxyan2333)"
+  "litematica-printer-autyism.config.bedrockBackend.lxyan": "bedrock-miner (lxyan2333)",
+  "litematica-printer-autyism.config.printSafeRails": "Safe Rail Placement",
+  "litematica-printer-autyism.config.printSafeRails.desc": "Before placing a rail, simulate vanilla rail connection logic. Only place it when its shape will match the schematic, no rail already placed nearby gets pulled into a different shape, and no slope would pop off for lack of support. Otherwise wait for other rails first; rails that can never be placed correctly are left out (nothing is placed wrong and broken again)."
 }

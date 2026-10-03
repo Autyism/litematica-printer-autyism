@@ -55,6 +55,7 @@ public class ModuleManager {
         if (printerEnabled && !lastPrinterEnabled) {
             com.autyism.printer.utils.ToolSwitchUtils.resetHalt();
             com.autyism.printer.utils.InventoryUtils.clearRecentlyUsed();
+            com.autyism.printer.printer.RailSim.reset();
             MissingMaterialTracker.getInstance().reset();
             for (Module module : VALUES) {
                 module.resetScanState();
