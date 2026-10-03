@@ -61,7 +61,7 @@ public class ActionManager {
         return Reference.MINECRAFT.level instanceof PacketUtils.SequenceExtension seq ? seq.litematica_printer3$currentSequence() : 0;
     }
 
-    /** 每个发出去的带视角的移动包都会调用（见 PacketUtils.getFixedPacket） */
+    /** 每个发出去、会改变服务端视角的包（移动包、使用物品包）都会调用（见 MixinConnectionRotationNote） */
     public void noteSentRotation(float yaw) {
         Direction d = Direction.fromYRot(yaw);
         if (d != serverHeadDir) {

@@ -22,6 +22,7 @@
     "malilib.MixinGuiStringListEdit",
     "mc.MixinClientCommonPacketListener",
     "mc.MixinClientLevel",
+    "mc.MixinConnectionRotationNote",
     "mc.MixinBlockStatePredictionHandler",
     "mc.MixinClientPacketListener",
     "mc.MixinGui",
