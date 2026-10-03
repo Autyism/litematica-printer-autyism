@@ -20,7 +20,8 @@
     "ServerCarriedItemDebugMixin",
     "ServerContainerClickDebugMixin",
     "PistonMoveDebugMixin",
-    "ServerItemMismatchMixin"
+    "ServerItemMismatchMixin",
+    "ServerPlayerTickDebugMixin"
   ],
   "injectors": {
     "defaultRequire": 1
