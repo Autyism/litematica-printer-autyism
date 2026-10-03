@@ -292,10 +292,6 @@
   "litematica-printer-autyism.config.pauseOnContainer.desc": "Pause the printer from the moment you right-click a chest/shulker/entity container until shortly after the container is closed. Prevents the client and server from disagreeing about your inventory (which made the printer place wrong blocks while you took materials).",
   "litematica-printer-autyism.config.bedrockBackend": "Bedrock Miner Backend",
   "litematica-printer-autyism.config.bedrockBackend.desc": "Which bedrock-breaking mod the bedrock mode uses. Auto: bedrock-miner (lxyan2333) first, then bedrockminer (bunnyi116), then blockminer.",
-  "litematica-printer-autyism.bedrockBackend.auto": "Auto",
-  "litematica-printer-autyism.bedrockBackend.bunnyi": "bedrockminer (bunnyi116)",
-  "litematica-printer-autyism.bedrockBackend.lxyan": "bedrock-miner (lxyan2333)",
-  "litematica-printer-autyism.bedrockBackend.blockminer": "blockminer",
   "litematica-printer-autyism.config.bedrockIgnoreRenderLayer": "Ignore Render Layers",
   "litematica-printer-autyism.config.bedrockIgnoreRenderLayer.desc": "Break all bedrock inside the Litematica area selection regardless of the current render layer range.",
   "litematica-printer-autyism.config.printLayeredMode": "Layered Printing (bottom-up)",
@@ -318,5 +314,11 @@
   "litematica-printer-autyism.config.bedrockBlockList": "Bedrock Mode Block List",
   "litematica-printer-autyism.config.bedrockBlockList.desc": "Blocks the bedrock mode breaks (e.g. minecraft:end_portal_frame, minecraft:reinforced_deepslate). The list is also added to the bedrock miner mod's own allow list automatically.",
   "litematica-printer-autyism.config.printFluidsWithBucket": "Print Fluids With Buckets",
-  "litematica-printer-autyism.config.printFluidsWithBucket.desc": "(Off by default) Place schematic water / lava source blocks with a water / lava bucket (aiming at the neighbouring block face like a player would), and fill empty cauldrons that should be full of water / lava / powder snow. A source is only placed once the blocks around and below the whole body of fluid are printed, so it can't leak out. Cells whose neighbouring faces you can't see from where you stand wait until you move. In survival every bucket places one source."
+  "litematica-printer-autyism.config.printFluidsWithBucket.desc": "(Off by default) Place schematic water / lava source blocks with a water / lava bucket (aiming at the neighbouring block face like a player would), and fill empty cauldrons that should be full of water / lava / powder snow. A source is only placed once the blocks around and below the whole body of fluid are printed, so it can't leak out. Cells whose neighbouring faces you can't see from where you stand wait until you move. In survival every bucket places one source.",
+  "litematica-printer-autyism.config.category.bedrock": "§6Bedrock",
+  "litematica-printer-autyism.config.category.bedrock.desc": "Bedrock breaking mode settings (backend, block list)",
+  "litematica-printer-autyism.config.bedrockBackend.auto": "Auto",
+  "litematica-printer-autyism.config.bedrockBackend.blockminer": "blockminer",
+  "litematica-printer-autyism.config.bedrockBackend.bunnyi": "bedrockminer (bunnyi116)",
+  "litematica-printer-autyism.config.bedrockBackend.lxyan": "bedrock-miner (lxyan2333)"
 }

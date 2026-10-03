@@ -33,7 +33,7 @@ public final class DragonGameTest implements FabricClientGameTest {
         }
         boolean layered = Boolean.parseBoolean(System.getProperty("ale.layered", "true"));
         double range = Double.parseDouble(System.getProperty("ale.range", "64"));
-        int ticksToRun = Integer.parseInt(System.getProperty("ale.ticks", "1200"));
+        int ticksToRun = Integer.parseInt(System.getProperty("ale.ticks", "").isBlank() ? "1200" : System.getProperty("ale.ticks").strip());
         try (TestSingleplayerContext sp = GT.newWorld(context)) {
             sp.getServer().runCommand("gamemode creative @a");
             context.runOnClient(client -> client.options.renderDistance().set(8));

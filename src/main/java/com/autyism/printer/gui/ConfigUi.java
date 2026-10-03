@@ -36,28 +36,56 @@ public class ConfigUi extends GuiConfigsBase {
         }
     }
 
+    /** 分页按钮占几行（窗口窄时一行放不下会换行，配置列表跟着往下移） */
+    private int tabRows = 1;
+
     @Override
     public void initGui() {
+        int rows = this.layoutTabs(false);
+        if (rows != this.tabRows) {
+            this.tabRows = rows;
+            this.setListPosition(10, 50 + (rows - 1) * 22);
+            this.reCreateListWidget();
+        }
+        // 标题太长会盖住右上角的“切换模组”下拉框：放不下时去掉后半段说明
+        String full = Reference.MOD_NAME + " " + ModUtils.LOCAL_VERSION + "   " + I18n.FREE_NOTICE.getName().getString();
+        this.title = 20 + this.getStringWidth(full) <= this.getScreenWidth() - 230 ? full : Reference.MOD_NAME + " " + ModUtils.LOCAL_VERSION;
         super.initGui();
         this.clearOptions();
+        this.layoutTabs(true);
+    }
+
+    @Override
+    protected int getBrowserHeight() {
+        return super.getBrowserHeight() - (this.tabRows - 1) * 22;
+    }
+
+    /** 排列分页按钮，返回占用的行数；create = false 时只计算不添加 */
+    private int layoutTabs(boolean create) {
         int x = 10;
         int y = 26;
+        int rows = 1;
         for (Tab tab : Tab.values()) {
-            x += this.createButton(x, y, -1, tab);
+            ButtonGeneric button = new ButtonGeneric(x, y, -1, 20, tab.getName(), tab.getComment());
+            if (x > 10 && x + button.getWidth() > this.getScreenWidth() - 10) {
+                x = 10;
+                y += 22;
+                rows++;
+                button.setPosition(x, y);
+            }
+            if (create) {
+                button.setEnabled(ConfigUi.tab != tab);
+                this.addButton(button, new ButtonListener(tab, this));
+            }
+            x += button.getWidth() + 2;
         }
+        return rows;
     }
 
     public void reset() {
         reCreateListWidget();
         Objects.requireNonNull(getListWidget()).resetScrollbarPosition();
         initGui();
-    }
-
-    private int createButton(int x, int y, int width, Tab tab) {
-        ButtonGeneric button = new ButtonGeneric(x, y, width, 20, tab.getName(), tab.getComment());
-        button.setEnabled(ConfigUi.tab != tab);
-        this.addButton(button, new ButtonListener(tab, this));
-        return button.getWidth() + 2;
     }
 
     @Override
@@ -84,6 +112,7 @@ public class ConfigUi extends GuiConfigsBase {
         EXCAVATE(I18n.of("category.mine")),
         FILL(I18n.of("category.fill")),
         FLUID(I18n.of("category.fluid")),
+        BEDROCK(I18n.of("category.bedrock")),
         HIGHLIGHT(I18n.of("category.highlight"));
 
         private final I18n i18n;
@@ -110,6 +139,7 @@ public class ConfigUi extends GuiConfigsBase {
                 case EXCAVATE   -> Configs.Mine.OPTIONS;
                 case FILL       -> Configs.Fill.OPTIONS;
                 case FLUID      -> Configs.Fluid.OPTIONS;
+                case BEDROCK    -> Configs.Bedrock.OPTIONS;
                 case HIGHLIGHT  -> Configs.Highlight.OPTIONS;
                 case HOTKEYS    -> Configs.Hotkeys.OPTIONS;
             };
