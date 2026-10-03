@@ -45,7 +45,10 @@ public abstract class ConnectionLagMixin {
     @Inject(method = "channelRead0(Lio/netty/channel/ChannelHandlerContext;Lnet/minecraft/network/protocol/Packet;)V", at = @At("HEAD"), cancellable = true)
     private void ale$lag(ChannelHandlerContext ctx, Packet<?> packet, CallbackInfo ci) {
         if (LAG == null || REPLAY.get()) return;
-        boolean game = packet.getClass().getName().startsWith("net.minecraft.network.protocol.game.");
+        // 只延迟游戏阶段（PLAY）的包。以前按类名 "net.minecraft.network.protocol.game." 判断，
+        // 正式环境里类名是混淆过的（class_2828……），真实实例里延迟模拟其实从没生效
+        var listener = ((Connection) (Object) this).getPacketListener();
+        boolean game = listener != null && listener.protocol() == net.minecraft.network.ConnectionProtocol.PLAY;
         // 进世界 5 秒后才开始延迟（区块加载要来回确认，延迟下进世界会超时）；退出世界时停止
         var mc = net.minecraft.client.Minecraft.getInstance();
         boolean active = game && mc.player != null && mc.player.tickCount >= 100;
