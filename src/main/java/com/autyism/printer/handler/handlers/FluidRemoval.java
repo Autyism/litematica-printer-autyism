@@ -81,6 +81,11 @@ public class FluidRemoval extends Module {
     }
 
     @Override
+    protected boolean isAwaitingServer(BlockPos pos) {
+        return ownActionUnconfirmed(pos);
+    }
+
+    @Override
     public boolean isCorrectBlock(BlockPos pos) {
         FluidState fluidState = level.getBlockState(pos).getFluidState();
         return !fluids.contains(fluidState.getType());
