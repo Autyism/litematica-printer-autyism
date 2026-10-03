@@ -160,7 +160,7 @@ public final class OrientationGameTest implements FabricClientGameTest {
         try (TestSingleplayerContext sp = GT.newWorld(context)) {
             GT.removeAllPlacements(context); // 防止别的测试留下的投影放置影响工作区域
             sp.getServer().runCommand("gamemode creative @a");
-            sp.getServer().runCommand("gamerule randomTickSpeed 0");
+            GT.randomTicksOff(sp);
             GT.clearArena(sp, min.getX() - 2, min.getZ() - 2, max.getX() + 2, max.getZ() + 2, 75);
             double cx = (BASE.getX() + maxX) / 2.0, cz = (BASE.getZ() + maxZ) / 2.0;
             sp.getServer().runCommand(String.format(java.util.Locale.ROOT, "tp @a %.1f 70 %.1f", cx, cz));
