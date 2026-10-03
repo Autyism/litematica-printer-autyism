@@ -34,6 +34,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 @SuppressWarnings("IfCanBeSwitch")
 public class PlacementGuide {
+    /** 最近决定要放的门（位置 → 决定时的 tick），见 DOOR */
+    private static final java.util.Map<BlockPos, Integer> RECENT_DOORS = new java.util.HashMap<>();
+
     protected static final Map<Block, Block> STRIPPED_LOGS = BlockUtils.getStrippedBlocksMap();
     protected static List<String> compostWhitelistCache = new ArrayList<>();      // 缓存堆肥桶白名单的字符串列表（用于判断是否修改）
     protected static Item[] whitelistItemsCache = new Item[0];    // 缓存过滤后的可堆肥物品列表（避免重复计算）
@@ -283,10 +286,16 @@ public class PlacementGuide {
                 Direction right = facing.getClockWise();
                 // 原版按左右（上下两格）的邻居决定门轴：这些邻居在投影里有方块的，必须先放好、并且客户端已经看到，
                 // 否则服务端已经有墙 / 另一扇门而打印机还没看到时，会按点击位置放、被服务端改成另一侧
-                // （只看同一层：上一层分层模式下一定比门晚放；另一扇门不用等，两扇门互相决定的门轴本来就一致，等了会死锁）
+                // （只看同一层：上一层分层模式下一定比门晚放；投影里的另一扇门不用等它放好（两扇门会互相等成死锁），但刚决定要放的那扇要等客户端看到）
+                int tickNow = Reference.MINECRAFT.player.tickCount;
                 for (BlockPos n : new BlockPos[]{ctx.blockPos.relative(left), ctx.blockPos.relative(right)}) {
                     BlockState want = ctx.schematic.getBlockState(n);
                     if (!want.isAir() && !(want.getBlock() instanceof DoorBlock) && ctx.level.getBlockState(n).getBlock() != want.getBlock()) return null;
+                    // 旁边那扇门刚决定要放、客户端还没看到：服务端可能已经有了，会决定这扇门的门轴 —— 等客户端看到再算
+                    // （真实实例里出现过：门轴在中间的双开门，第二扇被服务端放成了另一侧门轴）
+                    Integer decided = RECENT_DOORS.get(n);
+                    if (decided != null && tickNow - decided >= 0 && tickNow - decided < 40
+                            && !(ctx.level.getBlockState(n).getBlock() instanceof DoorBlock)) return null;
                 }
                 BlockState leftState = ctx.level.getBlockState(ctx.blockPos.relative(left));
                 BlockState leftUpperState = ctx.level.getBlockState(upperPos.relative(left));
@@ -299,7 +308,11 @@ public class PlacementGuide {
                 boolean isRightDoor = rightState.getBlock() instanceof DoorBlock && rightState.getValue(BlockStateProperties.DOUBLE_BLOCK_HALF) == DoubleBlockHalf.LOWER;
 
                 boolean condition = (hinge == DoorHingeSide.RIGHT && ((isLeftDoor && !isRightDoor) || occupancy > 0)) || (hinge == DoorHingeSide.LEFT && ((isRightDoor && !isLeftDoor) || occupancy < 0)) || (occupancy == 0 && (isLeftDoor == isRightDoor));
-                if (condition) return new Action().setSides(sides).setLookDirection(facing).setRequiresSupport();
+                if (condition) {
+                    if (RECENT_DOORS.size() > 256) RECENT_DOORS.clear();
+                    RECENT_DOORS.put(ctx.blockPos.immutable(), tickNow);
+                    return new Action().setSides(sides).setLookDirection(facing).setRequiresSupport();
+                }
             }
             case DIRT_PATH, FARMLAND -> {
                 return new Action().setItems(Items.DIRT, Items.GRASS_BLOCK, Items.COARSE_DIRT, Items.ROOTED_DIRT, Items.MYCELIUM, Items.PODZOL);
