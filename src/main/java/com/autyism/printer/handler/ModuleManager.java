@@ -49,6 +49,8 @@ public class ModuleManager {
         }
         com.autyism.printer.compat.BedrockCompat.syncWithModule(ConfigUtils.isPrinterEnable() && Configs.Bedrock.ENABLED.getBooleanValue());
         com.autyism.printer.printer.ReachHelper.tick();
+        // 单人世界刚发出“调高交互距离”的指令：等它生效再开始（否则分层打印会从眼睛附近的层开始）
+        if (com.autyism.printer.printer.ReachHelper.isRaising()) return;
         // 需求 1：玩家打开/正在打开容器时暂停打印机，避免和服务端的背包状态不同步
         if (ContainerGuard.isPaused()) return;
         boolean printerEnabled = ConfigUtils.isPrinterEnable();
