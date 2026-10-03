@@ -150,6 +150,17 @@ public final class OrientationGameTest implements FabricClientGameTest {
             int done = 0;
             for (int t = 0; t < 1200; t += 20) {
                 context.waitTicks(20);
+                // Litematica 可能在后台清掉直接写进投影世界的方块（前面的测试删过投影放置）：发现就补写
+                context.runOnClient(c -> {
+                    var ws = fi.dy.masa.litematica.world.SchematicWorldHandler.getSchematicWorld();
+                    for (var e : states.entrySet()) {
+                        if (!ws.getBlockState(e.getKey()).equals(e.getValue())) {
+                            GT.setSchematic(min, max, p -> states.getOrDefault(p, p.getY() == BASE.getY() - 1
+                                    ? Blocks.BEDROCK.defaultBlockState() : Blocks.AIR.defaultBlockState()));
+                            break;
+                        }
+                    }
+                });
                 done = sp.getServer().computeOnServer(s -> {
                     int n = 0;
                     for (var e : states.entrySet()) if (s.overworld().getBlockState(e.getKey()).equals(e.getValue())) n++;
@@ -171,6 +182,16 @@ public final class OrientationGameTest implements FabricClientGameTest {
                 return out;
             });
             for (String w : wrong) GT.log("[orientation] WRONG " + w);
+            if (!wrong.isEmpty()) {
+                BlockPos first = states.keySet().stream().filter(p -> wrong.stream().anyMatch(w -> w.startsWith(p.toShortString() + " "))).findFirst().orElse(null);
+                if (first != null) {
+                    context.runOnClient(c -> GT.enablePrint());
+                    context.waitTicks(5);
+                    GT.log("[orientation] DEBUG " + first.toShortString() + " " + context.computeOnClient(c ->
+                            com.autyism.printer.handler.ModuleManager.PRINT.debugPos(first) + " schematic=" + fi.dy.masa.litematica.world.SchematicWorldHandler.getSchematicWorld().getBlockState(first)
+                                    + " hand=" + c.player.getMainHandItem() + " creative=" + c.player.getAbilities().instabuild));
+                }
+            }
             GT.log("[orientation] RESULT " + (states.size() - wrong.size()) + "/" + states.size() + " correct");
             if (!wrong.isEmpty()) throw new AssertionError("[orientation] " + wrong.size() + " blocks wrong, first: " + wrong.get(0));
         } finally {

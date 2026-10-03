@@ -393,7 +393,7 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
 
         // 用桶打印流体（水源 / 岩浆源 / 装满的炼药锅）
         public static final ConfigBoolean PRINT_FLUIDS_WITH_BUCKET = booleanValue("printFluidsWithBucket")
-                .defaultValue(true)
+                .defaultValue(false)
                 .build();
 
         // 破冰放水
