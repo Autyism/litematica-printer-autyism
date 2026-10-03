@@ -223,6 +223,11 @@ public class BedrockCompat {
         return impl() != Impl.NONE;
     }
 
+    /** 当前用的是 bunnyi116 的破基岩模组（它和 Meteor 的 NoGhostBlocks 不兼容） */
+    public static boolean isBunnyiBackend() {
+        return impl() == Impl.BUNNYI;
+    }
+
     /** 当前使用的后端名称（提示用） */
     public static String getBackendName() {
         return switch (impl()) {

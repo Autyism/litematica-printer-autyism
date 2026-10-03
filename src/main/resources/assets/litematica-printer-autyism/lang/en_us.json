@@ -281,6 +281,7 @@
   "litematica-printer-autyism.update.recommendation": "Strongly recommend upgrading to latest version to fix potential serious issues.",
   "litematica-printer-autyism.update.repository": "Code repository:",
   "litematica-printer-autyism.bedrock.not_support": "Not supported in original Bedrock Miner, please use bunnyi port version",
+  "litematica-printer-autyism.bedrock.noghost_conflict": "bedrockminer (bunnyi116) can't break anything while Meteor's NoGhostBlocks is on: turn NoGhostBlocks off, or use bedrock-miner (lxyan2333)",
   "litematica-printer-autyism.config.breakAutoToolSwitch": "Auto Tool Switch",
   "litematica-printer-autyism.config.breakAutoToolSwitch.desc": "Automatically switch to the most effective tool from the whole inventory before breaking (built-in, Tweakeroo not required).",
   "litematica-printer-autyism.config.breakToolDurabilityProtect": "Tool Durability Protection",
