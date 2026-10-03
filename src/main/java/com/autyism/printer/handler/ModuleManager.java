@@ -54,7 +54,8 @@ public class ModuleManager {
         // 需求 1：玩家打开/正在打开容器时暂停打印机，避免和服务端的背包状态不同步
         if (ContainerGuard.isPaused()) return;
         boolean printerEnabled = ConfigUtils.isPrinterEnable();
-        if (printerEnabled && !lastPrinterEnabled) {
+        boolean justEnabled = printerEnabled && !lastPrinterEnabled;
+        if (justEnabled) {
             com.autyism.printer.utils.ToolSwitchUtils.resetHalt();
             com.autyism.printer.utils.InventoryUtils.clearRecentlyUsed();
             com.autyism.printer.printer.RailSim.reset();
@@ -64,6 +65,8 @@ public class ModuleManager {
             }
         }
         lastPrinterEnabled = printerEnabled;
+        // 每个世界开头 / 刚打开打印机：服务端选中的快捷栏格子和客户端对齐（有的模组会拦掉“重复”的切换包，见 SlotResync）
+        if (printerEnabled) com.autyism.printer.printer.SlotResync.ensure(mc.player, mc.level, justEnabled);
 
         MissingMaterialTracker.getInstance().startCycle();
 
