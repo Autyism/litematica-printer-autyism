@@ -28,11 +28,11 @@ import java.util.TreeMap;
  * 自测：用用户文件夹里带大量内饰的真实投影（楼梯/台阶/门/告示牌/红石/容器/流体……），创造模式分层打印，
  * 打完后逐方块与投影对比，按“方块 + 问题类型 + 不同的属性”汇总，找出打印机放错的东西。
  * <p>
- * 投影列表：D:/ale-work/complex-list.txt（每行一个 .litematic 路径，UTF-8），没有就用内置的几个。
+ * 投影列表：D:/Dev/Projects/ale-work/complex-list.txt（每行一个 .litematic 路径，UTF-8），没有就用内置的几个。
  */
 @SuppressWarnings("UnstableApiUsage")
 public final class ComplexPrintGameTest implements FabricClientGameTest {
-    private static final Path LIST = Path.of("D:/ale-work/complex-list.txt");
+    private static final Path LIST = Path.of("D:/Dev/Projects/ale-work/complex-list.txt");
     private static final String BASE = "D:/Games/PCL2/.minecraft/schematics/Up 分享后期工业/完整版2413文件/f房屋 居所 类/";
     private static final List<String> DEFAULTS = List.of(
             BASE + "不同时代 国家/z中世纪建筑/酒馆旅店/蔚蓝旅店.litematic",
@@ -123,6 +123,7 @@ public final class ComplexPrintGameTest implements FabricClientGameTest {
             context.runOnClient(c -> {
                 Configs.Core.WORK_RANGE.setDoubleValue(range);
                 Configs.Print.LAYERED_MODE.setBooleanValue(true);
+                Configs.Print.PRINT_FLUIDS_WITH_BUCKET.setBooleanValue(true); // 默认关，测试时打开
                 Configs.Placement.PLACE_BLOCKS_PER_TICK.setIntegerValue(16);
                 GT.enablePrint();
             });
@@ -164,6 +165,7 @@ public final class ComplexPrintGameTest implements FabricClientGameTest {
             context.runOnClient(c -> GT.disableAll());
             context.waitTicks(20);
             String report = compare(sp, name, expected);
+            shoot(context, sp, name, min, max, index);
             // 关世界之前删掉投影放置（关世界时 Litematica 会把放置存进这个世界的配置，下次进同名世界又读回来）
             GT.removeAllPlacements(context);
             return name + " ticks=" + t + " " + report;
@@ -171,6 +173,30 @@ public final class ComplexPrintGameTest implements FabricClientGameTest {
             GT.removeAllPlacements(context);
             context.runOnClient(c -> GT.disableAll());
         }
+    }
+
+    /** 完工截图：隐藏投影和界面，从建筑斜前方高处看整栋建筑 */
+    private static void shoot(ClientGameTestContext context, TestSingleplayerContext sp, String name, BlockPos min, BlockPos max, int index) {
+        double cx = (min.getX() + max.getX() + 1) / 2.0, cz = (min.getZ() + max.getZ() + 1) / 2.0;
+        double size = Math.max(max.getX() - min.getX(), Math.max(max.getZ() - min.getZ(), max.getY() - min.getY())) + 1;
+        double px = cx - size * 0.6, pz = cz + size * 0.75, py = min.getY() + size * 0.55;
+        double dx = cx - px, dz = cz - pz, dy = (min.getY() + max.getY()) / 2.0 - (py + 1.62);
+        double yaw = Math.toDegrees(Math.atan2(-dx, dz));
+        double pitch = -Math.toDegrees(Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)));
+        sp.getServer().runCommand("time set noon");
+        sp.getServer().runCommand(String.format(java.util.Locale.ROOT, "tp @a %.1f %.1f %.1f %.1f %.1f", px, py, pz, yaw, pitch));
+        context.runOnClient(c -> {
+            c.options.hideGui = true;
+            c.options.renderDistance().set(12);
+            fi.dy.masa.litematica.config.Configs.Visuals.ENABLE_RENDERING.setBooleanValue(false);
+        });
+        context.waitTicks(160); // 等分层完成提示消失
+        java.nio.file.Path shot = context.takeScreenshot("complex-" + index);
+        GT.log("[complex] " + name + " SCREENSHOT " + shot.toAbsolutePath());
+        context.runOnClient(c -> {
+            c.options.hideGui = false;
+            fi.dy.masa.litematica.config.Configs.Visuals.ENABLE_RENDERING.setBooleanValue(true);
+        });
     }
 
     private static int countMatching(TestSingleplayerContext sp, Map<BlockPos, BlockState> expected) {

@@ -999,7 +999,8 @@ public class PlacementGuide {
                 Block[] soilBlocks = new Block[]{Blocks.GRASS_BLOCK, Blocks.DIRT, Blocks.DIRT_PATH, Blocks.COARSE_DIRT};
                 for (Block soilBlock : soilBlocks) {
                     if (ctx.currentState.getBlock().equals(soilBlock)) {
-                        return new ClickAction().setItems(Reference.HOE_ITEMS);
+                        // 锄地 / 铲土径时原版要求不能点底面：必须点顶面（可选面放在 HashMap 里，顺序每次启动都可能不同）
+                        return new ClickAction().setItems(Reference.HOE_ITEMS).setSides(Direction.UP);
                     }
                 }
                 if (Configs.Print.BREAK_WRONG_BLOCK.getBooleanValue() && BreakUtils.canBreakBlock(ctx.blockPos)) BreakUtils.INSTANCE.add(ctx);
@@ -1008,7 +1009,7 @@ public class PlacementGuide {
                 Block[] soilBlocks = new Block[]{Blocks.GRASS_BLOCK, Blocks.DIRT, Blocks.COARSE_DIRT, Blocks.ROOTED_DIRT, Blocks.MYCELIUM, Blocks.PODZOL};
                 for (Block soilBlock : soilBlocks) {
                     if (ctx.currentState.getBlock().equals(soilBlock)) {
-                        return new ClickAction().setItems(Reference.SHOVEL_ITEMS);
+                        return new ClickAction().setItems(Reference.SHOVEL_ITEMS).setSides(Direction.UP);
                     }
                 }
                 if (Configs.Print.BREAK_WRONG_BLOCK.getBooleanValue() && BreakUtils.canBreakBlock(ctx.blockPos)) BreakUtils.INSTANCE.add(ctx);

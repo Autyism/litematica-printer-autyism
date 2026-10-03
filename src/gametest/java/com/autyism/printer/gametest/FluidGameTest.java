@@ -71,6 +71,7 @@ public final class FluidGameTest implements FabricClientGameTest {
                         ? Blocks.BEDROCK.defaultBlockState() : Blocks.AIR.defaultBlockState()));
             context.runOnClient(c -> {
                 Configs.Core.WORK_RANGE.setDoubleValue(24);
+                Configs.Print.PRINT_FLUIDS_WITH_BUCKET.setBooleanValue(true); // 默认关，测试时打开
                 Configs.Print.LAYERED_MODE.setBooleanValue(true);
                 Configs.Placement.PLACE_BLOCKS_PER_TICK.setIntegerValue(8);
                 GT.enablePrint();
@@ -78,6 +79,17 @@ public final class FluidGameTest implements FabricClientGameTest {
             int done = 0;
             for (int t = 0; t < 1200; t += 20) {
                 context.waitTicks(20);
+                // Litematica 可能在后台清掉直接写进投影世界的方块（前面的测试删过投影放置）：发现就补写
+                context.runOnClient(c -> {
+                    var ws = fi.dy.masa.litematica.world.SchematicWorldHandler.getSchematicWorld();
+                    for (var e : states.entrySet()) {
+                        if (!ws.getBlockState(e.getKey()).equals(e.getValue())) {
+                            GT.setSchematic(min, max, p -> states.getOrDefault(p, p.getY() == BASE.getY() - 1
+                                    ? Blocks.BEDROCK.defaultBlockState() : Blocks.AIR.defaultBlockState()));
+                            break;
+                        }
+                    }
+                });
                 done = sp.getServer().computeOnServer(s -> {
                     int n = 0;
                     for (var e : states.entrySet()) if (s.overworld().getBlockState(e.getKey()).equals(e.getValue())) n++;

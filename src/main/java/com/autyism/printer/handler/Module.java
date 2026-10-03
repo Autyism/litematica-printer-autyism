@@ -265,6 +265,13 @@ public abstract class Module extends ConfigUtils {
     @Nullable
     private BlockPos lastPendingPos;
 
+    /** 调试 / 测试用：某个坐标为什么（不）需要处理 */
+    public String debugPos(BlockPos pos) {
+        return "withinRange=" + LitematicaUtils.isPositionWithinRange(pos) + " cooldown=" + isOnCooldown(pos)
+                + " canProcess=" + canProcessPos(pos) + " correct=" + isCorrectBlock(pos) + " inWorkspace=" + isPosInWorkspace(pos)
+                + " canInteract=" + PlayerUtils.canInteracted(pos) + " layerSkipped=" + isLayerSkipped(pos);
+    }
+
     /** 调试 / 测试用：当前内部状态 */
     public String debugState() {
         return "ticks=" + dbgTicks + " iters=" + dbgIters + " passes=" + dbgPasses + " rebuilds=" + dbgRebuilds + " scan=" + scanState + " waiting=" + waitingPos + " layer=" + layerY + " pending=" + layerPending
@@ -373,9 +380,9 @@ public abstract class Module extends ConfigUtils {
     private void onPassFinished() {
         dbgPasses++;
         onScanPassFinished();
-        boolean notReady = consumeAreaNotReady();
+        // 注意：曾尝试“投影区块没载入完的层不算完成”，但会让层长时间挂起再被看门狗强制跳层，反而打乱顺序，已撤回
+        consumeAreaNotReady();
         if (layerY == null) return;
-        if (notReady) layerPending = true;
         if (layerPending && layerIdleTicks > LAYER_STALL_TICKS) {
             // 本层剩下的格子一直放不了（缺材料、无处可贴、需要先有别的方块……）：先打上面的层，到顶后会回来复查
             layerPending = false;
