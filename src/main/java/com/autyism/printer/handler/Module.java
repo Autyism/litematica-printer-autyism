@@ -204,7 +204,9 @@ public abstract class Module extends ConfigUtils {
                     // 分层模式：本层还有没完成的方块（包括刚尝试过、处于冷却中的）就不能进入上一层。
                     // 例外：被实体挡住（例如玩家自己站在那格）或反复尝试仍放不上的格子，不能卡住整层
                     boolean unfinished = work || (isOnCooldown(pos) && LitematicaUtils.isPositionWithinRange(pos) && !isCorrectBlock(pos)
-                            && canProcessPos(pos));
+                            && canProcessPos(pos))
+                            // 放过、还在等服务端回应的格子也没完成（回应之后要么已经对了，要么被拒绝了再放）
+                            || (isAwaitingServer(pos) && LitematicaUtils.isPositionWithinRange(pos) && !isCorrectBlock(pos));
                     layerPending = unfinished && layerAttempts.getOrDefault(pos.asLong(), 0) < LAYER_MAX_ATTEMPTS
                             && !isObstructedForLayer(pos) && !layerDeferred.contains(pos.asLong());
                     if (layerPending) lastPendingPos = pos.immutable();
@@ -487,7 +489,23 @@ public abstract class Module extends ConfigUtils {
     private boolean needsWork(BlockPos pos) {
         // 逐方块复核渲染层：盒子裁剪之外的兜底，覆盖等待重试的坐标和层范围在两次重建之间变化的情况
         if (respectsRenderLayer() && !LitematicaUtils.isPositionWithinRange(pos)) return false;
-        return !isOnCooldown(pos) && canProcessPos(pos) && !isCorrectBlock(pos);
+        return !isOnCooldown(pos) && !isAwaitingServer(pos) && canProcessPos(pos) && !isCorrectBlock(pos);
+    }
+
+    /**
+     * 打印机自己往这一格（或者点击可能落到这一格）的放置 / 点击，服务端还没回应。
+     * 这时客户端看到的不一定是结果：开着 Meteor 的 NoGhostBlocks（防幽灵方块，默认对放置生效）、或者用数据包放置时，
+     * 客户端根本不先显示放下的方块，要等服务端发回来。有延迟时打印机会以为“还没放”再放一次，
+     * 第二次的方块落到旁边（真实实例里 CommandLeo 打包机的侦测器上面多出一个侦测器）。
+     * 只有放置类模块（打印、填充、清除流体）等；客户端正常预测时放过的格子已经不是空的，这里不起作用。
+     */
+    protected boolean isAwaitingServer(BlockPos pos) {
+        return false;
+    }
+
+    /** 见 {@link #isAwaitingServer}：打印机自己的动作还没被服务端确认（ActionConfirm） */
+    protected final boolean ownActionUnconfirmed(BlockPos pos) {
+        return level != null && ActionConfirm.pending(level, pos, player == null ? 0 : player.tickCount);
     }
 
     private boolean isPosInWorkspace(BlockPos pos) {

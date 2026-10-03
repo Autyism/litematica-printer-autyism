@@ -5,7 +5,9 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "LitematicaUtilsMixin",
-    "OpenScreenDelayMixin"
+    "OpenScreenDelayMixin",
+    "NoGhostBlocksMixin",
+    "NoGhostBreakMixin"
   ],
   "mixins": [
     "ServerUseItemOnDebugMixin",

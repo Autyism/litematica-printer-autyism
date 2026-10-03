@@ -282,6 +282,11 @@ public class Print extends Module {
     }
 
     @Override
+    protected boolean isAwaitingServer(BlockPos pos) {
+        return ownActionUnconfirmed(pos);
+    }
+
+    @Override
     public boolean isCorrectBlock(BlockPos pos) {
         BlockState required = LitematicaUtils.getBlockState(pos);
         BlockState current = level.getBlockState(pos);

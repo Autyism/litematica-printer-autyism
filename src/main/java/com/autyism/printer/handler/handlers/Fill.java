@@ -125,6 +125,11 @@ public class Fill extends Module {
     }
 
     @Override
+    protected boolean isAwaitingServer(BlockPos pos) {
+        return ownActionUnconfirmed(pos);
+    }
+
+    @Override
     public boolean isCorrectBlock(BlockPos pos) {
         BlockState state = level.getBlockState(pos);
         if (state.isAir()) return false;
