@@ -69,7 +69,7 @@ public class MissingMaterialHudRenderer implements IInfoHudRenderer
         for (int i = 0; i < displayCount; i++) {
             maxTextLength = Math.max(maxTextLength, font.width(getItemName(missing.get(i))));
         }
-        String title = String.format(Language.getInstance().getOrDefault("litematica-printer.hud.missing.title"), totalTypes);
+        String title = String.format(Language.getInstance().getOrDefault("litematica-printer-autyism.hud.missing.title"), totalTypes);
         int titleWidth = font.width(title);
         maxTextLength = Math.max(maxTextLength, titleWidth);
         final int maxLineLength = maxTextLength + 20;
@@ -128,7 +128,7 @@ public class MissingMaterialHudRenderer implements IInfoHudRenderer
         }
 
         if (showOverflow) {
-            String overflow = String.format(Language.getInstance().getOrDefault("litematica-printer.hud.missing.overflow"), missing.size() - MAX_DISPLAY_ITEMS);
+            String overflow = String.format(Language.getInstance().getOrDefault("litematica-printer-autyism.hud.missing.overflow"), missing.size() - MAX_DISPLAY_ITEMS);
             drawContext.drawString(font, overflow,
                     posX + 2, itemY + 4, TEXT_COLOR_GRAY, true);
         }

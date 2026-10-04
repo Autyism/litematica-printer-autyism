@@ -49,7 +49,7 @@ public class HotkeysCallback {
                 Configs.Fluid.ENABLED.setBooleanValue(false);
                 Configs.Bedrock.ENABLED.setBooleanValue(false);
                 Configs.Core.WORK_SWITCH.setBooleanValue(false);
-                MessageUtils.setOverlayMessage(MessageUtils.nullToEmpty("已关闭全部模式"));
+                MessageUtils.setOverlayMessage(com.autyism.printer.I18n.MESSAGE_ALL_MODES_CLOSED.getName());
             }
             return true;
         });
