@@ -3,11 +3,17 @@
   "id": "${mod_id}",
   "version": "${mod_version}",
   "name": "${mod_name}",
-  "icon": "assets/litematica-printer-autyism/icon.png",
-  "description": "Litematica Printer Autyism Edition: a standalone printer for Litematica based on the BiliXWhite / water2004 Litematica Printer forks, with container-safe printing, layered printing for huge ranges, bedrock mode for multiple bedrock miners, smart shulker restock (Advanced Shulkerboxes / QuickShulker) and built-in tool switching.",
+  "description": "A standalone printer for Litematica: builds the loaded schematic around you, bottom layer first. Places redstone, rails and doors the right way, pauses while you use containers, waits for the server where it matters, restocks from shulker boxes, switches tools and drives bedrock-breaking mods. Based on the BiliXWhite and water2004 Litematica Printer forks.",
   "authors": [
     "Autyism"
   ],
+  "contact": {
+    "homepage": "https://github.com/Autyism/litematica-printer-autyism",
+    "sources": "https://github.com/Autyism/litematica-printer-autyism",
+    "issues": "https://github.com/Autyism/litematica-printer-autyism/issues"
+  },
+  "license": "AGPL-3.0-only",
+  "icon": "assets/litematica-printer-autyism/icon.png",
   "contributors": [
     "aleksilassila",
     "zhaixianyu",
@@ -15,7 +21,6 @@
     "bunnyi116",
     "water2004"
   ],
-  "license": "AGPL-3.0",
   "environment": "client",
   "entrypoints": {
     "client": [
@@ -43,6 +48,7 @@
     "autyism-le": "*"
   },
   "breaks": {
-    "litematica-printer": "*"
+    "litematica-printer": "*",
+    "litematica_printer": "*"
   }
 }
