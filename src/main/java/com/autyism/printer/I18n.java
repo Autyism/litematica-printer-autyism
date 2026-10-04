@@ -10,6 +10,7 @@ public class I18n {
     public static final I18n MESSAGE_TOGGLED = of("message.toggled");
     public static final I18n MESSAGE_VALUE_OFF = of("message.value.off");
     public static final I18n MESSAGE_VALUE_ON = of("message.value.on");
+    public static final I18n MESSAGE_ALL_MODES_CLOSED = of("message.all_modes_closed");
 
     public static final I18n AUTO_DISABLE_NOTICE = of("auto_disable_notice");
     public static final I18n FREE_NOTICE = of("free_notice");
