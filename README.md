@@ -373,7 +373,7 @@ This mod continues the work of:
 - [bunnyi116](https://github.com/bunnyi116): upstream contributor and author of Bedrock Miner
 - and everyone credited in those projects, including Rofumer, Cjsah, EnderPhantomWing and MoRanpcy
 
-Thanks also to masa (Litematica, MaLiLib, Tweakeroo), LXYan2333 (Fabric-Bedrock-Miner), z7087 (BlockMiner), Max Henkel (Advanced Shulkerboxes), kyrptonaught and MoRanpcy (QuickShulker), and pinyin4j (bundled, for pinyin search). The mod icon comes from the BiliXWhite fork.
+Thanks also to masa (Litematica, MaLiLib, Tweakeroo), LXYan2333 (Fabric-Bedrock-Miner), z7087 (BlockMiner), Max Henkel (Advanced Shulkerboxes), kyrptonaught and MoRanpcy (QuickShulker), and pinyin4j (bundled, for pinyin search).
 
 ## License
 
@@ -745,7 +745,7 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 - [bunnyi116](https://github.com/bunnyi116)：上游贡献者，Bedrock Miner 的作者
 - 以及这些项目中致谢的所有人，包括 Rofumer、Cjsah、EnderPhantomWing 和 MoRanpcy
 
-同样感谢 masa（Litematica、MaLiLib、Tweakeroo）、LXYan2333（Fabric-Bedrock-Miner）、z7087（BlockMiner）、Max Henkel（Advanced Shulkerboxes）、kyrptonaught 和 MoRanpcy（QuickShulker），以及 pinyin4j（已内置，用于拼音搜索）。模组图标来自 BiliXWhite 分支。
+同样感谢 masa（Litematica、MaLiLib、Tweakeroo）、LXYan2333（Fabric-Bedrock-Miner）、z7087（BlockMiner）、Max Henkel（Advanced Shulkerboxes）、kyrptonaught 和 MoRanpcy（QuickShulker），以及 pinyin4j（已内置，用于拼音搜索）。
 
 ## 许可证
 
