@@ -23,7 +23,7 @@ public class ConfigUi extends GuiConfigsBase {
     private static Tab tab = Tab.CORE;
 
     public ConfigUi(@Nullable Screen parent) {
-        super(10, 50, Reference.MOD_ID, parent, Reference.MOD_NAME + " " + ModUtils.LOCAL_VERSION + "   " + I18n.FREE_NOTICE.getName().getString());
+        super(10, 50, Reference.MOD_ID, parent, Reference.MOD_NAME + " " + ModUtils.LOCAL_VERSION);
     }
 
     public ConfigUi() {
@@ -47,9 +47,6 @@ public class ConfigUi extends GuiConfigsBase {
             this.setListPosition(10, 50 + (rows - 1) * 22);
             this.reCreateListWidget();
         }
-        // 标题太长会盖住右上角的“切换模组”下拉框：放不下时去掉后半段说明
-        String full = Reference.MOD_NAME + " " + ModUtils.LOCAL_VERSION + "   " + I18n.FREE_NOTICE.getName().getString();
-        this.title = 20 + this.getStringWidth(full) <= this.getScreenWidth() - 230 ? full : Reference.MOD_NAME + " " + ModUtils.LOCAL_VERSION;
         super.initGui();
         this.clearOptions();
         this.layoutTabs(true);
@@ -105,7 +102,6 @@ public class ConfigUi extends GuiConfigsBase {
     public enum Tab {
         ALL(I18n.of("category.all")),
         CORE(I18n.of("category.core")),
-        PLACEMENT(I18n.of("category.placement")),
         BREAK(I18n.of("category.break")),
         HOTKEYS(I18n.of("category.hotkeys")),
         PRINT(I18n.of("category.print")),
@@ -129,13 +125,18 @@ public class ConfigUi extends GuiConfigsBase {
             return i18n.getConfigDesc().getString();
         }
 
+        /** “打印”分页末尾接着放置速度 / 方式的设置（填充、排流体也用这些） */
+        private static final ImmutableList<IConfigBase> PRINT_WITH_PLACEMENT = ImmutableList.<IConfigBase>builder()
+                .addAll(Configs.Print.OPTIONS)
+                .addAll(Configs.Placement.OPTIONS)
+                .build();
+
         public ImmutableList<IConfigBase> getConfigs() {
             return switch (this) {
                 case ALL        -> Configs.All;
                 case CORE       -> Configs.Core.OPTIONS;
-                case PLACEMENT  -> Configs.Placement.OPTIONS;
                 case BREAK      -> Configs.Break.OPTIONS;
-                case PRINT      -> Configs.Print.OPTIONS;
+                case PRINT      -> PRINT_WITH_PLACEMENT;
                 case EXCAVATE   -> Configs.Mine.OPTIONS;
                 case FILL       -> Configs.Fill.OPTIONS;
                 case FLUID      -> Configs.Fluid.OPTIONS;

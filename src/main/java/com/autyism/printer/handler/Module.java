@@ -552,6 +552,16 @@ public abstract class Module extends ConfigUtils {
         return enableConfig == null || enableConfig.getBooleanValue();
     }
 
+    private boolean wasAllowed;
+
+    /** 这个模式刚开始工作（上次调用时还没在工作）。每 tick 调用一次 */
+    boolean pollActivated() {
+        boolean allowed = isConfigAllowed();
+        boolean activated = allowed && !wasAllowed;
+        wasAllowed = allowed;
+        return activated;
+    }
+
     protected int getTickInterval() {
         return -1;
     }

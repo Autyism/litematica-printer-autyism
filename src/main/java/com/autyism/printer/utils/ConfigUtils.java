@@ -14,6 +14,11 @@ public class ConfigUtils {
         return Configs.Core.WORK_SWITCH.getBooleanValue();
     }
 
+    /** 打开着、并且至少有一个模式在工作 */
+    public static boolean isAnyModeRunning() {
+        return isPrinterEnable() && (isPrintEnabled() || isMineEnabled() || isFillEnabled() || isFluidEnabled() || isBedrockEnabled());
+    }
+
     public static boolean isPrintEnabled() {
         return Configs.Print.ENABLED.getBooleanValue();
     }
@@ -52,8 +57,9 @@ public class ConfigUtils {
         if (configRange <= 0) {
             return reach;
         }
-        // 单人世界的内置服务端一定会按原版交互距离校验，超出的放置会被撤回（看起来像打印机罢工），这里限制在可交互范围内
-        if (client.hasSingleplayerServer() && Configs.Core.LIMIT_RANGE_SINGLEPLAYER.getBooleanValue()) {
+        // 单人世界的内置服务端一定会按原版交互距离校验，超出的放置会被撤回（看起来像打印机罢工），这里限制在可交互范围内。
+        // 想要更大的范围就靠“单人世界自动调高交互距离”把交互距离本身调高
+        if (client.hasSingleplayerServer()) {
             return Math.min(configRange, reach);
         }
         return configRange;

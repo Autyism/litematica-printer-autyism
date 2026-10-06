@@ -130,13 +130,13 @@ With ALE installed, block lists get a visual picker. Here end portal frames are 
 
 | Action | Default key | Where to change it |
 |---|---|---|
-| Turn the printer on or off (*Work Switch*) | Caps Lock | Printer settings, Hotkeys tab |
+| Turn the printer on or off (*Printer On/Off*) | Caps Lock | Printer settings, Core tab |
 | Open the printer settings | Z + Y (hold Z, press Y) | Printer settings, Hotkeys tab |
-| Close all modes (turns off every mode and the Work Switch) | Left Ctrl + G | Printer settings, Hotkeys tab |
-| Cycle mode (Printing, Mining, Filling, Fluid Removal, Bedrock; one at a time) | not set | Printer settings, Hotkeys tab |
-| Toggle one mode, Layered Printing or Break Ice for Water | not set | Hotkey button next to that option in its tab |
+| Cycle mode (Printing → Mining → Filling → Fluid Removal → Bedrock, one at a time) | not set | Printer settings, Hotkeys tab |
+| Close all modes (turns the printer and every mode off) | Left Ctrl + G | Printer settings, Hotkeys tab |
+| Start or stop one mode, toggle Layered Printing or Break Ice for Water | not set | Hotkey button next to that option in its tab |
 
-The **Work Switch** is the master switch: while it is on, every mode whose *Enable* option is on is working. A message above the hotbar confirms each toggle. *Cycle Mode* only switches modes; it does not turn on the Work Switch.
+**Printer On/Off** turns the printer on and off. While it is on, every mode whose *Enable* option is on works; if no mode is enabled, turning it on enables Printing. A mode's own hotkey starts that mode alone while the printer is off, and adds or removes it while the printer runs. **Cycle Mode** switches to the next mode and, with *Cycle Mode Turns Printer Off* (on by default), also turns the printer off, so the new mode never starts working by itself. A message above the hotbar shows the result of every key.
 
 ### Opening the settings
 
@@ -152,10 +152,9 @@ The mod adds no commands. In singleplayer with cheats allowed, *Auto Raise Reach
 ### Print a schematic
 
 1. Load and place a schematic with Litematica as usual.
-2. Open the printer settings, go to the **Printing** tab and set **Enable Printing** to `true`. This is off by default and only needs to be done once.
-3. Carry the materials, or shulker boxes that contain them. In creative mode the printer takes them from the creative inventory.
-4. Stand near the build and press **Caps Lock**. The printer places blocks within reach, lowest layer first. It never moves you; walk along the build or use a larger work radius.
-5. Press **Caps Lock** again to stop. For a progress bar, turn on **Show Work Status** in the Core tab.
+2. Carry the materials, or shulker boxes that contain them. In creative mode the printer takes them from the creative inventory.
+3. Stand near the build and press **Caps Lock**. With no other mode enabled, the printer starts in Printing mode and places blocks within reach, lowest layer first. It never moves you; walk along the build or use a larger work radius.
+4. Press **Caps Lock** again to stop. For a progress bar, turn on **Show Work Status** in the Core tab.
 
 The printer follows Litematica's render layers, so you can limit printing to certain layers with Litematica's layer controls.
 
@@ -168,15 +167,15 @@ The printer follows Litematica's render layers, so you can limit printing to cer
 ### Fill, remove fluids or mine an area
 
 1. Select the area with Litematica's area selection tool.
-2. Open the matching tab (**Filling**, **Fluid Removal** or **Mining**), check its block lists and set its **Enable** option to `true`. Turn Enable Printing off if you only want this mode.
-3. Press Caps Lock.
+2. Open the matching tab (**Filling**, **Fluid Removal** or **Mining**) and check its block lists.
+3. Start the mode: press its own hotkey (set it next to its **Enable** option), or select it with **Cycle Mode** and press Caps Lock.
 
 ### Break bedrock
 
 1. Install a supported bedrock-breaking mod and play in survival (bedrock mode does not work in creative).
 2. Select the area with Litematica's area selection tool.
-3. In the **Bedrock** tab, set **Enable Bedrock Breaking** to `true`. Keep **Bedrock Miner Backend** on *Auto* or choose a mod.
-4. Press Caps Lock. The printer turns the bedrock miner on while bedrock mode runs and restores it afterwards.
+3. In the **Bedrock** tab, keep **Bedrock Miner Backend** on *Auto* or choose a mod.
+4. Start bedrock mode with the hotkey of **Enable Bedrock Breaking**, or select it with **Cycle Mode** and press Caps Lock. The printer turns the bedrock miner on while bedrock mode runs and restores it afterwards.
 
 ## Settings
 
@@ -186,10 +185,9 @@ Names are shown as they appear in game. The settings screen has an **All** tab a
 
 | Option | Default | What it does |
 |---|---|---|
-| Work Switch | off (Caps Lock) | Master switch for all modes. |
+| Printer On/Off | off (Caps Lock) | Turns the printer on or off; see *Default keys*. |
 | Work Radius | 0 | How far from you the printer works, up to 4096. `0` uses your normal reach. |
-| Auto Raise Reach (Singleplayer) | on | With cheats allowed, raises your block interaction range to the work radius (max 64). |
-| Limit Range to Reach (Singleplayer) | on | In singleplayer, never works beyond the range the game accepts. |
+| Auto Raise Reach (Singleplayer) | on | In singleplayer the printer never works beyond your reach; with cheats allowed, this raises the reach to the work radius (max 64). |
 | Pause While Using Containers | on | Pauses while you open or use a container or inventory screen. |
 | Show Work Status | off | Progress display under the crosshair. |
 | Missing Material HUD | on | Lists missing materials in Litematica's info HUD area. |
@@ -198,23 +196,22 @@ Names are shown as they appear in game. The settings screen has an **All** tab a
 | Iteration Order | X→Z→Y | Order in which positions are checked; each axis can be reversed. |
 | Classify by Block Type | off | Handles one block type per pass to reduce item switching. |
 | Iteration Time Limit | 8 ms | Maximum time per tick spent checking positions. |
-| Auto Disable Printer | on | Turns the Work Switch off when you die or disconnect. |
+| Auto Disable Printer | on | Turns the printer off when you die or disconnect. |
 
-### Placing Blocks
+### Hotkeys
 
 | Option | Default | What it does |
 |---|---|---|
-| Placement Interval Time | 1 tick | Ticks between placement rounds. Not recommended at 0 for redstone. |
-| Blocks to Place Per Tick | 1 | Placements per round; `0` means no limit. |
-| Placement Cooldown Time | 3 ticks | Wait before retrying the same spot. Do not set it to 0. |
-| Placement Using Packets | off | Places without client-side prediction; can help on strict servers. |
-| Falling Block Check | on | Sand, gravel, anvils and the like wait for the right block below. |
+| Open Settings Menu | Z + Y | Opens this settings screen. |
+| Cycle Mode | not set | Switches to the next mode and turns the others off. Bedrock is skipped when no bedrock-breaking mod is installed. |
+| Cycle Mode Turns Printer Off | on | Cycle Mode also turns the printer off, so a key pressed by accident never starts a mode. Off: the printer stays as it is. |
+| Close All Modes | Left Ctrl + G | Turns the printer and every mode off. |
 
 ### Printing
 
 | Option | Default | What it does |
 |---|---|---|
-| Enable Printing | off | Turns the printing mode on. |
+| Enable Printing | off | Printing mode; it works while the printer is on. Turning the printer on with no mode enabled enables it. |
 | Layered Printing (bottom-up) | on | Prints the lowest unfinished layer first. |
 | Selection Type | Visible Area | *Below Player* or *Above Player* limit printing to blocks below or above your feet; Litematica's render layers always apply. |
 | Use Easy Place Protocol | on | Uses Litematica's Easy Place protocol when the server supports it (singleplayer, Servux). |
@@ -234,6 +231,16 @@ Names are shown as they appear in game. The settings screen has an **All** tab a
 | Shulker Source | Mod (Quick Shulker) | *Mod*: Advanced Shulkerboxes or QuickShulker, whichever is installed. *Plugin*: servers with AxShulkers. |
 | Return to Shulker When Full | on | Puts items back into shulker boxes when the inventory is full. |
 
+The Printing tab ends with the placing settings, which Filling and Fluid Removal use too:
+
+| Option | Default | What it does |
+|---|---|---|
+| Placement Using Packets | off | Places without client-side prediction; can help on strict servers. |
+| Placement Interval Time | 1 tick | Ticks between placement rounds. Not recommended at 0 for redstone. |
+| Blocks to Place Per Tick | 1 | Placements per round; `0` means no limit. |
+| Placement Cooldown Time | 3 ticks | Wait before retrying the same spot. Do not set it to 0. |
+| Falling Block Check | on | Sand, gravel, anvils and the like wait for the right block below. |
+
 ### Breaking Blocks
 
 | Option | Default | What it does |
@@ -244,7 +251,7 @@ Names are shown as they appear in game. The settings screen has an **All** tab a
 | Mining Progress Threshold | 100 % | Counts a block as broken at this progress (70–100 %). The vanilla server accepts 70 %, but anti-cheat may not. |
 | Instant Mining | off | Breaks a block in one tick when one tick of progress reaches the threshold above; only matters below 100 %. |
 | Breaking Interval Time / Blocks to Break Per Tick / Mining Cooldown Time | 1 tick / 1 / 3 ticks | Breaking speed limits. |
-| Mining Limit Rule Source / Custom Limit Mode | Custom / no limit | Whitelist or blacklist for the printer's breaking, or Tweakeroo's lists. |
+| Breaking Restriction Source / Mode / Whitelist / Blacklist | Custom / No Limit | Which blocks the printer may break at all (Mining mode, and wrong or extra blocks while printing), or Tweakeroo's lists. |
 
 ### Mining, Filling, Fluid Removal
 
@@ -252,6 +259,7 @@ Names are shown as they appear in game. The settings screen has an **All** tab a
 |---|---|---|
 | Enable Mining | off | Breaks blocks in the area selection. |
 | Instant-First Only With Eff V + Haste II | on | Instant-first mining only with Efficiency V and Haste II; off = always. |
+| Mining Restriction Source / Mode / Whitelist / Blacklist | Custom / No Limit | Extra limits for Mining mode only; the Breaking Restriction applies as well. |
 | Enable Filling | off | Fills the area selection. |
 | Fill Block Mode / Block List | Block List / cobblestone | Fill with blocks from the list, or with the block in your hand (*Held Item*). |
 | Fill Block Facing | None | Facing for filled blocks, for example top or bottom slabs. |
@@ -319,7 +327,7 @@ Optional:
 
 **I pressed Caps Lock and nothing happens.**
 
-Check that **Enable Printing** is `true` (it is off by default), that a schematic is placed within your work radius, and that Litematica's render layers show the part you are standing at. The printer also pauses while a container or inventory screen is open and while the server is lagging. If materials are missing, the Missing Material HUD lists them.
+Look at the message above the hotbar: it says whether the printer is on and which modes are working. If another mode such as Mining is on instead of Printing, press Cycle Mode or the Printing hotkey. Check that a schematic is placed within your work radius, and that Litematica's render layers show the part you are standing at. The printer also pauses while a container or inventory screen is open and while the server is lagging. If materials are missing, the Missing Material HUD lists them.
 
 **Some observers or rails stay empty. Is that a bug?**
 
@@ -502,13 +510,13 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 
 | 操作 | 默认按键 | 在哪里修改 |
 |---|---|---|
-| 开关打印机（“工作开关”） | Caps Lock | 打印机设置 → 快捷键 |
+| 开关打印机（“打印机开关”） | Caps Lock | 打印机设置 → 核心 |
 | 打开打印机设置 | Z + Y（按住 Z 再按 Y） | 打印机设置 → 快捷键 |
-| 关闭全部模式（关闭所有模式和工作开关） | 左 Ctrl + G | 打印机设置 → 快捷键 |
 | 轮换模式（打印 → 挖掘 → 填充 → 排流体 → 破基岩，每次只开一个） | 未设置 | 打印机设置 → 快捷键 |
-| 单独开关某个模式、分层打印或破冰放水 | 未设置 | 该选项所在分页里、选项旁边的快捷键按钮 |
+| 关闭全部模式（关闭打印机和所有模式） | 左 Ctrl + G | 打印机设置 → 快捷键 |
+| 单独开始 / 停止某个模式、开关分层打印或破冰放水 | 未设置 | 该选项所在分页里、选项旁边的快捷键按钮 |
 
-“工作开关”是总开关：它开着的时候，所有“启用”选项打开了的模式都会工作。每次切换时快捷栏上方都会提示。“轮换模式”只切换模式，不会打开工作开关。
+**打印机开关**用来开、关打印机。打印机开着的时候，“启用”打开了的模式都会工作；一个模式都没开时打开打印机，会自动开启“打印”。各模式自己的快捷键：打印机关着时只开这个模式并开始工作，打印机开着时开 / 关这个模式。**轮换模式**换成下一个模式；“轮换模式时关闭打印机”默认开启，会顺便把打印机关掉，新模式不会自己开始干活。每按一次键，快捷栏上方都会提示结果。
 
 ### 打开设置界面
 
@@ -524,10 +532,9 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 ### 打印投影
 
 1. 像平常一样用 Litematica 加载并放置投影。
-2. 打开打印机设置，在 **打印** 分页把 **启用打印** 设为 `true`。这一项默认是关的，只需要设一次。
-3. 带上材料，或者装着材料的潜影盒。创造模式下打印机会直接从创造物品栏取。
-4. 站到建筑附近，按 **Caps Lock**。打印机会在触及范围内从最低层开始放方块。它不会帮你移动，需要沿着建筑走，或者调大工作半径。
-5. 再按一次 **Caps Lock** 停止。想看进度条，就在 **核心** 分页打开 **显示工作状态**。
+2. 带上材料，或者装着材料的潜影盒。创造模式下打印机会直接从创造物品栏取。
+3. 站到建筑附近，按 **Caps Lock**。没有开别的模式时，打印机会以打印模式开始，在触及范围内从最低层开始放方块。它不会帮你移动，需要沿着建筑走，或者调大工作半径。
+4. 再按一次 **Caps Lock** 停止。想看进度条，就在 **核心** 分页打开 **显示工作状态**。
 
 打印机遵循 Litematica 的渲染层，所以可以用 Litematica 的图层控制只打印某几层。
 
@@ -540,15 +547,15 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 ### 填充、排流体或挖掘一片区域
 
 1. 用 Litematica 的选区工具框选区域。
-2. 打开对应的分页（**填充**、**排流体** 或 **挖掘**），检查方块列表，并把该模式的 **启用** 选项设为 `true`。如果只想用这个模式，把“启用打印”关掉。
-3. 按 Caps Lock。
+2. 打开对应的分页（**填充**、**排流体** 或 **挖掘**），检查方块列表。
+3. 开始这个模式：按它自己的快捷键（在它的 **启用** 选项旁边设置），或者用 **轮换模式** 选中它再按 Caps Lock。
 
 ### 破基岩
 
 1. 装一个受支持的破基岩模组，并在生存模式下使用（创造模式不能用破基岩模式）。
 2. 用 Litematica 的选区工具框选区域。
-3. 在 **破基岩** 分页把 **启用破基岩** 设为 `true`。“破基岩模组”保持“自动”，或者手动选择。
-4. 按 Caps Lock。破基岩模式运行期间打印机会打开破基岩模组，结束后恢复原状。
+3. 在 **破基岩** 分页把“破基岩模组”保持“自动”，或者手动选择。
+4. 用 **启用破基岩** 的快捷键开始，或者用 **轮换模式** 选中破基岩再按 Caps Lock。破基岩模式运行期间打印机会打开破基岩模组，结束后恢复原状。
 
 ## 设置
 
@@ -558,10 +565,9 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 
 | 选项 | 默认值 | 作用 |
 |---|---|---|
-| 工作开关 | 关（Caps Lock） | 所有模式的总开关。 |
+| 打印机开关 | 关（Caps Lock） | 开、关打印机，见“默认按键”。 |
 | 工作半径 | 0 | 打印机以你为中心的工作范围，最大 4096。`0` 表示使用你正常的触及距离。 |
-| 单人世界自动调高交互距离 | 开 | 允许作弊时，把方块交互距离调到工作半径（最大 64）。 |
-| 单人世界限制在交互距离内 | 开 | 单人世界里不会在游戏不接受的距离外工作。 |
+| 单人世界自动调高交互距离 | 开 | 单人世界里打印机不会超出你的交互距离工作；允许作弊时，会把交互距离调到工作半径（最大 64）。 |
 | 使用容器时暂停 | 开 | 打开或使用容器、背包界面时暂停。 |
 | 显示工作状态 | 关 | 在准星下方显示进度。 |
 | 缺失材料 HUD | 开 | 在 Litematica 信息 HUD 区域列出缺少的材料。 |
@@ -570,23 +576,22 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 | 遍历顺序 | X→Z→Y | 检查方块的顺序，每个轴都可以反向。 |
 | 按方块类型分类 | 关 | 每轮只处理一种方块，减少换物品。 |
 | 迭代时长限制 | 8 毫秒 | 每 tick 用来检查方块的最长时间。 |
-| 自动关闭打印机 | 开 | 死亡或断开连接时关闭工作开关。 |
+| 自动关闭打印机 | 开 | 死亡或断开连接时关闭打印机。 |
 
-### 放置方块
+### 快捷键
 
 | 选项 | 默认值 | 作用 |
 |---|---|---|
-| 放置间隔时间 | 1 tick | 每轮放置之间隔多少 tick。打印红石机器时不建议设为 0。 |
-| 每刻放置方块数 | 1 | 每轮放几个方块，`0` 表示不限制。 |
-| 放置冷却时间 | 3 tick | 同一格重试前等多久，不要设为 0。 |
-| 放置使用数据包 | 关 | 放置时不做客户端预测，在严格的服务器上可能有帮助。 |
-| 下落方块检查 | 开 | 沙子、沙砾、铁砧等会等下面的方块放对再放。 |
+| 打开设置菜单 | Z + Y | 打开这个设置界面。 |
+| 轮换模式 | 未设置 | 换成下一个模式，并关掉其他模式。没装破基岩模组时跳过破基岩。 |
+| 轮换模式时关闭打印机 | 开 | 轮换模式时顺便关掉打印机，误按也不会让新模式自己开始干活。关闭后打印机保持原样。 |
+| 关闭全部模式 | 左 Ctrl + G | 关闭打印机和所有模式。 |
 
 ### 打印
 
 | 选项 | 默认值 | 作用 |
 |---|---|---|
-| 启用打印 | 关 | 打开打印模式。 |
+| 启用打印 | 关 | 打印模式，打印机开着时工作。一个模式都没开时打开打印机，会自动开启它。 |
 | 分层打印（从下往上） | 开 | 先打印最低的未完成层。 |
 | 选区类型 | 可见层 | “玩家下方 / 玩家上方”只处理你脚下以下或以上的部分；Litematica 的渲染层始终生效。 |
 | 使用轻松放置协议 | 开 | 服务器支持时使用 Litematica 的轻松放置协议（单人游戏、装了 Servux 的服务器）。 |
@@ -606,6 +611,16 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 | 潜影盒来源 | 模组（Quick Shulker） | “模组”：使用已安装的 Advanced Shulkerboxes 或 QuickShulker；“插件”：装了 AxShulkers 的服务器。 |
 | 背包满时有序放回潜影盒 | 开 | 背包满时把物品放回潜影盒。 |
 
+“打印”分页最后是放置相关的设置，填充和排流体也共用：
+
+| 选项 | 默认值 | 作用 |
+|---|---|---|
+| 放置使用数据包 | 关 | 放置时不做客户端预测，在严格的服务器上可能有帮助。 |
+| 放置间隔时间 | 1 tick | 每轮放置之间隔多少 tick。打印红石机器时不建议设为 0。 |
+| 每刻放置方块数 | 1 | 每轮放几个方块，`0` 表示不限制。 |
+| 放置冷却时间 | 3 tick | 同一格重试前等多久，不要设为 0。 |
+| 下落方块检查 | 开 | 沙子、沙砾、铁砧等会等下面的方块放对再放。 |
+
 ### 破坏方块
 
 | 选项 | 默认值 | 作用 |
@@ -616,7 +631,7 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 | 挖掘进度阈值 | 100% | 挖到这个进度（70%~100%）就算挖完。原版服务器在 70% 就认可，但反作弊不一定。 |
 | 即时挖掘 | 关 | 一 tick 的挖掘进度达到上面的阈值时直接破坏；阈值低于 100% 时才有作用。 |
 | 破坏间隔时间 / 每刻破坏方块数 / 挖掘冷却时间 | 1 tick / 1 / 3 tick | 破坏速度限制。 |
-| 挖掘限制规则来源 / 自定义限制模式 | 自定义 / 无限制 | 打印机破坏方块时用的白名单、黑名单，或 Tweakeroo 的列表。 |
+| 破坏限制规则来源 / 模式 / 白名单 / 黑名单 | 自定义 / 无限制 | 打印机到底能破坏哪些方块（挖掘模式，以及打印时破坏错误或多余的方块），或使用 Tweakeroo 的列表。 |
 
 ### 挖掘、填充、排流体
 
@@ -624,6 +639,7 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 |---|---|---|
 | 启用挖掘 | 关 | 挖掉选区内的方块。 |
 | 仅在效率V+急迫II时启用秒破优先 | 开 | 只在有效率 V 和急迫 II 时秒破优先；关闭则始终秒破优先。 |
+| 挖掘限制规则来源 / 模式 / 白名单 / 黑名单 | 自定义 / 无限制 | 只对挖掘模式生效的额外限制，破坏限制同样有效。 |
 | 启用填充 | 关 | 填充选区。 |
 | 填充方块模式 / 方块列表 | 方块列表 / 圆石 | 用列表里的方块填充，或用手上拿的方块（“手持物品”）。 |
 | 填充方块朝向 | 无 | 填充方块的朝向，例如上半砖或下半砖。 |
@@ -691,7 +707,7 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 
 **按了 Caps Lock 没反应。**
 
-确认 **启用打印** 是 `true`（默认是关的），投影已放置并且在工作半径内，Litematica 的渲染层也显示着你所在的那部分。打开容器或背包界面时、服务器卡顿时打印机也会暂停。缺材料时，缺失材料 HUD 会列出来。
+看一下快捷栏上方的提示：它会说明打印机有没有开、哪些模式在工作。如果开着的是挖掘之类的别的模式，按轮换模式或打印的快捷键换回来。确认投影已放置并且在工作半径内，Litematica 的渲染层也显示着你所在的那部分。打开容器或背包界面时、服务器卡顿时打印机也会暂停。缺材料时，缺失材料 HUD 会列出来。
 
 **有些侦测器或铁轨没放，是 bug 吗？**
 
