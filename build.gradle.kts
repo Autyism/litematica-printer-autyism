@@ -1,97 +1,106 @@
 plugins {
-    id("net.fabricmc.fabric-loom-remap") version "1.17-SNAPSHOT"
-    id("maven-publish")
+    // Applies fabric-loom-remap up to 1.21.11 and fabric-loom on 26.1+ (unobfuscated)
+    id("dev.kikugie.loom-back-compat")
 }
 
 fun prop(name: String): String = project.property(name).toString()
 
-version = prop("mod_version")
-group = prop("maven_group")
-base { archivesName.set(prop("archives_base_name")) }
+val mc = sc.current.version
+val requiredJava = if (sc.current.parsed >= "26.1") JavaVersion.VERSION_25 else JavaVersion.VERSION_21
+
+version = "${prop("mod.version")}+$mc"
+group = prop("mod.group")
+base { archivesName.set(prop("mod.id")) }
 
 repositories {
     mavenCentral()
     maven("https://maven.fabricmc.net") { name = "FabricMC" }
-    maven("https://maven.fallenbreath.me/releases") { name = "FallenBreath" }
+    maven("https://maven.fallenbreath.me/releases") { name = "FallenBreath" } // conditional-mixin, needed by Litematica
     maven("https://api.modrinth.com/maven") { name = "Modrinth" }
+    maven("https://jitpack.io") { name = "Jitpack" }
     maven("https://maven.terraformersmc.com/releases") { name = "TerraformersMC" }
     maven("https://masa.dy.fi/maven") { name = "Masa" }
     maven("https://masa.dy.fi/maven/sakura-ryoko") { name = "SakuraRyoko" }
-    maven("https://jitpack.io") { name = "Jitpack" }
-    maven(rootProject.file("localrepo")) {
-        content { includeGroup("dev.blinkwhite.remoteinventory") }
-    }
 }
 
 dependencies {
-    minecraft("com.mojang:minecraft:${prop("minecraft_version")}")
-    mappings(loom.officialMojangMappings())
-    modImplementation("net.fabricmc:fabric-loader:${prop("loader_version")}")
-    modImplementation("net.fabricmc.fabric-api:fabric-api:${prop("fabric_version")}")
-    modImplementation("com.belerweb:pinyin4j:${prop("pinyin_version")}")?.let { include(it) }
-    modImplementation("com.terraformersmc:modmenu:${prop("modmenu")}")
+    minecraft("com.mojang:minecraft:$mc")
+    loomx.applyMojangMappings()
+    modImplementation("net.fabricmc:fabric-loader:${prop("deps.fabric_loader")}")
+    modImplementation("net.fabricmc.fabric-api:fabric-api:${prop("deps.fabric_api")}")
+    modImplementation("com.belerweb:pinyin4j:${prop("deps.pinyin")}")?.let { include(it) }
+    modImplementation("com.terraformersmc:modmenu:${prop("deps.modmenu")}")
 
-    // 运行时依赖：原版 Litematica + MaLiLib（不打包）
-    modImplementation("fi.dy.masa.malilib:${prop("malilib")}")
-    modImplementation("fi.dy.masa.litematica:${prop("litematica")}")
+    // Litematica + MaLiLib at runtime (not bundled)
+    modImplementation("fi.dy.masa.malilib:malilib-fabric-$mc:${prop("deps.malilib")}")
+    modImplementation("fi.dy.masa.litematica:litematica-fabric-$mc:${prop("deps.litematica")}")
 
-    // 可选联动：仅编译期可见，运行时按需检测
-    modCompileOnly("fi.dy.masa.tweakeroo:tweakeroo-fabric-1.21.11:0.27.15")
-    modCompileOnly(files("libs/quickshulker-2.10.0-1.21.11.jar"))
-    modCompileOnly("me.fallenbreath:conditional-mixin-fabric:0.6.4")
-    modCompileOnly(files("libs/schematicpreview-0.0.17+1.21.11.jar"))
-    modCompileOnly(files("libs/shulkerbox-fabric-1.21.11-2.0.5.jar"))
-    modCompileOnly("dev.blinkwhite.remoteinventory:remote-inventory-next:${prop("remote_inventory_version")}+${prop("minecraft_version")}")
+    // Optional integrations: compile-time only, detected at runtime
+    modCompileOnly("fi.dy.masa.tweakeroo:tweakeroo-fabric-$mc:${prop("deps.tweakeroo")}")
+    modCompileOnly(files(rootProject.file("libs/remote-inventory/remote-inventory-next-mc$mc-${prop("deps.remote_inventory")}.jar")))
 
-    // 仅 gametest 运行时加载的可选联动模组（用于测试联动功能）
-    if (providers.gradleProperty("aleGameTest").isPresent) {
-        modLocalRuntime(files("libs/bedrock-miner-v1.6.1-mc1.21.11.jar"))
-        modLocalRuntime(files("libs/shulkerbox-fabric-1.21.11-2.0.5.jar"))
+    // Optional mods loaded only in gametests (to test the integrations); only built for 1.21.11 so far
+    if (providers.gradleProperty("aleGameTest").isPresent && mc == "1.21.11") {
+        modLocalRuntime(files(rootProject.file("libs/bedrock-miner-v1.6.1-mc1.21.11.jar")))
+        modLocalRuntime(files(rootProject.file("libs/shulkerbox-fabric-1.21.11-2.0.5.jar")))
         if (providers.gradleProperty("withLxyan").isPresent) {
-            modLocalRuntime(files("libs/bedrock-miner-2.0.11+1.21.11.jar"))
+            modLocalRuntime(files(rootProject.file("libs/bedrock-miner-2.0.11+1.21.11.jar")))
             modLocalRuntime("net.fabricmc:fabric-language-kotlin:1.14.1+kotlin.2.4.20")
         }
     }
 
-    compileOnly("org.projectlombok:lombok:${prop("lombok_version")}")
-    annotationProcessor("org.projectlombok:lombok:${prop("lombok_version")}")
+    compileOnly("org.projectlombok:lombok:${prop("deps.lombok")}")
+    annotationProcessor("org.projectlombok:lombok:${prop("deps.lombok")}")
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = requiredJava
+    targetCompatibility = requiredJava
+    toolchain { languageVersion.set(JavaLanguageVersion.of(requiredJava.majorVersion)) }
 }
 
 tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
-    options.release.set(21)
+    options.release.set(requiredJava.majorVersion.toInt())
 }
 
 tasks.processResources {
     val props = mapOf(
-        "mod_id" to prop("mod_id"),
-        "mod_name" to prop("mod_name"),
-        "mod_version" to prop("mod_version"),
-        "minecraft_version" to prop("minecraft_version"),
+        "mod_id" to prop("mod.id"),
+        "mod_name" to prop("mod.name"),
+        "mod_version" to prop("mod.version"),
+        "minecraft_version" to prop("mod.mc_compat"),
+        "loader_compat" to prop("mod.loader_compat"),
+        "malilib_compat" to prop("mod.malilib_compat"),
+        "litematica_compat" to prop("mod.litematica_compat"),
+        "mixin_java" to "JAVA_${requiredJava.majorVersion}",
     )
     inputs.properties(props)
     filesMatching(listOf("fabric.mod.json", "*.mixins.json")) { expand(props) }
 }
 
-tasks.jar {
-    from("LICENSE.md") { rename { "${it}_${prop("archives_base_name")}" } }
+tasks.withType<Jar>().configureEach {
+    val baseName = prop("mod.id")
+    from(rootProject.file("LICENSE.md")) { rename { "${it}_$baseName" } }
 }
 
 loom {
     runs {
         named("client") {
             programArguments.addAll(listOf("--width", "1280", "--height", "720", "--username", "ALETest"))
-            runDir("run/client")
+            runDir("../../run/client")
         }
     }
 }
 
-// 客户端 GameTest：./gradlew runClientGameTest -PaleGameTest
+// Collects the release jars of all versions in build/libs/<mod version>/
+tasks.register<Copy>("buildAndCollect") {
+    group = "build"
+    from(loomx.modJar.flatMap { it.archiveFile })
+    into(rootProject.layout.buildDirectory.dir("libs/${prop("mod.version")}"))
+}
+
+// Client GameTest: ./gradlew :1.21.11:runClientGameTest -PaleGameTest
 if (providers.gradleProperty("aleGameTest").isPresent) {
     fabricApi {
         configureTests {
