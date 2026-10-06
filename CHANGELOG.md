@@ -4,9 +4,12 @@
 
 First public release.
 
-- Standalone Litematica printer for Minecraft 1.21.11 (Fabric), based on the BiliXWhite and water2004 Litematica Printer forks. Settings from those builds are imported on first start.
+- Standalone Litematica printer for Minecraft 1.21.11 (Fabric), based on the BiliXWhite and water2004 Litematica Printer forks. Settings from those builds are imported on first start, including the cycle hotkey and the mode picked in single mode.
+- One switch for the printer: **Printer On/Off**. Turning it on while no mode is enabled starts Printing, so it never sits there switched on and doing nothing.
+- Each mode's own hotkey starts that mode even while the printer is off. While the printer runs, the hotkey adds or removes that mode, and turning off the last mode turns the printer off.
+- **Cycle Mode** steps through the modes. With **Cycle Mode Turns Printer Off** (on by default) it also turns the printer off, so pressing the key by accident can't start mining your build. Bedrock is skipped when no bedrock-breaking mod is installed.
 - Layered printing from the bottom up (on by default), with a message for every finished layer.
-- Work radius up to 4096; in singleplayer with cheats, your reach is raised automatically (up to 64).
+- Work radius up to 4096. In singleplayer the printer stays within your reach, and with cheats on your reach is raised automatically (up to 64).
 - The printer pauses while you use containers.
 - Correct orientation for stairs, trapdoors, doors (hinge side and double doors), levers, buttons, vines and more; direction-sensitive blocks wait until the server has registered the head turn.
 - Safe rail placement: rails are only placed when they end up in the right shape, otherwise left empty. Observers that would trigger a machine are skipped.
@@ -22,9 +25,12 @@ First public release.
 
 首个公开版本。
 
-- 适用于 Minecraft 1.21.11（Fabric）的独立投影打印机，基于 BiliXWhite 和 water2004 的 Litematica Printer 分支。第一次启动时会导入这些版本的设置。
+- 适用于 Minecraft 1.21.11（Fabric）的独立投影打印机，基于 BiliXWhite 和 water2004 的 Litematica Printer 分支。第一次启动时会导入这些版本的设置，包括轮换快捷键和单模式里选中的模式。
+- 打印机只有一个开关：**打印机开关**。一个模式都没开时打开它，会自动开始打印，不会出现开着却什么都不做的情况。
+- 各模式自己的快捷键在打印机关着时也能直接开始这个模式。打印机开着时，快捷键用来开、关这个模式；最后一个模式关掉时，打印机也一起关掉。
+- **轮换模式**依次切换各个模式。“轮换模式时关闭打印机”默认开启，轮换时会顺便关掉打印机，误按也不会突然开始挖你的建筑。没装破基岩模组时，轮换会跳过破基岩。
 - 从下往上的分层打印（默认开启），每完成一层都会提示结果。
-- 工作半径最大 4096；允许作弊的单人世界会自动调高触及距离（最多 64）。
+- 工作半径最大 4096。单人世界里打印机不会超出你的交互距离；允许作弊时会自动调高交互距离（最多 64）。
 - 使用容器时，打印机自动暂停。
 - 楼梯、活板门、门（门轴和双开门）、拉杆、按钮、藤蔓等朝向正确；对朝向敏感的方块会等服务器确认转头后再放。
 - 铁轨安全放置：只有能放成正确形状时才放，否则留空。会误触发机器的侦测器会被跳过。

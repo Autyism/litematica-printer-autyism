@@ -3,6 +3,7 @@ package com.autyism.printer.config;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import fi.dy.masa.malilib.config.*;
 import fi.dy.masa.malilib.config.options.*;
 import fi.dy.masa.malilib.event.InputEventHandler;
@@ -42,20 +43,23 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
 
     public static final ImmutableList<IConfigBase> OPTIONS;
     public static final ImmutableList<IHotkey> HOTKEYS;
+    /** “全部”分页：每个选项只出现一次，顺序和各分页一致 */
+    public static final ImmutableList<IConfigBase> All;
 
     static {
         LinkedHashSet<IConfigBase> optionSet = new LinkedHashSet<>();
         optionSet.addAll(Core.OPTIONS);
-        optionSet.addAll(Placement.OPTIONS);
         optionSet.addAll(Break.OPTIONS);
         optionSet.addAll(Hotkeys.OPTIONS);
         optionSet.addAll(Print.OPTIONS);
+        optionSet.addAll(Placement.OPTIONS);
         optionSet.addAll(Mine.OPTIONS);
         optionSet.addAll(Fill.OPTIONS);
         optionSet.addAll(Fluid.OPTIONS);
         optionSet.addAll(Bedrock.OPTIONS);
         optionSet.addAll(Highlight.OPTIONS);
         OPTIONS = ImmutableList.copyOf(optionSet);
+        All = OPTIONS;
 
         List<IHotkey> hotkeys = new ArrayList<>();
         for (IConfigBase option : optionSet) {
@@ -66,21 +70,8 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
         HOTKEYS = ImmutableList.copyOf(hotkeys);
     }
 
-    public static ImmutableList<IConfigBase> All = ImmutableList.<IConfigBase>builder()
-            .addAll(Core.OPTIONS)
-            .addAll(Placement.OPTIONS)
-            .addAll(Break.OPTIONS)
-            .addAll(Hotkeys.OPTIONS)
-            .addAll(Print.OPTIONS)
-            .addAll(Mine.OPTIONS)
-            .addAll(Fill.OPTIONS)
-            .addAll(Fluid.OPTIONS)
-            .addAll(Bedrock.OPTIONS)
-            .addAll(Highlight.OPTIONS)
-            .build();
-
     public static class Core {
-        // 全局开关
+        // 打印机总开关：开着的时候，“启用”打开了的模式才会工作
         public static final ConfigBooleanHotkeyed WORK_SWITCH = booleanHotkey("workingSwitch")
                 .defaultValue(false)
                 .defaultHotkey("CAPS_LOCK")
@@ -93,13 +84,9 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 .range(0, 4096)
                 .build();
 
-        // 单人世界：工作半径大于原版交互距离时，自动用指令调高交互距离属性（需要允许作弊，最大 64）
+        // 单人世界：工作半径大于原版交互距离时，自动用指令调高交互距离属性（需要允许作弊，最大 64）。
+        // 单人世界的工作半径本来就不会超过交互距离（内置服务端会撤回更远的放置），见 ConfigUtils.getEffectiveRange
         public static final ConfigBoolean AUTO_RAISE_REACH = booleanValue("autoRaiseReachSingleplayer")
-                .defaultValue(true)
-                .build();
-
-        // 单人世界：工作半径不超过服务端允许的交互距离
-        public static final ConfigBoolean LIMIT_RANGE_SINGLEPLAYER = booleanValue("limitRangeSingleplayer")
                 .defaultValue(true)
                 .build();
 
@@ -170,11 +157,6 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 .defaultValue(true)
                 .build();
 
-        // 检查更新
-        public static final ConfigBoolean UPDATE_CHECK = booleanValue("updateCheck")
-                .defaultValue(true)
-                .build();
-
         // 调试输出
         public static final ConfigBoolean DEBUG_OUTPUT = booleanValue("debugOutput")
                 .defaultValue(false)
@@ -184,7 +166,6 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 WORK_SWITCH,
                 WORK_RANGE,
                 AUTO_RAISE_REACH,
-                LIMIT_RANGE_SINGLEPLAYER,
                 PAUSE_ON_CONTAINER,
                 ITERATION_TIME_LIMIT,
                 CLASSIFY_BY_BLOCK,
@@ -202,6 +183,7 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
         );
     }
 
+    /** 放置相关的速度 / 方式设置：打印、填充、排流体共用，在设置界面里显示在“打印”分页末尾 */
     public static class Placement {
 
         // 使用数据包打印
@@ -759,17 +741,32 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
         public static final ConfigHotkey CYCLE_MODE = hotkeyValue("cycleMode")
                 .build();
 
+        // 轮换模式时顺便关掉打印机：工作中误按也不会让新模式自己开始干活
+        public static final ConfigBoolean CYCLE_TURNS_OFF = booleanValue("cycleModeTurnsOff")
+                .defaultValue(true)
+                .build();
+
         public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
                 OPEN_SCREEN,
-                Core.WORK_SWITCH,
-                CLOSE_ALL_MODE,
-                CYCLE_MODE
+                CYCLE_MODE,
+                CYCLE_TURNS_OFF,
+                CLOSE_ALL_MODE
         );
     }
 
     /** 旧版打印机（litematica-printer）的配置文件：首次运行时迁移过来，保留用户原有设置 */
     private static final String LEGACY_FILE_PATH = "./config/litematica-printer.json";
     private static final String LEGACY_CATEGORY = "litematica-printer";
+
+    /** 旧版打印机里名字不一样的选项：旧名字 -> 现在的名字 */
+    private static final String[][] LEGACY_RENAMES = {
+            {"switchPrinterMode", "cycleMode"},
+            {"print", "printEnabled"},
+            {"mine", "mineEnabled"},
+            {"fill", "fillEnabled"},
+            {"fluid", "fluidEnabled"},
+            {"bedrock", "bedrockEnabled"},
+    };
 
     @Override
     public void load() {
@@ -779,7 +776,16 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
             if (legacy.isFile()) {
                 JsonElement legacyJson = JsonUtils.parseJsonFile(legacy.toPath());
                 if (legacyJson != null && legacyJson.isJsonObject()) {
-                    ConfigUtils.readConfigBase(legacyJson.getAsJsonObject(), LEGACY_CATEGORY, OPTIONS);
+                    JsonObject root = legacyJson.getAsJsonObject();
+                    if (root.get(LEGACY_CATEGORY) instanceof JsonObject category) {
+                        for (String[] rename : LEGACY_RENAMES) {
+                            if (category.has(rename[0]) && !category.has(rename[1])) {
+                                category.add(rename[1], category.get(rename[0]));
+                            }
+                        }
+                        migrateSingleMode(category);
+                    }
+                    ConfigUtils.readConfigBase(root, LEGACY_CATEGORY, OPTIONS);
                     Reference.LOGGER.info("Migrated settings from {}", LEGACY_FILE_PATH);
                     save();
                 }
@@ -792,6 +798,29 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 JsonObject obj = jsonElement.getAsJsonObject();
                 ConfigUtils.readConfigBase(obj, Reference.MOD_ID, OPTIONS);
             }
+        }
+    }
+
+    /**
+     * 旧版打印机的“单模式”：只有 printerMode 选中的那个模式工作，各模式自己的开关不起作用。
+     * 迁移成现在的样子：只打开选中的那个模式。
+     */
+    private static void migrateSingleMode(JsonObject category) {
+        if (!(category.get("modeSwitch") instanceof JsonPrimitive modeSwitch) || !"single".equals(modeSwitch.getAsString())) return;
+        if (!(category.get("printerMode") instanceof JsonPrimitive printerMode)) return;
+        String selected = switch (printerMode.getAsString()) {
+            case "printer", "print" -> "printEnabled";
+            case "mine", "excavate" -> "mineEnabled";
+            case "fill" -> "fillEnabled";
+            case "fluid" -> "fluidEnabled";
+            case "bedrock" -> "bedrockEnabled";
+            default -> null;
+        };
+        if (selected == null) return;
+        for (String key : new String[]{"printEnabled", "mineEnabled", "fillEnabled", "fluidEnabled", "bedrockEnabled"}) {
+            JsonObject entry = category.get(key) instanceof JsonObject obj ? obj : new JsonObject();
+            entry.addProperty("enabled", key.equals(selected));
+            category.add(key, entry);
         }
     }
 

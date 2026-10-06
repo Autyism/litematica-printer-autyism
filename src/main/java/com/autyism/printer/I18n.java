@@ -11,9 +11,12 @@ public class I18n {
     public static final I18n MESSAGE_VALUE_OFF = of("message.value.off");
     public static final I18n MESSAGE_VALUE_ON = of("message.value.on");
     public static final I18n MESSAGE_ALL_MODES_CLOSED = of("message.all_modes_closed");
+    public static final I18n MESSAGE_PRINTER_ON = of("message.printer_on");
+    public static final I18n MESSAGE_PRINTER_OFF = of("message.printer_off");
+    public static final I18n MESSAGE_CYCLE_ON = of("message.cycle_on");
+    public static final I18n MESSAGE_CYCLE_OFF = of("message.cycle_off");
 
     public static final I18n AUTO_DISABLE_NOTICE = of("auto_disable_notice");
-    public static final I18n FREE_NOTICE = of("free_notice");
 
     public static final I18n BEDROCK_CREATIVE_MODE = of("bedrock.creative_mode");
     public static final I18n BEDROCK_MOD_MISSING = of("bedrock.mod_missing");

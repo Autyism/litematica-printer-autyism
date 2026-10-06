@@ -36,7 +36,7 @@ public class ModuleManager {
             GUI, PRINT, FILL, FLUID_REMOVAL, MINE, BEDROCK
     );
 
-    private static boolean lastPrinterEnabled = false;
+    private static boolean lastRunning = false;
 
     public static void tick() {
         // If TakeItOut is waiting for a server-side shulker extraction, skip
@@ -54,7 +54,15 @@ public class ModuleManager {
         // 需求 1：玩家打开/正在打开容器时暂停打印机，避免和服务端的背包状态不同步
         if (ContainerGuard.isPaused()) return;
         boolean printerEnabled = ConfigUtils.isPrinterEnable();
-        boolean justEnabled = printerEnabled && !lastPrinterEnabled;
+        // 打印机从停着到开始干活（打开总开关，或者总开关开着时打开了第一个模式）：清掉上次留下的状态
+        boolean running = ConfigUtils.isAnyModeRunning();
+        boolean justEnabled = running && !lastRunning;
+        for (Module module : VALUES) {
+            // 已经在干活时又打开了别的模式：只重置这个模式的扫描进度，不动别的（例如还在等确认的铁轨）
+            if (module.pollActivated() && !justEnabled) {
+                module.resetScanState();
+            }
+        }
         if (justEnabled) {
             com.autyism.printer.utils.ToolSwitchUtils.resetHalt();
             com.autyism.printer.utils.InventoryUtils.clearRecentlyUsed();
@@ -64,7 +72,7 @@ public class ModuleManager {
                 module.resetScanState();
             }
         }
-        lastPrinterEnabled = printerEnabled;
+        lastRunning = running;
         // 每个世界开头 / 刚打开打印机：服务端选中的快捷栏格子和客户端对齐（有的模组会拦掉“重复”的切换包，见 SlotResync）
         if (printerEnabled) com.autyism.printer.printer.SlotResync.ensure(mc.player, mc.level, justEnabled);
 
