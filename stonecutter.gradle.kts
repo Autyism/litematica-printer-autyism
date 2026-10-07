@@ -32,5 +32,21 @@ stonecutter parameters {
         regex(current.parsed >= "26.2") {
             replace("\\bBlocks\\.WHITE_SHULKER_BOX\\b", "Blocks.DYED_SHULKER_BOX.white()", "\\bBlocks\\.DYED_SHULKER_BOX\\.white\\(\\)", "Blocks.WHITE_SHULKER_BOX")
         }
+        // 26.3: render API classes moved to renderpearl, block renames
+        regex(current.parsed >= "26.3") {
+            replace("\\bcom\\.mojang\\.blaze3d\\.pipeline\\.RenderPipeline\\b", "com.mojang.renderpearl.api.pipeline.RenderPipeline", "\\bcom\\.mojang\\.renderpearl\\.api\\.pipeline\\.RenderPipeline\\b", "com.mojang.blaze3d.pipeline.RenderPipeline")
+        }
+        regex(current.parsed >= "26.3") {
+            replace("\\bcom\\.mojang\\.blaze3d\\.buffers\\.GpuBufferSlice\\b", "com.mojang.renderpearl.api.buffers.GpuBufferSlice", "\\bcom\\.mojang\\.renderpearl\\.api\\.buffers\\.GpuBufferSlice\\b", "com.mojang.blaze3d.buffers.GpuBufferSlice")
+        }
+        regex(current.parsed >= "26.3") {
+            replace("\\bcom\\.mojang\\.blaze3d\\.vertex\\.VertexFormat\\b", "com.mojang.renderpearl.api.vertex.VertexFormat", "\\bcom\\.mojang\\.renderpearl\\.api\\.vertex\\.VertexFormat\\b", "com.mojang.blaze3d.vertex.VertexFormat")
+        }
+        regex(current.parsed >= "26.3") {
+            replace("\\bRedStoneWireBlock\\b", "RedstoneWireBlock", "\\bRedstoneWireBlock\\b", "RedStoneWireBlock")
+        }
+        regex(current.parsed >= "26.3") {
+            replace("\\bDirtPathBlock\\b", "PathBlock", "\\bPathBlock\\b", "DirtPathBlock")
+        }
     }
 }

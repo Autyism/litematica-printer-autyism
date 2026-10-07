@@ -38,8 +38,14 @@ public abstract class ClientUseRecordMixin {
         net.minecraft.world.level.block.state.BlockState wanted = null;
         var schematic = fi.dy.masa.litematica.world.SchematicWorldHandler.getSchematicWorld();
         if (work != null && schematic != null) wanted = schematic.getBlockState(work);
+        //? if >=26.3 {
+        /*UseRecord.put(p.sequence(), new UseRecord.Entry(player.getItemInHand(p.hand()).getItem().toString(),
+                player.getInventory().getSelectedSlot(), player.tickCount, p.hitResult().getBlockPos().toShortString()
+                        + " " + p.hitResult().getDirection() + " carried=" + carried, work == null ? null : work.immutable(), wanted));
+        *///?} else {
         UseRecord.put(p.getSequence(), new UseRecord.Entry(player.getItemInHand(p.getHand()).getItem().toString(),
                 player.getInventory().getSelectedSlot(), player.tickCount, p.getHitResult().getBlockPos().toShortString()
                         + " " + p.getHitResult().getDirection() + " carried=" + carried, work == null ? null : work.immutable(), wanted));
+        //?}
     }
 }

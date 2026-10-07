@@ -17,6 +17,9 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.protocol.game.ServerboundSignUpdatePacket;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
+//? if >=26.3 {
+/*import net.minecraft.world.level.block.entity.SignTextSlot;
+*///?}
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -65,13 +68,27 @@ public class MixinLocalPlayer extends AbstractClientPlayer {
     }
 
     @Inject(method = "openTextEdit", at = @At("HEAD"), cancellable = true)
+    //? if >=26.3 {
+    /*public void openTextEdit(SignBlockEntity sign, SignTextSlot slot, CallbackInfo ci) {
+        openEditSignScreen(sign, slot == SignTextSlot.FRONT, ci);
+    }
+    *///?} else {
     public void openTextEdit(SignBlockEntity sign, boolean front, CallbackInfo ci) {
         openEditSignScreen(sign, front, ci);
     }
+    //?}
 
     public void openEditSignScreen(SignBlockEntity sign, boolean front, CallbackInfo ci) {
         getTargetSignEntity(sign).ifPresent(signBlockEntity ->
         {
+            //? if >=26.3 {
+            /*SignTextSlot slot = front ? SignTextSlot.FRONT : SignTextSlot.BACK;
+            List<net.minecraft.network.chat.Component> messages = signBlockEntity.getText(slot).getMessages(false);
+            ServerboundSignUpdatePacket packet = new ServerboundSignUpdatePacket(sign.getBlockPos(),
+                    List.of(messages.get(0).getString(), messages.get(1).getString(), messages.get(2).getString(), messages.get(3).getString()),
+                    slot
+            );
+            *///?} else {
             String line1 = signBlockEntity.getText(front).getMessage(0, false).getString();
             String line2 = signBlockEntity.getText(front).getMessage(1, false).getString();
             String line3 = signBlockEntity.getText(front).getMessage(2, false).getString();
@@ -83,6 +100,7 @@ public class MixinLocalPlayer extends AbstractClientPlayer {
                     line3,
                     line4
             );
+            //?}
             this.connection.send(packet);
             ci.cancel();
         });

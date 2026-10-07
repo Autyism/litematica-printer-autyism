@@ -48,7 +48,20 @@ public class BlockHighlightRenderer implements IRenderer {
 
     // ===== Render Entry Points =====
 
-    //? if >=26.1 {
+    //? if >=26.3 {
+    /*@Override
+    public void onRenderWorldLast(
+            RenderTarget renderTarget,
+            CameraRenderState cameraRenderState,
+            Frustum frustum,
+            RenderBuffers buffers,
+            GpuBufferSlice fogBuffer,
+            Vector4f fogColor,
+            ProfilerFiller profiler
+    ) {
+        renderInternal(cameraRenderState.pos);
+    }
+    *///?} elif >=26.1 {
     /*@Override
     public void onRenderWorldLast(
             RenderTarget renderTarget,

@@ -8,6 +8,7 @@ import com.autyism.printer.printer.action.ClickAction;
 import com.autyism.printer.config.Configs;
 import com.autyism.printer.enums.BlockMatchingType;
 import com.autyism.printer.utils.*;
+//? if <26.3
 import net.fabricmc.fabric.mixin.content.registry.AxeItemAccessor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
@@ -989,6 +990,9 @@ public class PlacementGuide {
                 if (!whitelist.equals(compostWhitelistCache)) {
                     compostWhitelistCache = new ArrayList<>(whitelist);
                     List<Item> whitelistItems = new ArrayList<>();
+                    //? if >=26.3 {
+                    /*for (Item item : Reference.compostableItems()) {
+                    *///?} else
                     for (Item item : Reference.COMPOSTABLE_ITEMS) {
                         for (String rule : whitelist) {
                             if (PinYinSearchUtils.matchName(rule, new ItemStack(item))) {
@@ -999,6 +1003,9 @@ public class PlacementGuide {
                     }
                     whitelistItemsCache = whitelistItems.toArray(Item[]::new);
                 }
+                //? if >=26.3 {
+                /*Item[] finalItems = whitelistItemsCache.length > 0 ? whitelistItemsCache : Reference.compostableItems();
+                *///?} else
                 Item[] finalItems = whitelistItemsCache.length > 0 ? whitelistItemsCache : Reference.COMPOSTABLE_ITEMS;
                 if (finalItems.length > 0) {
                     return new ClickAction().setItems(finalItems);

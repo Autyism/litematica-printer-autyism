@@ -20,6 +20,9 @@ public abstract class ServerUseItemDebugMixin {
         if (Boolean.getBoolean("ale.debuglook") && player != null && player.level().getServer() != null
                 && player.level().getServer().isSameThread()) {
             System.out.println("[server-useitem] hand=" + player.getMainHandItem() + " menu=" + player.containerMenu.getClass().getSimpleName()
+                    //? if >=26.3 {
+                    /*+ " selected=" + player.getInventory().getSelectedSlot() + " seq=" + packet.sequence());
+                    *///?} else
                     + " selected=" + player.getInventory().getSelectedSlot() + " seq=" + packet.getSequence());
         }
     }
