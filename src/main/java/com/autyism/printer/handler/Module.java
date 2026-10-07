@@ -424,8 +424,17 @@ public abstract class Module extends ConfigUtils {
         return false;
     }
 
+    /** 当前这一轮扫描开始的 tick（缺失材料列表按整轮扫描更新，见 MissingMaterialTracker） */
+    private int passStartTick;
+
+    private int nowTick() {
+        return player == null ? 0 : player.tickCount;
+    }
+
     private void onPassFinished() {
         dbgPasses++;
+        com.autyism.printer.printer.MissingMaterialTracker.getInstance().passFinished(this, passStartTick);
+        passStartTick = nowTick();
         onScanPassFinished();
         // 注意：曾尝试“投影区块没载入完的层不算完成”，但会让层长时间挂起再被看门狗强制跳层，反而打乱顺序，已撤回
         consumeAreaNotReady();
@@ -533,6 +542,7 @@ public abstract class Module extends ConfigUtils {
     }
 
     public void resetScanState() {
+        passStartTick = nowTick();
         layerY = null;
         layerRange = Double.NaN;
         layerAttempts.clear();
@@ -556,6 +566,11 @@ public abstract class Module extends ConfigUtils {
     }
 
     private boolean wasAllowed;
+
+    /** 这个模式现在在工作（每 tick 由 pollActivated 更新） */
+    boolean isActive() {
+        return wasAllowed;
+    }
 
     /** 这个模式刚开始工作（上次调用时还没在工作）。每 tick 调用一次 */
     boolean pollActivated() {

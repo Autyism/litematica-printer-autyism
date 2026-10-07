@@ -24,7 +24,8 @@
       "com.autyism.printer.gametest.ShowcaseGameTest",
       "com.autyism.printer.gametest.SwitchesGameTest",
       "com.autyism.printer.gametest.SettingsShotsGameTest",
-      "com.autyism.printer.gametest.VisualsGameTest"
+      "com.autyism.printer.gametest.VisualsGameTest",
+      "com.autyism.printer.gametest.WaterlogGameTest"
     ]
   },
   "mixins": [

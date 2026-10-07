@@ -322,6 +322,11 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 .defaultValue(true)
                 .build();
 
+        // 不显示每完成一层的提示消息
+        public static final ConfigBoolean HIDE_LAYER_MESSAGES = booleanValue("printHideLayerMessages")
+                .defaultValue(false)
+                .build();
+
         // 启用打印
         public static final ConfigBooleanHotkeyed ENABLED = booleanHotkey("printEnabled")
                 .defaultValue(false)
@@ -379,6 +384,11 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
 
         // 用桶打印流体（水源 / 岩浆源 / 装满的炼药锅）
         public static final ConfigBoolean PRINT_FLUIDS_WITH_BUCKET = booleanValue("printFluidsWithBucket")
+                .defaultValue(false)
+                .build();
+
+        // 打印含水方块：方块放好后用水桶加水（水流不出去时）
+        public static final ConfigBoolean PRINT_WATERLOGGED = booleanValue("printWaterlogged")
                 .defaultValue(false)
                 .build();
 
@@ -486,6 +496,7 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
         public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
                 ENABLED,
                 LAYERED_MODE,
+                HIDE_LAYER_MESSAGES,
                 PRINT_SELECTION_TYPE,
                 EASY_PLACE_PROTOCOL,
                 PLACE_IN_AIR,
@@ -499,6 +510,7 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 REPLACEABLE_LIST,
                 SKIP_WATERLOGGED_BLOCK,
                 PRINT_FLUIDS_WITH_BUCKET,
+                PRINT_WATERLOGGED,
                 PRINT_ICE_FOR_WATER,
                 SAFELY_OBSERVER,
                 SAFE_RAILS,

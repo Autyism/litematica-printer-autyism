@@ -143,6 +143,11 @@ public class GUI extends Module {
                 SchematicBlockContext context = new SchematicBlockContext(mc, level, schematic, blockPos);
                 if (!context.requiredState.isAir()) {
                     BlockMatchingType type = BlockMatchingType.get(context);
+                    // 投影里这一侧开着、保持不含水的含水方块算完成
+                    if (type == BlockMatchingType.ERROR_BLOCK_STATE && com.autyism.printer.printer.WaterlogPlacer.acceptsDry(level, schematic, mc.player,
+                            blockPos, context.requiredState, context.currentState)) {
+                        type = BlockMatchingType.CORRECT;
+                    }
                     if (type == BlockMatchingType.CORRECT) {
                         printProgress.finished++;
                         totalProgress.finished++;

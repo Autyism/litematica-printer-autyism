@@ -130,9 +130,14 @@ public class Print extends Module {
         BlockState required = schematic.getBlockState(pos);
         if (required.isAir()) return;
         lsTotal++;
-        switch (BlockMatchingType.get(required, level.getBlockState(pos))) {
+        BlockState current = level.getBlockState(pos);
+        switch (BlockMatchingType.get(required, current)) {
             case CORRECT -> lsCorrect++;
-            case ERROR_BLOCK_STATE -> lsWrongState++;
+            case ERROR_BLOCK_STATE -> {
+                // 投影里这一侧开着、保持不含水的含水方块算对
+                if (WaterlogPlacer.acceptsDry(level, schematic, player, pos, required, current)) lsCorrect++;
+                else lsWrongState++;
+            }
             case ERROR_BLOCK -> lsWrongBlock++;
             default -> {
                 if (isLayerSkipped(pos)) lsSkipped++;
@@ -154,6 +159,7 @@ public class Print extends Module {
         // 到顶后回到底层复查时，已提示过的层不重复提示
         if (stats.total() > 0 && announcedLayers.add(layer)) {
             layersCompleted++;
+            if (Configs.Print.HIDE_LAYER_MESSAGES.getBooleanValue()) return;
             if (stats.correct() == stats.total()) {
                 fi.dy.masa.malilib.util.InfoUtils.showInGameMessage(fi.dy.masa.malilib.gui.Message.MessageType.SUCCESS, 4000,
                         I18n.LAYER_DONE_ALL.getWithPrefixNameKey(), layer, stats.total());
@@ -225,6 +231,15 @@ public class Print extends Module {
             if (lastSkipResult) return false;
         }
 
+        // 打印含水方块：除了含水以外都对了的方块单独处理（不走下面“状态不对”的逻辑，不会被拆掉重放）
+        WaterlogPlacer.Verdict waterlog = WaterlogPlacer.verdict(level, schematic, player, blockPos, required, current);
+        if (waterlog != WaterlogPlacer.Verdict.NONE) {
+            this.action = null;
+            this.fluidPlan = waterlog == WaterlogPlacer.Verdict.READY && !WaterlogPlacer.actionPending(level, blockPos, player.tickCount)
+                    ? WaterlogPlacer.plan(level, player, blockPos, current) : null;
+            return this.fluidPlan != null;
+        }
+
         // 用桶打印水源 / 岩浆源 / 装满的炼药锅
         this.fluidPlan = FluidPlacer.plan(level, schematic, player, blockPos, required, current);
         if (fluidPlan != null) {
@@ -270,11 +285,20 @@ public class Print extends Module {
         }
         if (result != InventoryUtils.ItemSwitchResult.READY) {
             setCooldown(blockPos, ConfigUtils.getPlaceCooldown());
-            recordMissingMaterial(items);
+            if (plan.kind() == FluidPlacer.Kind.WATERLOG) {
+                // 缺的是水桶本身，HUD 上显示“水桶”而不是方块名
+                MissingMaterialTracker.getInstance().recordMissing(this, plan.bucket(), null, ConfigUtils.getPlaceCooldown());
+            } else {
+                recordMissingMaterial(items);
+            }
             addHighlight(blockPos, HighlightType.FAILED);
             return;
         }
         if (FluidPlacer.execute(player, plan)) {
+            if (plan.kind() == FluidPlacer.Kind.WATERLOG && level instanceof com.autyism.printer.utils.PacketUtils.SequenceExtension seq) {
+                // 等服务端确认（确认之前不再碰这一格；确认后还是没含水就重试）
+                ActionConfirm.sent(level, blockPos, plan.hit().getDirection(), seq.litematica_printer3$currentSequence(), player.tickCount, plan.bucket());
+            }
             notePlacementAttempt(blockPos);
             InventoryUtils.markRecentlyUsed(plan.bucket());
             addHighlight(blockPos, HighlightType.PLACE);
@@ -286,14 +310,25 @@ public class Print extends Module {
 
     @Override
     protected boolean isAwaitingServer(BlockPos pos) {
-        return ownActionUnconfirmed(pos);
+        if (ownActionUnconfirmed(pos)) return true;
+        // 含水方块：会影响水流的邻格还在等服务端确认时也算没完成（确认之后才能判断水会不会流出去）
+        return WaterlogPlacer.enabled() && WaterlogPlacer.isCandidate(LitematicaUtils.getBlockState(pos), level.getBlockState(pos))
+                && WaterlogPlacer.actionPending(level, pos, player == null ? 0 : player.tickCount);
     }
 
     @Override
     public boolean isCorrectBlock(BlockPos pos) {
         BlockState required = LitematicaUtils.getBlockState(pos);
         BlockState current = level.getBlockState(pos);
-        return BlockMatchingType.get(required, current) == BlockMatchingType.CORRECT;
+        BlockMatchingType type = BlockMatchingType.get(required, current);
+        if (type == BlockMatchingType.ERROR_BLOCK_STATE && WaterlogPlacer.acceptsDry(level, SchematicWorldHandler.getSchematicWorld(), player, pos, required, current)) {
+            return true;
+        }
+        // 刚倒了水、服务端还没确认：客户端看到的含水只是预测，还不算完成
+        if (type == BlockMatchingType.CORRECT && WaterlogPlacer.enabled() && WaterlogPlacer.wantsWater(required) && ownActionUnconfirmed(pos)) {
+            return false;
+        }
+        return type == BlockMatchingType.CORRECT;
     }
 
     @Override
@@ -529,7 +564,7 @@ public class Print extends Module {
     private void recordMissingMaterial(Item[] reqItems) {
         if (reqItems != null && reqItems.length > 0 && reqItems[0] != null) {
             MissingMaterialTracker.getInstance()
-                    .recordMissing(reqItems[0], ctx.getRequiredBlockName());
+                    .recordMissing(this, reqItems[0], ctx.getRequiredBlockName(), ConfigUtils.getPlaceCooldown());
         }
     }
 }

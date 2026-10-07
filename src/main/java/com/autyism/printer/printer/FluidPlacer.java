@@ -41,7 +41,7 @@ public final class FluidPlacer {
     private static final boolean DEBUG = Boolean.getBoolean("ale.debuglook");
     private static final boolean DEBUG_ALL = Boolean.getBoolean("ale.debugfluid");
 
-    public enum Kind { SOURCE, CAULDRON }
+    public enum Kind { SOURCE, CAULDRON, WATERLOG }
 
     /** 一次待执行的流体操作 */
     public record Plan(Kind kind, Item bucket, BlockPos target, @Nullable BlockHitResult hit, float yaw, float pitch) {

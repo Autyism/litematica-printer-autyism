@@ -147,12 +147,12 @@ public class Fill extends Module {
         ) {
             if (!InventoryUtils.switchToItems(player, this.fillModeItemList)) {
                 if (this.fillModeItemList != null && this.fillModeItemList.length > 0 && this.fillModeItemList[0] != null) {
-                    MissingMaterialTracker.getInstance().recordMissing(this.fillModeItemList[0],
+                    MissingMaterialTracker.getInstance().recordMissing(this, this.fillModeItemList[0],
                             //? if >=26.1 {
                             /*this.fillModeItemList[0].components().getOrDefault(net.minecraft.core.component.DataComponents.ITEM_NAME, net.minecraft.network.chat.CommonComponents.EMPTY)
                             *///?} else
                             this.fillModeItemList[0].getName()
-                    );
+                    , 0);
                 }
                 return;
             }
