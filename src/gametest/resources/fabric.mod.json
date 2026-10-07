@@ -5,6 +5,9 @@
   "name": "Litematica Printer Autyism Edition GameTests",
   "environment": "client",
   "entrypoints": {
+    "client": [
+      "com.autyism.printer.gametest.LegacyGameTestRunner"
+    ],
     "fabric-client-gametest": [
       "com.autyism.printer.gametest.PrinterFixGameTest",
       "com.autyism.printer.gametest.ContainerPauseGameTest",

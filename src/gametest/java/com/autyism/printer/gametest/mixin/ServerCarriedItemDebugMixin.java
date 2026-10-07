@@ -18,6 +18,9 @@ public abstract class ServerCarriedItemDebugMixin {
     @Inject(method = "handleSetCarriedItem", at = @At("TAIL"))
     private void gt$logCarried(ServerboundSetCarriedItemPacket packet, CallbackInfo ci) {
         if (Boolean.getBoolean("ale.debuglook") && this.player.level().getServer().isSameThread()) {
+            //? if <1.21.5 {
+            /*System.out.println("[server-carried] slot=" + packet.getSlot() + " now=" + this.player.getInventory().selected
+            *///?} else
             System.out.println("[server-carried] slot=" + packet.getSlot() + " now=" + this.player.getInventory().getSelectedSlot()
                     + " item=" + this.player.getMainHandItem().getItem());
         }

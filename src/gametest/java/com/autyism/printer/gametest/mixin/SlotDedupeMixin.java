@@ -1,5 +1,8 @@
 package com.autyism.printer.gametest.mixin;
 
+//? if <1.20.2 {
+/*import net.minecraft.client.multiplayer.ClientPacketListener;
+*///?} else
 import net.minecraft.client.multiplayer.ClientCommonPacketListenerImpl;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
@@ -14,6 +17,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * 发出的“切换快捷栏格子”包如果和它记下的格子一样就直接拦掉；它记下的格子换世界后不会重置
  * （真实实例里观察到的情况：新世界第一次切到上一个世界最后用的格子，这个包被拦，服务端还停在 0 号格子）。
  */
+//? if <1.20.2 {
+/*@Mixin(ClientPacketListener.class)
+*///?} else
 @Mixin(ClientCommonPacketListenerImpl.class)
 public abstract class SlotDedupeMixin {
     @Unique

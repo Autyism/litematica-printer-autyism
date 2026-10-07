@@ -35,6 +35,7 @@ public class PacketUtils {
                 lookYaw,
                 lookPitch,
                 playerEntity.onGround()
+                //? if >=1.21.2
                 , playerEntity.horizontalCollision
         ));
     }
@@ -65,6 +66,7 @@ public class PacketUtils {
         boolean onGround = ((ServerboundMovePlayerPacketAccessor) packet).getOnGround();
         if (isRotPacket(packet)) {
             return new ServerboundMovePlayerPacket.Rot(playerLook.yaw(), playerLook.pitch(), onGround
+                    //? if >=1.21.2
                     , ((ServerboundMovePlayerPacketAccessor) packet).getHorizontalCollision()
             );
         }
@@ -72,6 +74,7 @@ public class PacketUtils {
         double y = ((ServerboundMovePlayerPacketAccessor) packet).getY();
         double z = ((ServerboundMovePlayerPacketAccessor) packet).getZ();
         return new ServerboundMovePlayerPacket.PosRot(x, y, z, playerLook.yaw(), playerLook.pitch(), onGround
+                //? if >=1.21.2
                 , ((ServerboundMovePlayerPacketAccessor) packet).getHorizontalCollision()
         );
     }

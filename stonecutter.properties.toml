@@ -10,6 +10,17 @@ deps.pinyin = "2.5.1"
 deps.lombok = "1.18.42"
 deps.remote_inventory = "1.0.3"
 
+["1.20.1"]
+mod.mc_compat = "1.20.1"
+mod.loader_compat = ">=0.16.10"
+mod.malilib_compat = ">=0.16.3"
+mod.litematica_compat = ">=0.15.4"
+deps.fabric_api = "0.92.12+1.20.1"
+deps.malilib = "0.16.3"
+deps.litematica = "0.15.4"
+deps.tweakeroo = "0.17.1"
+deps.modmenu = "7.2.2"
+
 ["1.21.5"]
 mod.mc_compat = "1.21.5"
 mod.malilib_compat = ">=0.24.3"

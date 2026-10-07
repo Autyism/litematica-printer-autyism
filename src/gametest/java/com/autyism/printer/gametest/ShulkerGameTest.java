@@ -8,10 +8,12 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContex
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
+//? if >=1.20.5
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+//? if >=1.20.5
 import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.ShulkerBoxBlockEntity;
@@ -33,6 +35,9 @@ public final class ShulkerGameTest implements FabricClientGameTest {
         if (!GTFilter.enabled("shulker")) return;
         //? if >=26.3 {
         /*if (!FabricLoader.getInstance().isModLoaded("shulkerbox")) { GT.log("[shulker] SKIPPED: Advanced Shulkerboxes has no release for this Minecraft version"); return; }
+        *///?} elif <1.21 {
+        /*boolean restock = FabricLoader.getInstance().isModLoaded("shulkerbox");
+        if (!restock) GT.log("[shulker] restock SKIPPED: Advanced Shulkerboxes has no Fabric release for this Minecraft version");
         *///?} else
         if (!FabricLoader.getInstance().isModLoaded("shulkerbox")) throw new AssertionError("Advanced Shulkerboxes not loaded");
         try (TestSingleplayerContext sp = GT.newWorld(context)) {
@@ -51,8 +56,15 @@ public final class ShulkerGameTest implements FabricClientGameTest {
                 Configs.Print.SHULKER_SOURCE.setOptionListValue(ShulkerSource.MOD);
             });
 
+            //? if <1.21 {
+            /*if (restock) {
+                scenarioRestock(context, sp, false);
+                scenarioRestock(context, sp, true);
+            }
+            *///?} else {
             scenarioRestock(context, sp, false);
             scenarioRestock(context, sp, true);
+            //?}
             GT.removeAllPlacements(context);
             scenarioContents(context, sp);
         } finally {
@@ -67,10 +79,23 @@ public final class ShulkerGameTest implements FabricClientGameTest {
         ItemStack box = new ItemStack(Items.WHITE_SHULKER_BOX);
         NonNullList<ItemStack> list = NonNullList.withSize(27, ItemStack.EMPTY);
         for (int i = 0; i < items.length; i++) list.set(i, items[i]);
+        //? if <1.20.5 {
+        /*net.minecraft.world.item.BlockItem.setBlockEntityData(box, net.minecraft.world.level.block.entity.BlockEntityType.SHULKER_BOX, net.minecraft.world.ContainerHelper.saveAllItems(new net.minecraft.nbt.CompoundTag(), list));
+        *///?} else
         box.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(list));
         return box;
     }
 
+    //? if <1.20.5 {
+    /*// 1.20.1：潜影盒物品的内容物在 NBT 的 BlockEntityTag.Items 里
+    private static List<ItemStack> legacyContents(ItemStack box) {
+        NonNullList<ItemStack> list = NonNullList.withSize(27, ItemStack.EMPTY);
+        net.minecraft.nbt.CompoundTag tag = net.minecraft.world.item.BlockItem.getBlockEntityData(box);
+        if (tag != null) net.minecraft.world.ContainerHelper.loadAllItems(tag, list);
+        return list.stream().filter(s -> !s.isEmpty()).toList();
+    }
+
+    *///?}
     /** 需求 7：材料只在潜影盒里；full=true 时背包被杂物塞满 */
     private static void scenarioRestock(ClientGameTestContext context, TestSingleplayerContext sp, boolean full) {
         context.runOnClient(c -> GT.disableAll());
@@ -88,8 +113,13 @@ public final class ShulkerGameTest implements FabricClientGameTest {
                 player.getInventory().setItem(0, new ItemStack(Items.DIAMOND_PICKAXE));
                 player.getInventory().setItem(20, shulkerWith(new ItemStack(Items.STONE, 64)));
             }
+            //? if <1.21 {
+            /*player.getInventory().selected = 0;
+            player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket(0));
+            *///?} else {
             player.getInventory().setSelectedSlot(0);
             player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetHeldSlotPacket(0));
+            //?}
             player.inventoryMenu.sendAllDataToRemote();
         });
         context.waitFor(c -> c.player.getInventory().getItem(20).is(Items.WHITE_SHULKER_BOX)
@@ -109,7 +139,13 @@ public final class ShulkerGameTest implements FabricClientGameTest {
         } catch (AssertionError e) {
             GT.log("[shulker] FAIL STATE server: " + sp.getServer().computeOnServer(sv -> {
                 var pl = sv.getPlayerList().getPlayers().getFirst();
+                //? if <1.21 {
+                /*return "shift=" + pl.isShiftKeyDown() + " menu=" + pl.containerMenu.getClass().getSimpleName()
+                *///?} else
                 return "shift=" + pl.isShiftKeyDown() + " input=" + pl.getLastClientInput() + " menu=" + pl.containerMenu.getClass().getSimpleName()
+                        //? if <1.21 {
+                        /*+ " usingItem=" + pl.isUsingItem() + " hand=" + pl.getMainHandItem() + " cooldown=" + pl.getCooldowns().isOnCooldown(pl.getMainHandItem().getItem());
+                        *///?} else
                         + " usingItem=" + pl.isUsingItem() + " hand=" + pl.getMainHandItem() + " cooldown=" + pl.getCooldowns().isOnCooldown(pl.getMainHandItem());
             }));
             GT.log("[shulker] FAIL STATE placed=" + GT.countPlaced(sp, ROW_MIN, ROW_MAX) + " " + context.computeOnClient(c ->
@@ -141,8 +177,11 @@ public final class ShulkerGameTest implements FabricClientGameTest {
                         int n = 0;
                         //? if >=26.1 {
                         /*for (ItemStack c : (Iterable<ItemStack>) st.get(DataComponents.CONTAINER).nonEmptyItemCopyStream()::iterator) if (c.is(Items.ANDESITE)) n += c.getCount();
-                        *///?} else
+                        *///?} elif <1.20.5 {
+                        /*for (ItemStack c : legacyContents(st)) if (c.is(Items.ANDESITE)) n += c.getCount();
+                        *///?} else {
                         for (ItemStack c : st.get(DataComponents.CONTAINER).nonEmptyItems()) if (c.is(Items.ANDESITE)) n += c.getCount();
+                        //?}
                         return n;
                     }
                 }
@@ -177,8 +216,13 @@ public final class ShulkerGameTest implements FabricClientGameTest {
             player.getInventory().setItem(0, shulkerWith(new ItemStack(Items.DIRT, 5)));      // 内容不符，不能用
             player.getInventory().setItem(1, new ItemStack(Items.WHITE_SHULKER_BOX));          // 空盒
             player.getInventory().setItem(15, shulkerWith(new ItemStack(Items.DIAMOND, 1)));  // 装一颗钻石
+            //? if <1.21 {
+            /*player.getInventory().selected = 0;
+            player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket(0));
+            *///?} else {
             player.getInventory().setSelectedSlot(0);
             player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetHeldSlotPacket(0));
+            //?}
             player.inventoryMenu.sendAllDataToRemote();
         });
         GT.waitSchematicBlock(context, withDiamond, Blocks.WHITE_SHULKER_BOX);
@@ -209,8 +253,11 @@ public final class ShulkerGameTest implements FabricClientGameTest {
                 if (st.is(Items.WHITE_SHULKER_BOX)) {
                     //? if >=26.1 {
                     /*for (ItemStack c : (Iterable<ItemStack>) st.get(DataComponents.CONTAINER).nonEmptyItemCopyStream()::iterator) if (c.is(Items.DIRT)) dirtBoxKept = true;
-                    *///?} else
+                    *///?} elif <1.20.5 {
+                    /*for (ItemStack c : legacyContents(st)) if (c.is(Items.DIRT)) dirtBoxKept = true;
+                    *///?} else {
                     for (ItemStack c : st.get(DataComponents.CONTAINER).nonEmptyItems()) if (c.is(Items.DIRT)) dirtBoxKept = true;
+                    //?}
                 }
             }
             if (!dirtBoxKept) out.add("the shulker with dirt was placed");

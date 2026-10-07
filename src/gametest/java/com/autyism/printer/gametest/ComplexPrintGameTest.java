@@ -81,8 +81,13 @@ public final class ComplexPrintGameTest implements FabricClientGameTest {
             context.runOnClient(c -> c.options.renderDistance().set(8));
             SchematicPlacement placement = context.computeOnClient(client -> {
                 try {
+                    //? if <1.21 {
+                    /*java.io.File dir = DataManager.getSchematicsBaseDirectory();
+                    Files.copy(src, dir.toPath().resolve("ale_complex_" + index + ".litematic"), StandardCopyOption.REPLACE_EXISTING);
+                    *///?} else {
                     Path dir = DataManager.getSchematicsBaseDirectory();
                     Files.copy(src, dir.resolve("ale_complex_" + index + ".litematic"), StandardCopyOption.REPLACE_EXISTING);
+                    //?}
                     LitematicaSchematic schematic = LitematicaSchematic.createFromFile(dir, "ale_complex_" + index + ".litematic");
                     SchematicPlacement p = SchematicPlacement.createFor(schematic, origin, "complex" + index, true, true);
                     DataManager.getSchematicPlacementManager().addSchematicPlacement(p, false);

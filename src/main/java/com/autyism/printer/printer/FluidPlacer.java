@@ -104,6 +104,9 @@ public final class FluidPlacer {
         if (bucket != null && current.is(Blocks.CAULDRON) && hasItem(player, bucket)) {
             Vec3 eye = player.getEyePosition();
             Vec3 hitVec = Vec3.atCenterOf(pos).add(0, 0.5, 0);
+            //? if <1.20.5 {
+            /*if (eye.distanceTo(hitVec) > net.minecraft.client.Minecraft.getInstance().gameMode.getPickRange()) return null;
+            *///?} else
             if (eye.distanceTo(hitVec) > player.blockInteractionRange()) return null;
             float[] rot = rotation(eye, hitVec);
             return new Plan(Kind.CAULDRON, bucket, pos, new BlockHitResult(hitVec, Direction.UP, pos, false), rot[0], rot[1]);
@@ -177,6 +180,9 @@ public final class FluidPlacer {
     @Nullable
     private static Plan planSource(ClientLevel level, LocalPlayer player, BlockPos pos, Item bucket) {
         Vec3 eye = player.getEyePosition();
+        //? if <1.20.5 {
+        /*double reach = net.minecraft.client.Minecraft.getInstance().gameMode.getPickRange();
+        *///?} else
         double reach = player.blockInteractionRange();
         Direction[] order = Direction.orderedByNearest(player);
         for (int pass = 0; pass < 2; pass++) {

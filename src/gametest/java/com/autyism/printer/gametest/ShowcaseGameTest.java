@@ -106,6 +106,7 @@ public final class ShowcaseGameTest implements FabricClientGameTest {
             float pitch = (float) -Math.toDegrees(Math.atan2(dy, Math.hypot(dx, dz)));
             sp.getServer().runCommand(String.format(java.util.Locale.ROOT, "tp @a %.2f %.2f %.2f %.1f %.1f", px, py, pz, yaw, pitch));
             context.waitFor(client -> client.player != null && Math.abs(client.player.getX() - px) < 0.01, 200);
+            //? if >=1.20.5
             sp.getServer().runCommand("attribute @p minecraft:block_interaction_range base set 64");
             context.waitTicks(20);
             // flat grass under and around the site, nothing above it
@@ -215,6 +216,9 @@ public final class ShowcaseGameTest implements FabricClientGameTest {
             //? if >=26.2 {
             /*client.gui.hud.getChat().clearMessages(false);
             client.gui.toastManager().clear();
+            *///?} elif <1.21.2 {
+            /*client.gui.getChat().clearMessages(false);
+            client.getToasts().clear();
             *///?} else {
             client.gui.getChat().clearMessages(false);
             client.getToastManager().clear();

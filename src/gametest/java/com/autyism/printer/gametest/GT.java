@@ -95,7 +95,25 @@ public final class GT {
         return sp;
     }
 
-    //? if <1.21.9 {
+    //? if <1.21 {
+    /*// 1.20.1 还没有“客户端已载入”这一步：等玩家出现、“下载地形”界面关闭就行
+    public static void waitClientLoaded(ClientGameTestContext context, TestSingleplayerContext sp) {
+        context.waitFor(client -> client.player != null
+                && !(client.screen instanceof net.minecraft.client.gui.screens.ReceivingLevelScreen), 1200);
+    }
+
+    // 1.20.1 的 Litematica 只认到第 6 版投影格式：新版存的投影（第 7 版）把版本号改回去再读。
+    // 只用于方块都存在于 1.20.1、没有方块实体的投影（龙）
+    public static void legacySchematicVersion(java.nio.file.Path file) throws java.io.IOException {
+        net.minecraft.nbt.CompoundTag tag = net.minecraft.nbt.NbtIo.readCompressed(file.toFile());
+        if (tag.getInt("Version") > 6) {
+            tag.putInt("Version", 6);
+            tag.putInt("MinecraftDataVersion", net.minecraft.SharedConstants.getCurrentVersion().getDataVersion().getVersion());
+            net.minecraft.nbt.NbtIo.writeCompressed(tag, file.toFile());
+        }
+    }
+
+    *///?} elif <1.21.9 {
     /*// 1.21.9 以前 create() 不等“下载地形”界面关闭就返回；客户端发出“已载入”之前，服务端会忽略玩家的所有操作（挖掘、放置、开箱子）。
     // 1.21.9 起 create() 本来就会等到这一步，这里补上同样的等待，各版本的测试条件才一致
     public static void waitClientLoaded(ClientGameTestContext context, TestSingleplayerContext sp) {
@@ -183,6 +201,9 @@ public final class GT {
      */
     public static fi.dy.masa.litematica.schematic.placement.SchematicPlacement captureAndPlace(
             ClientGameTestContext context, TestSingleplayerContext sp, BlockPos min, BlockPos max, BlockPos origin, String name) {
+        //? if <1.21 {
+        /*java.io.File dir = context.computeOnClient(client -> DataManager.getSchematicsBaseDirectory());
+        *///?} else
         java.nio.file.Path dir = context.computeOnClient(client -> DataManager.getSchematicsBaseDirectory());
         boolean written = sp.getServer().computeOnServer(server -> {
             fi.dy.masa.litematica.selection.AreaSelection area = new fi.dy.masa.litematica.selection.AreaSelection();

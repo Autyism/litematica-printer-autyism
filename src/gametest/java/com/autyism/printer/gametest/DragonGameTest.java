@@ -40,8 +40,14 @@ public final class DragonGameTest implements FabricClientGameTest {
             // 站在龙身体下方附近（先找到底层方块最多的位置）
             SchematicPlacement placement = context.computeOnClient(client -> {
                 try {
+                    //? if <1.21 {
+                    /*java.io.File dir = DataManager.getSchematicsBaseDirectory();
+                    Files.copy(SOURCE, dir.toPath().resolve("ale_dragon.litematic"), StandardCopyOption.REPLACE_EXISTING);
+                    GT.legacySchematicVersion(dir.toPath().resolve("ale_dragon.litematic"));
+                    *///?} else {
                     Path dir = DataManager.getSchematicsBaseDirectory();
                     Files.copy(SOURCE, dir.resolve("ale_dragon.litematic"), StandardCopyOption.REPLACE_EXISTING);
+                    //?}
                     LitematicaSchematic schematic = LitematicaSchematic.createFromFile(dir, "ale_dragon.litematic");
                     SchematicPlacement p = SchematicPlacement.createFor(schematic, ORIGIN, "dragon", true, true);
                     DataManager.getSchematicPlacementManager().addSchematicPlacement(p, false);

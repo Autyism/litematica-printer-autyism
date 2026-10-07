@@ -214,6 +214,9 @@ public class IteratorManager {
             // PrinterBox 构造器会把 min/max 交换，若直接构造会扫描到层范围之外的方块（跳跃/上下移动时误打其他层）。
             this.emptyBox = minX > maxX || minY > maxY || minZ > maxZ;
             if (!emptyBox && PrinterBox.client.level != null) {
+                //? if <1.21.2 {
+                /*emptyBox = maxY < PrinterBox.client.level.getMinBuildHeight() || minY > PrinterBox.client.level.getMaxBuildHeight() - 1;
+                *///?} else
                 emptyBox = maxY < PrinterBox.client.level.getMinY() || minY > PrinterBox.client.level.getMaxY();
             }
 
@@ -397,10 +400,16 @@ public class IteratorManager {
     private Iterator<BlockPos> createIterator() {
         if (regions == null) return box.iterator();
         if (regions.isEmpty()) return Collections.emptyIterator();
+        //? if <1.20.5 {
+        /*if (regions.size() == 1) return regionIterator(regions.get(0));
+        *///?} else
         if (regions.size() == 1) return regionIterator(regions.getFirst());
         List<PrinterBox> list = regions;
         return new Iterator<>() {
             private int index = 0;
+            //? if <1.20.5 {
+            /*private Iterator<BlockPos> current = regionIterator(list.get(0));
+            *///?} else
             private Iterator<BlockPos> current = regionIterator(list.getFirst());
 
             @Override

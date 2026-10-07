@@ -34,6 +34,9 @@ public final class StepProgress {
             return Math.floorMod(required.getValue(BlockStateProperties.DELAY) - current.getValue(BlockStateProperties.DELAY), 4);
         }
         for (IntegerProperty p : new IntegerProperty[]{BlockStateProperties.CANDLES, BlockStateProperties.PICKLES, BlockStateProperties.EGGS,
+                //? if <1.21.5 {
+                /*BlockStateProperties.LAYERS, BlockStateProperties.FLOWER_AMOUNT,
+                *///?} else
                 BlockStateProperties.LAYERS, BlockStateProperties.FLOWER_AMOUNT, BlockStateProperties.SEGMENT_AMOUNT,
                 BlockStateProperties.LEVEL_COMPOSTER, BlockStateProperties.LEVEL_CAULDRON, BlockStateProperties.RESPAWN_ANCHOR_CHARGES}) {
             if (required.hasProperty(p)) {

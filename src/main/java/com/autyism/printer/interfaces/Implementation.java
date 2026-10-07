@@ -17,6 +17,9 @@ public class Implementation {
             RedStoneWireBlock.class,        // 红石线
             ScaffoldingBlock.class,         // 脚手架
             HopperBlock.class,              // 漏斗
+            //? if <1.20.5 {
+            /*EnchantmentTableBlock.class,    // 附魔台
+            *///?} else
             EnchantingTableBlock.class,     // 附魔台
             NoteBlock.class,                // 音符盒
             JukeboxBlock.class,             // 唱片机
@@ -44,6 +47,7 @@ public class Implementation {
             ChestBlock.class,               // 箱子
             SmokerBlock.class,              // 烟熏炉
             BlastFurnaceBlock.class,        // 高炉
+            //? if >=1.21
             CrafterBlock.class,             // 合成器（自动合成台）
             // 以下为补充：直接右键会触发交互，对着它们放方块必须潜行
             StandingSignBlock.class,        // 立式告示牌（右键会打开编辑界面，需求 11）

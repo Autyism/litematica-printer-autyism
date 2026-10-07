@@ -48,6 +48,9 @@ public abstract class ConnectionLagMixin {
         // 只延迟游戏阶段（PLAY）的包。以前按类名 "net.minecraft.network.protocol.game." 判断，
         // 正式环境里类名是混淆过的（class_2828……），真实实例里延迟模拟其实从没生效
         var listener = ((Connection) (Object) this).getPacketListener();
+        //? if <1.20.2 {
+        /*boolean game = listener instanceof net.minecraft.network.protocol.game.ClientGamePacketListener || listener instanceof net.minecraft.network.protocol.game.ServerGamePacketListener;
+        *///?} else
         boolean game = listener != null && listener.protocol() == net.minecraft.network.ConnectionProtocol.PLAY;
         // 进世界 5 秒后才开始延迟（区块加载要来回确认，延迟下进世界会超时）；退出世界时停止
         var mc = net.minecraft.client.Minecraft.getInstance();

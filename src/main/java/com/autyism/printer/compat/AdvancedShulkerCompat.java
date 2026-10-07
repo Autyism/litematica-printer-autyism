@@ -78,6 +78,9 @@ public final class AdvancedShulkerCompat {
         if (ShulkerContentUtils.isShulkerItem(hand) && hand.getCount() == 1
                 && ShulkerContentUtils.sameContents(ShulkerContentUtils.itemContents(hand), pendingContents)) {
             pendingSlot = -1;
+            //? if <1.21.5 {
+            /*if (Boolean.getBoolean("ale.debuglook")) System.out.println("[qs] useItem with " + hand + " selected=" + player.getInventory().selected);
+            *///?} else
             if (Boolean.getBoolean("ale.debuglook")) System.out.println("[qs] useItem with " + hand + " selected=" + player.getInventory().getSelectedSlot());
             ContainerGuard.beginPrinterInteraction();
             try {

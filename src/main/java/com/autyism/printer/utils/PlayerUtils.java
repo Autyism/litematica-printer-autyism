@@ -41,6 +41,12 @@ public class PlayerUtils {
 
     public static double getInteractionRange(double defaultRange) {
         if (client.player != null) {
+            //? if <1.20.5 {
+            /*// 1.20.1 的服务端只看方块中心离眼睛（挖方块时是脚下 + 1.5）不超过 6 格。打印机量的是到方块最近一点的距离，
+            // 所以减去半条方块对角线（0.87）和潜行时眼睛高度的差（0.23）。单人世界自动调高后和 1.21 一样是“交互距离 + 1”
+            int raised = com.autyism.printer.printer.ReachHelper.legacyRaised();
+            return raised > 0 ? Math.max(4.9, raised + 1) : 4.9;
+            *///?} else
             return client.player.blockInteractionRange() + 1;
         }
         return defaultRange;
@@ -177,6 +183,12 @@ public class PlayerUtils {
     public static float getBlockBreakingSpeed(LocalPlayer player, BlockState blockState, ItemStack itemStack) {
         float f = itemStack.getDestroySpeed(blockState);
         if (f > 1.0F) {
+            //? if <1.21 {
+            /*int efficiency = EnchantmentHelper.getItemEnchantmentLevel(Enchantments.BLOCK_EFFICIENCY, itemStack);
+            if (efficiency > 0 && !itemStack.isEmpty()) {
+                f += (float) (efficiency * efficiency + 1);
+            }
+            *///?} else {
             for (Holder<Enchantment> enchantment : itemStack.getEnchantments().keySet()) {
                 Optional<ResourceKey<Enchantment>> enchantmentKey = enchantment.unwrapKey();
                 if (enchantmentKey.isPresent()) {
@@ -188,12 +200,19 @@ public class PlayerUtils {
                     }
                 }
             }
+            //?}
         }
         if (MobEffectUtil.hasDigSpeed(player)) {
             f *= 1.0F + (float) (MobEffectUtil.getDigSpeedAmplification(player) + 1) * 0.2F;
         }
+        //? if <1.21.5 {
+        /*if (player.hasEffect(MobEffects.DIG_SLOWDOWN)) {
+        *///?} else
         if (player.hasEffect(MobEffects.MINING_FATIGUE)) {
             float g;
+            //? if <1.21.5 {
+            /*switch (Objects.requireNonNull(player.getEffect(MobEffects.DIG_SLOWDOWN)).getAmplifier()) {
+            *///?} else
             switch (Objects.requireNonNull(player.getEffect(MobEffects.MINING_FATIGUE)).getAmplifier()) {
                 case 0:
                     g = 0.3F;
@@ -210,6 +229,12 @@ public class PlayerUtils {
             }
             f *= g;
         }
+        //? if <1.21 {
+        /*// 1.20.1 没有挖掘速度属性：水下挖掘变慢 5 倍，除非头盔有水下速掘
+        if (player.isEyeInFluid(FluidTags.WATER) && !EnchantmentHelper.hasAquaAffinity(player)) {
+            f /= 5.0F;
+        }
+        *///?} else {
         f *= (float) player.getAttributeValue(Attributes.BLOCK_BREAK_SPEED);
         if (player.isEyeInFluid(FluidTags.WATER)) {
             AttributeInstance submergedMiningSpeed = player.getAttribute(Attributes.SUBMERGED_MINING_SPEED);
@@ -217,6 +242,7 @@ public class PlayerUtils {
                 f *= (float) submergedMiningSpeed.getValue();
             }
         }
+        //?}
         if (!player.onGround()) {
             f /= 5.0F;
         }

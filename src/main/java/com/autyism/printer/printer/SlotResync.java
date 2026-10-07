@@ -28,6 +28,9 @@ public final class SlotResync {
         if (player == null || level == null) return;
         if (!justEnabled && level == syncedLevel) return;
         syncedLevel = level;
+        //? if <1.21.5 {
+        /*int current = player.getInventory().selected;
+        *///?} else
         int current = player.getInventory().getSelectedSlot();
         int other = current == 8 ? 7 : current + 1;
         player.connection.send(new ServerboundSetCarriedItemPacket(other));

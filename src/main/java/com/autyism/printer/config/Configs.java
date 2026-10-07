@@ -374,6 +374,9 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
 
         // 覆盖方块列表
         public static final ConfigStringList REPLACEABLE_LIST = stringListValue("printReplaceableList")
+                //? if <1.20.3 {
+                /*.defaultValue(Blocks.SNOW, Blocks.LAVA, Blocks.WATER, Blocks.BUBBLE_COLUMN, Blocks.GRASS)
+                *///?} else
                 .defaultValue(Blocks.SNOW, Blocks.LAVA, Blocks.WATER, Blocks.BUBBLE_COLUMN, Blocks.SHORT_GRASS)
                 .build();
 
@@ -862,8 +865,11 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
         ConfigManager.getInstance().registerConfigHandler(Reference.MOD_ID, Configs.INSTANCE);
         InputEventHandler.getKeybindManager().registerKeybindProvider(InputHandler.getInstance());
         InputEventHandler.getInputManager().registerKeyboardInputHandler(InputHandler.getInstance());
+        // MaLiLib for 1.20.1 has no list of config screens
+        //? if >=1.21 {
         fi.dy.masa.malilib.registry.Registry.CONFIG_SCREEN.registerConfigScreenFactory(
                 new fi.dy.masa.malilib.util.data.ModInfo(Reference.MOD_ID, Reference.MOD_NAME, ConfigUi::new)
         );
+        //?}
     }
 }

@@ -6,7 +6,10 @@ plugins {
 fun prop(name: String): String = project.property(name).toString()
 
 val mc = sc.current.version
-val requiredJava = if (sc.current.parsed >= "26.1") JavaVersion.VERSION_25 else JavaVersion.VERSION_21
+val requiredJava = if (sc.current.parsed >= "26.1") JavaVersion.VERSION_25
+    else if (sc.current.parsed >= "1.20.5") JavaVersion.VERSION_21 else JavaVersion.VERSION_17
+// 1.20.1: MaLiLib, Litematica and Tweakeroo come from Modrinth (Masa's maven doesn't have them all for 1.20.1)
+fun masa(id: String, version: String) = if (sc.current.parsed < "1.21") "maven.modrinth:$id:$version" else "fi.dy.masa.$id:$id-fabric-$mc:$version"
 
 version = "${prop("mod.version")}+$mc"
 group = prop("mod.group")
@@ -32,17 +35,17 @@ dependencies {
     modImplementation("com.terraformersmc:modmenu:${prop("deps.modmenu")}")
 
     // Litematica + MaLiLib at runtime (not bundled)
-    modImplementation("fi.dy.masa.malilib:malilib-fabric-$mc:${prop("deps.malilib")}")
-    modImplementation("fi.dy.masa.litematica:litematica-fabric-$mc:${prop("deps.litematica")}")
+    modImplementation(masa("malilib", prop("deps.malilib")))
+    modImplementation(masa("litematica", prop("deps.litematica")))
 
     // Optional integrations: compile-time only, detected at runtime
-    modCompileOnly("fi.dy.masa.tweakeroo:tweakeroo-fabric-$mc:${prop("deps.tweakeroo")}")
+    modCompileOnly(masa("tweakeroo", prop("deps.tweakeroo")))
     modCompileOnly(files(rootProject.file("libs/remote-inventory/remote-inventory-next-mc$mc-${prop("deps.remote_inventory")}.jar")))
 
     // Optional mods loaded only in gametests, to test the integrations (test runtime only, never bundled): official builds from Modrinth
     if (providers.gradleProperty("aleGameTest").isPresent) {
         // Bedrock Miner (bunnyi116): 1.6.1; 26.3 only has 1.6.2
-        val bedrockMiner = mapOf("1.21.5" to "v1.6.1-mc1.21.5", "1.21.8" to "v1.6.1-mc1.21.8", "1.21.10" to "v1.6.1-mc1.21.10",
+        val bedrockMiner = mapOf("1.20.1" to "v1.6.1-mc1.20.1", "1.21.5" to "v1.6.1-mc1.21.5", "1.21.8" to "v1.6.1-mc1.21.8", "1.21.10" to "v1.6.1-mc1.21.10",
             "1.21.11" to "v1.6.1-mc1.21.11", "26.1.2" to "v1.6.1-mc26.1", "26.2" to "v1.6.1-mc26.2", "26.3" to "v1.6.2-mc26.3")
         // Advanced Shulkerboxes 2.0.5 (Modrinth version ids); no 26.3 release exists
         val shulkerbox = mapOf("1.21.5" to "Y8mwwbAg", "1.21.8" to "IpebOJTB", "1.21.10" to "k1b88TtL", "1.21.11" to "qW4ksxvD",
@@ -63,12 +66,19 @@ dependencies {
 java {
     sourceCompatibility = requiredJava
     targetCompatibility = requiredJava
-    toolchain { languageVersion.set(JavaLanguageVersion.of(requiredJava.majorVersion)) }
+    // 1.20.1 targets Java 17: compiled by JDK 21 with --release 17 (same class files, no JDK 17 needed)
+    toolchain { languageVersion.set(JavaLanguageVersion.of(maxOf(requiredJava.majorVersion.toInt(), 21))) }
+}
+
+// 1.20.1: the block highlight is drawn by render/LegacyBlockHighlightRenderer (old Tesselator API) instead
+if (sc.current.parsed < "1.21") {
+    sourceSets.main { java.exclude("com/autyism/printer/render/BlockHighlightRenderer.java") }
 }
 
 tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
-    options.release.set(requiredJava.majorVersion.toInt())
+    // gametests are never shipped and run on the JDK 21 toolchain, so on 1.20.1 they may use Java 21 too
+    options.release.set(if (name == "compileGametestJava") maxOf(requiredJava.majorVersion.toInt(), 21) else requiredJava.majorVersion.toInt())
 }
 
 tasks.processResources {
@@ -81,6 +91,11 @@ tasks.processResources {
         "malilib_compat" to prop("mod.malilib_compat"),
         "litematica_compat" to prop("mod.litematica_compat"),
         "mixin_java" to "JAVA_${requiredJava.majorVersion}",
+        // 1.20.1 only (empty on other versions): single-player reach without the block_interaction_range attribute,
+        // and creative inventory echoes that newer versions no longer send
+        "legacy_mixins" to (if (sc.current.parsed < "1.21") listOf("MixinLegacyReachUseItemOn", "MixinLegacyReachBreak", "MixinLegacyReachItem",
+            "MixinLegacyReachPick", "MixinLegacyReachSign", "MixinLegacyCreativeSend", "MixinLegacyCreativeEcho")
+            .joinToString("") { ",\n    \"mc.$it\"" } else ""),
     )
     inputs.properties(props)
     filesMatching(listOf("fabric.mod.json", "*.mixins.json")) { expand(props) }

@@ -21,6 +21,8 @@ public interface ServerboundMovePlayerPacketAccessor {
     @Accessor("onGround")
     boolean getOnGround();
 
+    //? if >=1.21.2 {
     @Accessor("horizontalCollision")
     boolean getHorizontalCollision();
+    //?}
 }

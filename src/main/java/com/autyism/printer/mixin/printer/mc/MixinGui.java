@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+//? if >=1.21
 import net.minecraft.client.DeltaTracker;
 
 /**
@@ -104,9 +105,14 @@ public abstract class MixinGui {
     // @formatter:off
     //? if >=26.1 {
     /*@Inject(method = "extractItemHotbar", at = @At("TAIL"))
+    *///?} elif <1.21 {
+    /*@Inject(method = "renderHotbar", at = @At("TAIL"))
     *///?} else
     @Inject(method = "renderItemHotbar", at = @At("TAIL"))
 
+    //? if <1.21 {
+    /*private void hookRenderItemHotbar(float partialTick, GuiGraphics guiGraphics, CallbackInfo ci) {
+    *///?} else
     private void hookRenderItemHotbar(GuiGraphics guiGraphics, DeltaTracker deltaTracker, CallbackInfo ci) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.level == null || mc.player.isSpectator() || !ConfigUtils.isPrinterEnable()) {

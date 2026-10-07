@@ -37,6 +37,9 @@ public abstract class MixinClientPacketListener {
     private void onContainerContent(ClientboundContainerSetContentPacket packet, CallbackInfo ci) {
         LocalPlayer player = Minecraft.getInstance().player;
         if (QuickShulkerUtils.isOpenHandler() && player != null
+                //? if <1.21.5 {
+                /*&& packet.getContainerId() == player.containerMenu.containerId
+                *///?} else
                 && packet.containerId() == player.containerMenu.containerId
         ) {
             QuickShulkerUtils.switchFromShulker();

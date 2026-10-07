@@ -28,7 +28,7 @@
     "mc.MixinGui",
     "mc.MixinLocalPlayer",
     "mc.MixinMinecraft",
-    "mc.MixinMultiPlayerGameMode"
+    "mc.MixinMultiPlayerGameMode"${legacy_mixins}
   ],
   "injectors": {
     "defaultRequire": 1

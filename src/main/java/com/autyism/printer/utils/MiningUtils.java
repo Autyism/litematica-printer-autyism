@@ -51,17 +51,26 @@ public final class MiningUtils {
 
     /** 是否具备秒破配置：背包里有效率 V（及以上）的工具，并且有急迫 II（及以上） */
     public static boolean hasInstantMiningSetup(LocalPlayer player) {
+        //? if <1.21.5 {
+        /*MobEffectInstance haste = player.getEffect(MobEffects.DIG_SPEED);
+        *///?} else
         MobEffectInstance haste = player.getEffect(MobEffects.HASTE);
         if (haste == null || haste.getAmplifier() < 1) return false;
         Inventory inv = player.getInventory();
         for (int slot = 0; slot < 36; slot++) {
             ItemStack stack = inv.getItem(slot);
             if (stack.isEmpty()) continue;
+            //? if <1.21 {
+            /*if (EnchantmentHelper.getItemEnchantmentLevel(Enchantments.BLOCK_EFFICIENCY, stack) >= 5) {
+                return true;
+            }
+            *///?} else {
             for (Holder<Enchantment> ench : stack.getEnchantments().keySet()) {
                 if (ench.is(Enchantments.EFFICIENCY) && EnchantmentHelper.getItemEnchantmentLevel(ench, stack) >= 5) {
                     return true;
                 }
             }
+            //?}
         }
         return false;
     }

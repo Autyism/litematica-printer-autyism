@@ -150,8 +150,11 @@ public class Fill extends Module {
                     MissingMaterialTracker.getInstance().recordMissing(this, this.fillModeItemList[0],
                             //? if >=26.1 {
                             /*this.fillModeItemList[0].components().getOrDefault(net.minecraft.core.component.DataComponents.ITEM_NAME, net.minecraft.network.chat.CommonComponents.EMPTY)
-                            *///?} else
+                            *///?} elif <1.21 {
+                            /*this.fillModeItemList[0].getDescription()
+                            *///?} else {
                             this.fillModeItemList[0].getName()
+                            //?}
                     , 0);
                 }
                 return;

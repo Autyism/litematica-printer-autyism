@@ -21,6 +21,9 @@ public class MixinConnection {
     private static void hookGenericsFtw(Packet<?> packet, PacketListener packetListener, CallbackInfo ci) {
         // 延迟检测：只算服务端发给客户端的包。单人游戏里内置服务端处理客户端发来的包也会走到这里，
         // 以前把它们也算成“收到了服务端的数据”，计数一直被清零，单人游戏里延迟检测等于没有
+        //? if <1.20.2 {
+        /*if (ConfigUtils.isPrinterEnable() && packetListener instanceof net.minecraft.network.protocol.game.ClientGamePacketListener) {
+        *///?} else
         if (ConfigUtils.isPrinterEnable() && packetListener.flow() == net.minecraft.network.protocol.PacketFlow.CLIENTBOUND) {
             ModuleManager.setPacketTick(0);   // 用于延迟检测
         }

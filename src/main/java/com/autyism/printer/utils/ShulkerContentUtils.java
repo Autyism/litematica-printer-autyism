@@ -2,10 +2,12 @@ package com.autyism.printer.utils;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
+//? if >=1.20.5
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.Container;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
+//? if >=1.20.5
 import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.ShulkerBoxBlock;
@@ -41,13 +43,25 @@ public final class ShulkerContentUtils {
     /** 潜影盒物品里装的东西（非空物品的副本） */
     public static List<ItemStack> itemContents(ItemStack shulker) {
         List<ItemStack> result = new ArrayList<>();
+        //? if <1.20.5 {
+        /*// 1.20.5 以前潜影盒里的物品存在 NBT 的 BlockEntityTag.Items 里
+        net.minecraft.nbt.CompoundTag tag = BlockItem.getBlockEntityData(shulker);
+        if (tag != null && tag.contains("Items", 9)) {
+            NonNullList<ItemStack> items = NonNullList.withSize(27, ItemStack.EMPTY);
+            net.minecraft.world.ContainerHelper.loadAllItems(tag, items);
+            for (ItemStack s : items) if (!s.isEmpty()) result.add(s.copy());
+        }
+        *///?} elif >=26.1 {
+        /*ItemContainerContents contents = shulker.get(DataComponents.CONTAINER);
+        if (contents != null) {
+            contents.nonEmptyItemCopyStream().forEach(result::add);
+        }
+        *///?} else {
         ItemContainerContents contents = shulker.get(DataComponents.CONTAINER);
         if (contents != null) {
-            //? if >=26.1 {
-            /*contents.nonEmptyItemCopyStream().forEach(result::add);
-            *///?} else
             for (ItemStack s : contents.nonEmptyItemsCopy()) result.add(s);
         }
+        //?}
         return result;
     }
 
@@ -73,6 +87,10 @@ public final class ShulkerContentUtils {
         ItemStack copy = shulker.copyWithCount(1);
         NonNullList<ItemStack> list = NonNullList.withSize(27, ItemStack.EMPTY);
         for (int i = 0; i < Math.min(27, contents.size()); i++) list.set(i, contents.get(i).copy());
+        //? if <1.20.5 {
+        /*BlockItem.setBlockEntityData(copy, net.minecraft.world.level.block.entity.BlockEntityType.SHULKER_BOX,
+                net.minecraft.world.ContainerHelper.saveAllItems(new net.minecraft.nbt.CompoundTag(), list));
+        *///?} else
         copy.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(list));
         return copy;
     }

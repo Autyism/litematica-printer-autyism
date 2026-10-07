@@ -27,9 +27,21 @@ import java.util.Optional;
 public class BlockUtils {
     @NotNull public static final Minecraft client = Minecraft.getInstance();
     private static final BooleanProperty wallUpProperty = WallBlock.UP;
+    //? if <1.21.2 {
+    /*private static final EnumProperty<WallSide> wallNorthProperty = WallBlock.NORTH_WALL;
+    *///?} else
     private static final EnumProperty<WallSide> wallNorthProperty = WallBlock.NORTH;
+    //? if <1.21.2 {
+    /*private static final EnumProperty<WallSide> wallSouthProperty = WallBlock.SOUTH_WALL;
+    *///?} else
     private static final EnumProperty<WallSide> wallSouthProperty = WallBlock.SOUTH;
+    //? if <1.21.2 {
+    /*private static final EnumProperty<WallSide> wallWestProperty = WallBlock.WEST_WALL;
+    *///?} else
     private static final EnumProperty<WallSide> wallWestProperty = WallBlock.WEST;
+    //? if <1.21.2 {
+    /*private static final EnumProperty<WallSide> wallEastProperty = WallBlock.EAST_WALL;
+    *///?} else
     private static final EnumProperty<WallSide> wallEastProperty = WallBlock.EAST;
 
     private static final float YAW_MIN = -180.0F;
@@ -46,6 +58,9 @@ public class BlockUtils {
     }
 
     public static @NotNull Block getBlock(Identifier blockId) {
+        //? if <1.21.2 {
+        /*return BuiltInRegistries.BLOCK.get(blockId);
+        *///?} else
         return BuiltInRegistries.BLOCK.getValue(blockId);
     }
 
@@ -175,6 +190,9 @@ public class BlockUtils {
     }
 
     public static Vec3i getVector(Direction direction) {
+        //? if <1.21.2 {
+        /*return direction.getNormal();
+        *///?} else
         return direction.getUnitVec3i();
     }
 
