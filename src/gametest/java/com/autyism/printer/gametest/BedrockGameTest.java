@@ -76,10 +76,18 @@ public final class BedrockGameTest implements FabricClientGameTest {
             player.getInventory().setItem(0, new ItemStack(Items.PISTON, 32));
             player.getInventory().setItem(1, new ItemStack(Items.REDSTONE_TORCH, 32));
             player.getInventory().setItem(2, new ItemStack(Items.SLIME_BLOCK, 32));
+            //? if <1.21 {
+            /*player.getInventory().selected = 4;
+            player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket(4));
+            *///?} else {
             player.getInventory().setSelectedSlot(4);
             player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetHeldSlotPacket(4));
+            //?}
             player.inventoryMenu.sendAllDataToRemote();
         });
+        //? if <1.20.5 {
+        /*sp.getServer().runCommand("item replace entity @a hotbar.3 with minecraft:netherite_pickaxe{Enchantments:[{id:\"minecraft:efficiency\",lvl:5s}]}");
+        *///?} else
         sp.getServer().runCommand("item replace entity @a hotbar.3 with minecraft:netherite_pickaxe[minecraft:enchantments={\"minecraft:efficiency\":5}]");
         sp.getServer().runCommand("effect give @a minecraft:haste infinite 1 true");
         sp.getServer().runCommand("tp @a 84.5 64 -1.5 0 60");

@@ -248,6 +248,9 @@ public class RemoteContainerUtils {
 
     private static Item resolveItem(String itemId) {
         return BuiltInRegistries.ITEM.getOptional(
+            //? if <1.21 {
+            /*new net.minecraft.resources.Identifier(itemId)
+            *///?} else
             net.minecraft.resources.Identifier.parse(itemId)
         ).orElse(null);
     }

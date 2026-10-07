@@ -73,8 +73,14 @@ public abstract class ServerItemMismatchMixin {
     }
 
     /** 服务端主动传送玩家（客户端会用真实视角回一个 PosRot）：谁调用的 */
+    //? if <1.21.2 {
+    /*@Inject(method = "teleport(DDDFFLjava/util/Set;)V", at = @At("HEAD"))
+    private void gt$noteServerTeleport(double x, double y, double z, float yRot, float xRot, java.util.Set<net.minecraft.world.entity.RelativeMovement> relatives, CallbackInfo ci) {
+        String pos = x + "," + y + "," + z + " " + yRot + "/" + xRot;
+    *///?} else {
     @Inject(method = "teleport(Lnet/minecraft/world/entity/PositionMoveRotation;Ljava/util/Set;)V", at = @At("HEAD"))
     private void gt$noteServerTeleport(net.minecraft.world.entity.PositionMoveRotation pos, java.util.Set<net.minecraft.world.entity.Relative> relatives, CallbackInfo ci) {
+    //?}
         StringBuilder by = new StringBuilder();
         StackTraceElement[] st = Thread.currentThread().getStackTrace();
         for (int i = 2, n = 0; i < st.length && n < 5; i++) {
@@ -97,6 +103,9 @@ public abstract class ServerItemMismatchMixin {
     @Inject(method = "handleSetCarriedItem", at = @At("TAIL"))
     private void gt$logEarlyCarried(ServerboundSetCarriedItemPacket packet, CallbackInfo ci) {
         if (!this.player.level().getServer().isSameThread() || this.player.tickCount >= 400) return;
+        //? if <1.21.5 {
+        /*System.out.println("[server-carried-early] slot=" + packet.getSlot() + " now=" + this.player.getInventory().selected
+        *///?} else
         System.out.println("[server-carried-early] slot=" + packet.getSlot() + " now=" + this.player.getInventory().getSelectedSlot()
                 + " tick=" + this.player.tickCount);
     }
@@ -125,6 +134,9 @@ public abstract class ServerItemMismatchMixin {
         *///?} else
         System.out.println("[ITEM-MISMATCH] seq=" + packet.getSequence() + " target=" + client.target() + " client=" + client.item()
                 + " (slot " + client.slot() + ", tick " + client.tick() + ") server=" + server + " (slot "
+                //? if <1.21.5 {
+                /*+ this.player.getInventory().selected + ") serverHotbar=" + hotbar);
+                *///?} else
                 + this.player.getInventory().getSelectedSlot() + ") serverHotbar=" + hotbar);
     }
 }

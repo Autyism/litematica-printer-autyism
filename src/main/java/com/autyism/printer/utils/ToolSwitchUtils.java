@@ -80,6 +80,9 @@ public final class ToolSwitchUtils {
                 halt(player, tool);
                 return false;
             }
+            //? if <1.21.5 {
+            /*if (best != -1 && best != player.getInventory().selected) {
+            *///?} else
             if (best != -1 && best != player.getInventory().getSelectedSlot()) {
                 moveSlotToHand(player, best);
             }
@@ -132,6 +135,9 @@ public final class ToolSwitchUtils {
         float bestScore = score(player, state, held);
         int bestSlot = -1;
         for (int slot = 0; slot < 36; slot++) {
+            //? if <1.21.5 {
+            /*if (slot == inventory.selected) continue;
+            *///?} else
             if (slot == inventory.getSelectedSlot()) continue;
             ItemStack stack = inventory.getItem(slot);
             float s = score(player, state, stack);
@@ -170,6 +176,9 @@ public final class ToolSwitchUtils {
         if (stack.isEmpty()) {
             // 背包里的空格：把当前手上的东西放进去
             if (mc.gameMode == null) return false;
+            //? if <1.21.5 {
+            /*mc.gameMode.handleInventoryMouseClick(player.inventoryMenu.containerId, slot, inventory.selected,
+            *///?} else
             mc.gameMode.handleInventoryMouseClick(player.inventoryMenu.containerId, slot, inventory.getSelectedSlot(),
                     net.minecraft.world.inventory.ClickType.SWAP, player);
             return true;

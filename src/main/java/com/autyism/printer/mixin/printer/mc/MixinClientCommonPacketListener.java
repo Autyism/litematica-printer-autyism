@@ -10,6 +10,17 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 
+//? if <1.20.2 {
+/*@Mixin(value = net.minecraft.client.multiplayer.ClientPacketListener.class)
+public class MixinClientCommonPacketListener {
+    @Final
+    @Shadow
+    private Connection connection;
+
+    @Final
+    @Shadow
+    private Minecraft minecraft;
+*///?} else {
 import net.minecraft.client.multiplayer.ClientCommonPacketListenerImpl;
 @Mixin(value = ClientCommonPacketListenerImpl.class)
 public class MixinClientCommonPacketListener {
@@ -20,6 +31,7 @@ public class MixinClientCommonPacketListener {
     @Final
     @Shadow
     protected Minecraft minecraft;
+//?}
 
     /**
      * @author BiliXWhite

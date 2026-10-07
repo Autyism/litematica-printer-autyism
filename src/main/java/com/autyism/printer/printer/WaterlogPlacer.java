@@ -69,6 +69,9 @@ public final class WaterlogPlacer {
         if (!enabled() || !isCandidate(required, current)) return Verdict.NONE;
         // 现在装不了水的状态（例如双层台阶）不处理
         if (!(current.getBlock() instanceof LiquidBlockContainer container)
+                //? if <1.20.2 {
+                /*|| !container.canPlaceLiquid(level, pos, current, Fluids.WATER)) {
+                *///?} else
                 || !container.canPlaceLiquid(player, level, pos, current, Fluids.WATER)) {
             return Verdict.NONE;
         }
@@ -134,6 +137,9 @@ public final class WaterlogPlacer {
 
     /** 同 FlowingFluid.canHoldSpecificFluid */
     private static boolean canHoldSpecificFluid(BlockGetter level, BlockPos pos, BlockState state, Fluid fluid) {
+        //? if <1.20.2 {
+        /*return !(state.getBlock() instanceof LiquidBlockContainer container) || container.canPlaceLiquid(level, pos, state, fluid);
+        *///?} else
         return !(state.getBlock() instanceof LiquidBlockContainer container) || container.canPlaceLiquid(null, level, pos, state, fluid);
     }
 
@@ -176,6 +182,9 @@ public final class WaterlogPlacer {
     @Nullable
     public static FluidPlacer.Plan plan(ClientLevel level, LocalPlayer player, BlockPos pos, BlockState current) {
         Vec3 eye = player.getEyePosition();
+        //? if <1.20.5 {
+        /*double reach = net.minecraft.client.Minecraft.getInstance().gameMode.getPickRange();
+        *///?} else
         double reach = player.blockInteractionRange();
         FluidPlacer.Plan fallback = null;
         for (AABB box : current.getShape(level, pos).toAabbs()) {
@@ -218,6 +227,9 @@ public final class WaterlogPlacer {
     private static boolean frontTakesWater(ClientLevel level, LocalPlayer player, BlockPos front) {
         BlockState s = level.getBlockState(front);
         if (s.isAir() || s.canBeReplaced(Fluids.WATER)) return true;
+        //? if <1.20.2 {
+        /*return s.getBlock() instanceof LiquidBlockContainer c && c.canPlaceLiquid(level, front, s, Fluids.WATER);
+        *///?} else
         return s.getBlock() instanceof LiquidBlockContainer c && c.canPlaceLiquid(player, level, front, s, Fluids.WATER);
     }
 

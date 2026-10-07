@@ -27,7 +27,13 @@ public class PrinterBox implements Iterable<BlockPos> {
         int rawMinY = Math.min(minY, maxY);
         int rawMaxY = Math.max(minY, maxY);
         if (client.level != null) {
+            //? if <1.21.2 {
+            /*int worldMinY = client.level.getMinBuildHeight();
+            *///?} else
             int worldMinY = client.level.getMinY();
+            //? if <1.21.2 {
+            /*int worldMaxY = client.level.getMaxBuildHeight() - 1;
+            *///?} else
             int worldMaxY = client.level.getMaxY();
             if (rawMaxY < worldMinY) {
                 this.minY = worldMinY;
@@ -69,7 +75,13 @@ public class PrinterBox implements Iterable<BlockPos> {
         int minY = this.minY - expandY;
         int maxY = this.maxY + expandY;
         if (client.level != null) {
+            //? if <1.21.2 {
+            /*minY = Math.max(client.level.getMinBuildHeight(), minY);
+            *///?} else
             minY = Math.max(client.level.getMinY(), minY);
+            //? if <1.21.2 {
+            /*maxY = Math.min(client.level.getMaxBuildHeight() - 1, maxY);
+            *///?} else
             maxY = Math.min(client.level.getMaxY(), maxY);
         }
         return new PrinterBox(minX, minY, minZ, maxX, maxY, maxZ);

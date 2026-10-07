@@ -186,10 +186,17 @@ public final class RailPlanner {
                     return level.getHeight();
                 }
 
+                //? if <1.21.2 {
+                /*@Override
+                public int getMinBuildHeight() {
+                    return level.getMinBuildHeight();
+                }
+                *///?} else {
                 @Override
                 public int getMinY() {
                     return level.getMinY();
                 }
+                //?}
             };
         }
     }

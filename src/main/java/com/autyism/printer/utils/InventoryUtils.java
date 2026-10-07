@@ -27,6 +27,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
+//? if >=1.21.5
 import net.minecraft.network.HashedStack;
 
 import java.util.List;
@@ -86,14 +87,23 @@ public class InventoryUtils {
     }
 
     public static int getSelectedSlot(Inventory inventory) {
+        //? if <1.21.5 {
+        /*return inventory.selected;
+        *///?} else
         return inventory.getSelectedSlot();
     }
 
     public static void setSelectedSlot(Inventory inventory, int slot) {
+        //? if <1.21.5 {
+        /*inventory.selected = slot;
+        *///?} else
         inventory.setSelectedSlot(slot);
     }
 
     public static NonNullList<ItemStack> getMainStacks(Inventory inventory) {
+        //? if <1.21.5 {
+        /*return inventory.items;
+        *///?} else
         return inventory.getNonEquipmentItems();
     }
 
@@ -201,6 +211,9 @@ public class InventoryUtils {
         Player player = mc.player;
         if (player == null) return false;
 
+        //? if <1.21 {
+        /*boolean b = ItemStack.isSameItem(stackReference, player.getMainHandItem());
+        *///?} else
         boolean b = fi.dy.masa.malilib.util.InventoryUtils.areStacksEqualIgnoreNbt(stackReference, player.getMainHandItem());
         if (b) {
             return false;
@@ -221,16 +234,33 @@ public class InventoryUtils {
                     copies.add(slotItem.getItem().copy());
                 }
 
+                //? if <1.21.5 {
+                /*Int2ObjectMap<ItemStack> snapshot = new Int2ObjectOpenHashMap<>();
+                *///?} else
                 Int2ObjectMap<HashedStack> snapshot = new Int2ObjectOpenHashMap<>();
 
                 for (int j = 0; j < totalSlots; j++) {
                     ItemStack original = copies.get(j);
                     ItemStack current = slots.get(j).getItem();
                     if (!ItemStack.isSameItem(original, current)) {
+                        //? if <1.21.5 {
+                        /*snapshot.put(j, current.copy());
+                        *///?} else
                         snapshot.put(j, HashedStack.create(current, connection.decoratedHashOpsGenenerator()));
                     }
                 }
 
+                //? if <1.21.5 {
+                /*connection.send(new ServerboundContainerClickPacket(
+                        player.inventoryMenu.containerId,
+                        player.inventoryMenu.getStateId(),
+                        slot,
+                        currentHotbarSlot,
+                        ClickType.SWAP,
+                        player.inventoryMenu.getCarried().copy(),
+                        snapshot
+                ));
+                *///?} else {
                 HashedStack hashedStack = HashedStack.create(player.inventoryMenu.getCarried(), connection.decoratedHashOpsGenenerator());
                 connection.send(new ServerboundContainerClickPacket(
                         player.inventoryMenu.containerId,
@@ -241,6 +271,7 @@ public class InventoryUtils {
                         snapshot,
                         hashedStack
                 ));
+                //?}
 
                 player.inventoryMenu.clicked(slot, currentHotbarSlot, ClickType.SWAP, player);
             } else {
@@ -308,6 +339,9 @@ public class InventoryUtils {
             }
 
             // 版本兼容的快照对象
+            //? if <1.21.5 {
+            /*Int2ObjectMap<ItemStack> snapshot = new Int2ObjectOpenHashMap<>();
+            *///?} else
             Int2ObjectMap<HashedStack> snapshot = new Int2ObjectOpenHashMap<>();
 
             // 构建库存快照
@@ -315,11 +349,25 @@ public class InventoryUtils {
                 ItemStack original = copies.get(j);
                 ItemStack current = slots.get(j).getItem();
                 if (!ItemStack.isSameItem(original, current)) {
+                    //? if <1.21.5 {
+                    /*snapshot.put(j, current.copy());
+                    *///?} else
                     snapshot.put(j, HashedStack.create(current, connection.decoratedHashOpsGenenerator()));
                 }
             }
 
             // 发送SWAP数据包到副手槽位40
+            //? if <1.21.5 {
+            /*connection.send(new ServerboundContainerClickPacket(
+                    player.inventoryMenu.containerId,
+                    player.inventoryMenu.getStateId(),
+                    sourceSlot,
+                    OFFHAND_SLOT_INDEX, // 目标：副手槽位40
+                    ClickType.SWAP,
+                    player.inventoryMenu.getCarried().copy(),
+                    snapshot
+            ));
+            *///?} else {
             HashedStack hashedStack = HashedStack.create(player.inventoryMenu.getCarried(), connection.decoratedHashOpsGenenerator());
             connection.send(new ServerboundContainerClickPacket(
                     player.inventoryMenu.containerId,
@@ -330,6 +378,7 @@ public class InventoryUtils {
                     snapshot,
                     hashedStack
             ));
+            //?}
 
             // 本地同步交换操作
             player.inventoryMenu.clicked(sourceSlot, OFFHAND_SLOT_INDEX, ClickType.SWAP, player);
@@ -450,6 +499,9 @@ public class InventoryUtils {
             if (switched) com.autyism.printer.printer.ActionConfirm.noteInventoryClick(client.level, sequenceNow, player.tickCount);
             if (Boolean.getBoolean("ale.debuglook")) {
                 StringBuilder sb = new StringBuilder("[printer-swap] from=" + slot + " item=" + item + " switched=" + switched
+                        //? if <1.21.5 {
+                        /*+ " selected=" + inventory.selected + " stateId=" + player.inventoryMenu.getStateId() + " tick=" + player.tickCount + " hotbar=");
+                        *///?} else
                         + " selected=" + inventory.getSelectedSlot() + " stateId=" + player.inventoryMenu.getStateId() + " tick=" + player.tickCount + " hotbar=");
                 for (int i = 0; i < 9; i++) {
                     ItemStack h = inventory.getItem(i);

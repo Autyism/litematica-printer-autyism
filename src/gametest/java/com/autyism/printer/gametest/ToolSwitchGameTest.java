@@ -92,14 +92,22 @@ public final class ToolSwitchGameTest implements FabricClientGameTest {
             if (goodPick) player.getInventory().setItem(4, new ItemStack(Items.STONE_PICKAXE));
             player.getInventory().setItem(20, new ItemStack(Items.IRON_SHOVEL));
             player.getInventory().setItem(7, new ItemStack(Items.DIRT, 16));
+            //? if <1.21 {
+            /*player.getInventory().selected = 0;
+            player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket(0));
+            *///?} else {
             player.getInventory().setSelectedSlot(0);
             player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetHeldSlotPacket(0));
+            //?}
             player.inventoryMenu.sendAllDataToRemote();
         });
         sp.getServer().runCommand("tp @a 61.5 64 -1.5 0 30");
         context.waitFor(client -> client.player != null && client.level.getBlockState(MIN).is(Blocks.STONE)
                 && client.player.getInventory().getItem(7).is(Items.DIRT)
                 && client.player.getInventory().getItem(0).is(badPick ? Items.NETHERITE_PICKAXE : Items.AIR)
+                //? if <1.21.5 {
+                /*&& client.player.getInventory().selected == 0
+                *///?} else
                 && client.player.getInventory().getSelectedSlot() == 0
                 && Math.abs(client.player.getZ() + 1.5) < 0.01, 200);
         context.waitTicks(3);

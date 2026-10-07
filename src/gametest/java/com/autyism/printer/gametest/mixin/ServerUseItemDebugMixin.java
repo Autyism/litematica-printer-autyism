@@ -22,8 +22,11 @@ public abstract class ServerUseItemDebugMixin {
             System.out.println("[server-useitem] hand=" + player.getMainHandItem() + " menu=" + player.containerMenu.getClass().getSimpleName()
                     //? if >=26.3 {
                     /*+ " selected=" + player.getInventory().getSelectedSlot() + " seq=" + packet.sequence());
-                    *///?} else
+                    *///?} elif <1.21.5 {
+                    /*+ " selected=" + player.getInventory().selected + " seq=" + packet.getSequence());
+                    *///?} else {
                     + " selected=" + player.getInventory().getSelectedSlot() + " seq=" + packet.getSequence());
+                    //?}
         }
     }
 }

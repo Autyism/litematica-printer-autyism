@@ -665,6 +665,9 @@ public class PlacementGuide {
                 if (block instanceof HorizontalDirectionalBlock || block instanceof StonecutterBlock
                         // @formatter:off
                         || block instanceof
+                            //? if <1.21.5 {
+                            /*PinkPetalsBlock
+                            *///?} else
                             FlowerBedBlock
                         // @formatter:on
                 ) {
@@ -1058,6 +1061,9 @@ public class PlacementGuide {
             }
             case FLOWER_POT -> {
                 if (ctx.requiredState.getBlock() instanceof FlowerPotBlock potBlock) {
+                    //? if <1.21 {
+                    /*Block content = potBlock.getContent();
+                    *///?} else
                     Block content = potBlock.getPotted();
                     if (content != Blocks.AIR) {
                         return new ClickAction().setItem(content.asItem());
@@ -1117,6 +1123,9 @@ public class PlacementGuide {
     enum ClassHook {
         // 放置
         TORCH(
+                //? if <1.20.3 {
+                /*TorchBlock.class
+                *///?} else
                 BaseTorchBlock.class
         ),                                      // 火把
         SLAB(SlabBlock.class),                  // 台阶
@@ -1131,6 +1140,9 @@ public class PlacementGuide {
         AMETHYST(AmethystClusterBlock.class),   // 紫水晶
         DOOR(DoorBlock.class),                  // 门
         COCOA(CocoaBlock.class),                // 可可豆
+        //? if <1.21 {
+        /*CRAFTER(),                              // 合成器（1.20.1 没有）
+        *///?} else
         CRAFTER(CrafterBlock.class),            // 合成器
         CHEST(ChestBlock.class),                // 箱子
         OBSERVER(ObserverBlock.class),          // 侦测器
@@ -1164,6 +1176,9 @@ public class PlacementGuide {
         NOTE_BLOCK(NoteBlock.class),                    // 音符盒
         END_PORTAL_FRAME(EndPortalFrameBlock.class),    // 末地传送门框架
         FLOWERBED(
+                //? if <1.21.5 {
+                /*PinkPetalsBlock.class
+                *///?} else
                 FlowerBedBlock.class
         ), // 花簇（ojng你看看你这是什么抽象命名）
         VINES(VineBlock.class),                         // 藤蔓
@@ -1194,11 +1209,17 @@ public class PlacementGuide {
     private static Component getNameFromItem(Item item) {
         //? if >=26.1 {
         /*return item.components().getOrDefault(net.minecraft.core.component.DataComponents.ITEM_NAME, net.minecraft.network.chat.CommonComponents.EMPTY);
-        *///?} else
+        *///?} elif <1.21 {
+        /*return item.getDescription();
+        *///?} else {
         return item.getName();
+        //?}
     }
 
     private static Identifier of(String string) {
+        //? if <1.21 {
+        /*return new Identifier(string);
+        *///?} else
         return Identifier.parse(string);
     }
 }

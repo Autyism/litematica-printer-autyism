@@ -99,8 +99,13 @@ public final class PrinterFixGameTest implements FabricClientGameTest {
             for (int i = 0; i < 6; i++) {
                 player.getInventory().setItem(9 + i, new ItemStack(i % 2 == 0 ? Items.STONE : Items.OAK_PLANKS, 64));
             }
+            //? if <1.21 {
+            /*player.getInventory().selected = 0;
+            player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket(0));
+            *///?} else {
             player.getInventory().setSelectedSlot(0);
             player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetHeldSlotPacket(0));
+            //?}
             player.inventoryMenu.sendAllDataToRemote();
         });
         sp.getServer().runCommand("tp @a " + px + " " + py + " " + pz);
@@ -281,12 +286,23 @@ public final class PrinterFixGameTest implements FabricClientGameTest {
             }
             var player = server.getPlayerList().getPlayers().getFirst();
             player.getInventory().clearContent();
+            //? if <1.21 {
+            /*player.getInventory().selected = 0;
+            player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket(0));
+            *///?} else {
             player.getInventory().setSelectedSlot(0);
             player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetHeldSlotPacket(0));
+            //?}
             player.inventoryMenu.sendAllDataToRemote();
         });
         sp.getServer().runCommand("tp @a 23.5 64 -1.5");
+        //? if <1.20.5 {
+        /*sp.getServer().runCommand("item replace entity @a hotbar.1 with minecraft:netherite_pickaxe{Enchantments:[{id:\"minecraft:efficiency\",lvl:5s}]}");
+        *///?} else
         sp.getServer().runCommand("item replace entity @a hotbar.1 with minecraft:netherite_pickaxe[minecraft:enchantments={\"minecraft:efficiency\":5}]");
+        //? if <1.20.5 {
+        /*sp.getServer().runCommand("item replace entity @a hotbar.2 with minecraft:netherite_shovel{Enchantments:[{id:\"minecraft:efficiency\",lvl:5s}]}");
+        *///?} else
         sp.getServer().runCommand("item replace entity @a hotbar.2 with minecraft:netherite_shovel[minecraft:enchantments={\"minecraft:efficiency\":5}]");
         sp.getServer().runCommand("effect give @a minecraft:haste infinite 1 true");
 
@@ -294,6 +310,9 @@ public final class PrinterFixGameTest implements FabricClientGameTest {
                 && client.level.getBlockState(MINE_MIN).is(mineBlock(MINE_MIN))
                 && client.player.getInventory().getItem(1).is(Items.NETHERITE_PICKAXE)
                 && client.player.getInventory().getItem(2).is(Items.NETHERITE_SHOVEL)
+                //? if <1.21.5 {
+                /*&& client.player.hasEffect(net.minecraft.world.effect.MobEffects.DIG_SPEED)
+                *///?} else
                 && client.player.hasEffect(net.minecraft.world.effect.MobEffects.HASTE)
                 && Math.abs(client.player.getZ() + 1.5) < 0.01, 200);
         context.waitTicks(5);
@@ -332,6 +351,9 @@ public final class PrinterFixGameTest implements FabricClientGameTest {
                 throw new AssertionError("[mine] instant-first violated: obsidian was mined while instant blocks remained");
             }
             String hand = context.computeOnClient(client -> client.player.getMainHandItem().toString()
+                    //? if <1.21.5 {
+                    /*+ " slot=" + client.player.getInventory().selected);
+                    *///?} else
                     + " slot=" + client.player.getInventory().getSelectedSlot());
             System.out.println("[PrinterFixGameTest] mine tick: remaining=" + remaining + " hand=" + hand);
             return remaining == 0;

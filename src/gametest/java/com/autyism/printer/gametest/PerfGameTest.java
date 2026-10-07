@@ -41,6 +41,7 @@ public final class PerfGameTest implements FabricClientGameTest {
         BlockPos origin = new BlockPos(200, -60, 200);
         int[] savedFps = new int[1];
         boolean[] savedVsync = new boolean[1];
+        //? if >=1.21.2
         net.minecraft.client.InactivityFpsLimit[] savedInactive = new net.minecraft.client.InactivityFpsLimit[1];
         try (TestSingleplayerContext sp = GT.newWorld(context)) {
             sp.getServer().runCommand("gamemode creative @a");
@@ -51,15 +52,22 @@ public final class PerfGameTest implements FabricClientGameTest {
                 savedVsync[0] = c.options.enableVsync().get();
                 c.options.framerateLimit().set(260);
                 // 测试期间没有键鼠输入，原版会当成挂机把帧数限制到 30 / 10：关掉，只在最小化时限制
+                //? if >=1.21.2
                 savedInactive[0] = c.options.inactivityFpsLimit().get();
+                //? if >=1.21.2
                 c.options.inactivityFpsLimit().set(net.minecraft.client.InactivityFpsLimit.MINIMIZED);
                 c.options.enableVsync().set(false);
                 c.options.renderDistance().set(12);
             });
             SchematicPlacement placement = context.computeOnClient(client -> {
                 try {
+                    //? if <1.21 {
+                    /*java.io.File dir = DataManager.getSchematicsBaseDirectory();
+                    Files.copy(src, dir.toPath().resolve("ale_perf.litematic"), StandardCopyOption.REPLACE_EXISTING);
+                    *///?} else {
                     Path dir = DataManager.getSchematicsBaseDirectory();
                     Files.copy(src, dir.resolve("ale_perf.litematic"), StandardCopyOption.REPLACE_EXISTING);
+                    //?}
                     LitematicaSchematic schematic = LitematicaSchematic.createFromFile(dir, "ale_perf.litematic");
                     SchematicPlacement p = SchematicPlacement.createFor(schematic, origin, "perf", true, true);
                     DataManager.getSchematicPlacementManager().addSchematicPlacement(p, false);
@@ -109,6 +117,7 @@ public final class PerfGameTest implements FabricClientGameTest {
                 GT.disableAll();
                 if (savedFps[0] > 0) c.options.framerateLimit().set(savedFps[0]);
                 c.options.enableVsync().set(savedVsync[0]);
+                //? if >=1.21.2
                 if (savedInactive[0] != null) c.options.inactivityFpsLimit().set(savedInactive[0]);
             });
             setAll(context, ale, true);
@@ -123,6 +132,9 @@ public final class PerfGameTest implements FabricClientGameTest {
             context.waitTicks(20);
             fps.add(context.computeOnClient(c -> c.getFps()));
         }
+        //? if <1.21 {
+        /*double mspt = sp.getServer().computeOnServer(s -> (double) s.getAverageTickTime());
+        *///?} else
         double mspt = sp.getServer().computeOnServer(s -> s.getAverageTickTimeNanos() / 1_000_000.0);
         double avg = fps.stream().mapToInt(Integer::intValue).average().orElse(0);
         int min = fps.stream().mapToInt(Integer::intValue).min().orElse(0);

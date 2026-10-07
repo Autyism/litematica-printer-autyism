@@ -75,8 +75,13 @@ public final class ContainerPauseGameTest implements FabricClientGameTest {
             for (int i = 0; i < MATERIALS.length; i++) {
                 player.getInventory().setItem(9 + i, new ItemStack(MATERIALS[i].asItem(), 64));
             }
+            //? if <1.21 {
+            /*player.getInventory().selected = 0;
+            player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket(0));
+            *///?} else {
             player.getInventory().setSelectedSlot(0);
             player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetHeldSlotPacket(0));
+            //?}
             player.inventoryMenu.sendAllDataToRemote();
         };
         sp.getServer().runOnServer(setup::accept);

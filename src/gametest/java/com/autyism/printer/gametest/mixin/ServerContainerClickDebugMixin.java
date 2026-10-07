@@ -21,6 +21,9 @@ public abstract class ServerContainerClickDebugMixin {
             //? if >=26.1 {
             /*System.out.println("[server-click] slot=" + p.slotNum() + " button=" + p.buttonNum() + " type=" + p.containerInput()
                     + " stateId(client)=" + p.stateId() + " stateId(server)=" + this.player.containerMenu.getStateId());
+            *///?} elif <1.21.5 {
+            /*System.out.println("[server-click] slot=" + p.getSlotNum() + " button=" + p.getButtonNum() + " type=" + p.getClickType()
+                    + " stateId(client)=" + p.getStateId() + " stateId(server)=" + this.player.containerMenu.getStateId());
             *///?} else {
             System.out.println("[server-click] slot=" + p.slotNum() + " button=" + p.buttonNum() + " type=" + p.clickType()
                     + " stateId(client)=" + p.stateId() + " stateId(server)=" + this.player.containerMenu.getStateId());

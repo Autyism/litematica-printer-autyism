@@ -55,6 +55,7 @@ public final class LargeRangeGameTest implements FabricClientGameTest {
                 player.inventoryMenu.sendAllDataToRemote();
             });
             // 服务器没有反作弊：用属性把交互距离放大（原版服务端也会校验这个属性）
+            //? if >=1.20.5
             sp.getServer().runCommand("attribute @p minecraft:block_interaction_range base set 64");
             sp.getServer().runCommand("tp @a 100.5 64 0.5 0 0");
             context.waitFor(client -> client.player != null && client.player.getInventory().getItem(0).is(Items.STONE)

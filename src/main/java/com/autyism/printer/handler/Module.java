@@ -318,6 +318,9 @@ public abstract class Module extends ConfigUtils {
                 + " paused=" + ContainerGuard.isPaused() + " screen=" + (mc == null ? null : mc.screen)
                 + " iterBox=" + iteratorManager.getBox() + " effRange=" + ConfigUtils.getEffectiveRange()
                 + " workRange=" + Configs.Core.WORK_RANGE.getDoubleValue()
+                //? if <1.20.5 {
+                /*+ " reach=" + (player == null || mc.gameMode == null ? null : mc.gameMode.getPickRange()) + " eyeY=" + (player == null ? null : player.getEyeY())
+                *///?} else
                 + " reach=" + (player == null ? null : player.blockInteractionRange()) + " eyeY=" + (player == null ? null : player.getEyeY())
                 + " areaBoxes=" + getWorkAreaBoxes();
     }

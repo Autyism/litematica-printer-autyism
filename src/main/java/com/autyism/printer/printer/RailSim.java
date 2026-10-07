@@ -137,6 +137,9 @@ public final class RailSim {
                 // 改形状只允许改成投影里的样子
                 if (got != had && got != should) return false;
             }
+            //? if <1.21 {
+            /*if (got.isAscending() && !slopeSupported(level, p, got)) return false;
+            *///?} else
             if (got.isSlope() && !slopeSupported(level, p, got)) return false;
         }
         return true;

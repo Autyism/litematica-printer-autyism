@@ -103,8 +103,11 @@ public class FluidRemoval extends Module {
                     MissingMaterialTracker.getInstance().recordMissing(this, fillItems.get(0),
                             //? if >=26.1 {
                             /*fillItems.get(0).components().getOrDefault(net.minecraft.core.component.DataComponents.ITEM_NAME, net.minecraft.network.chat.CommonComponents.EMPTY)
-                            *///?} else
+                            *///?} elif <1.21 {
+                            /*fillItems.get(0).getDescription()
+                            *///?} else {
                             fillItems.get(0).getName()
+                            //?}
                     , 0);
                 }
                 return;

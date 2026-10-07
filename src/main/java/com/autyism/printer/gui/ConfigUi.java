@@ -70,6 +70,9 @@ public class ConfigUi extends GuiConfigsBase {
         int rows = 1;
         for (Tab tab : Tab.values()) {
             ButtonGeneric button = new ButtonGeneric(x, y, -1, 20, tab.getName(), tab.getComment());
+            //? if <1.21 {
+            /*if (x > 10 && x + button.getWidth() > this.width - 10) {
+            *///?} else
             if (x > 10 && x + button.getWidth() > this.getScreenWidth() - 10) {
                 x = 10;
                 y += 22;

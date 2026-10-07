@@ -24,6 +24,7 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
+//? if >=1.21.5
 import net.minecraft.network.HashedStack;
 
 import java.util.*;
@@ -199,16 +200,33 @@ public class QuickShulkerUtils {
             copies.add(slotItem.getItem().copy());
         }
 
+        //? if <1.21.5 {
+        /*Int2ObjectMap<ItemStack> snapshot = new Int2ObjectOpenHashMap<>();
+        *///?} else
         Int2ObjectMap<HashedStack> snapshot = new Int2ObjectOpenHashMap<>();
 
         for (int j = 0; j < totalSlots; j++) {
             ItemStack original = copies.get(j);
             ItemStack current = slots.get(j).getItem();
             if (!ItemStack.isSameItem(original, current)) {
+                //? if <1.21.5 {
+                /*snapshot.put(j, current.copy());
+                *///?} else
                 snapshot.put(j, HashedStack.create(current, connection.decoratedHashOpsGenenerator()));
             }
         }
 
+        //? if <1.21.5 {
+        /*connection.send(new ServerboundContainerClickPacket(
+                container.containerId,
+                container.getStateId(),
+                slotIndex,
+                button,
+                type,
+                container.getCarried().copy(),
+                snapshot
+        ));
+        *///?} else {
         HashedStack carried = HashedStack.create(container.getCarried(), connection.decoratedHashOpsGenenerator());
         connection.send(new ServerboundContainerClickPacket(
                 container.containerId,
@@ -219,6 +237,7 @@ public class QuickShulkerUtils {
                 snapshot,
                 carried
         ));
+        //?}
 
         container.clicked(slotIndex, button, type, mc.player);
     }
@@ -406,6 +425,9 @@ public class QuickShulkerUtils {
                 for (int s = 0; s < ownSlots; s++) {
                     ItemStack c = container.slots.get(s).getItem();
                     if (c.isEmpty()) hasRoom = true;
+                    //? if <1.20.5 {
+                    /*else if (ItemStack.isSameItemSameTags(c, stack)) {
+                    *///?} else
                     else if (ItemStack.isSameItemSameComponents(c, stack)) {
                         inShulker = true;
                         if (c.getCount() < c.getMaxStackSize()) hasRoom = true;
@@ -424,6 +446,9 @@ public class QuickShulkerUtils {
     private static boolean isDepositCandidate(ItemStack stack, boolean allowRecentlyUsed) {
         if (stack.isEmpty() || stack.isDamageableItem()) return false;
         if (com.autyism.printer.utils.ShulkerContentUtils.isShulkerItem(stack)) return false;
+        //? if <1.20.5 {
+        /*if (stack.isEdible()) return false;
+        *///?} else
         if (stack.has(net.minecraft.core.component.DataComponents.FOOD)) return false;
         if (stack.is(net.minecraft.world.item.Items.TOTEM_OF_UNDYING)) return false;
         if (lastNeedItemList.contains(stack.getItem())) return false;

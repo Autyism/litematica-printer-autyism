@@ -59,6 +59,9 @@ public final class WaterlogGameTest implements FabricClientGameTest {
 
     /** 按 id 取方块（铜方块在 26.2 起是一组按氧化程度分的方块） */
     private static Block block(String id) {
+        //? if <1.21 {
+        /*return net.minecraft.core.registries.BuiltInRegistries.BLOCK.get(new net.minecraft.resources.Identifier(id));
+        *///?} else
         return net.minecraft.core.registries.BuiltInRegistries.BLOCK.getValue(net.minecraft.resources.Identifier.withDefaultNamespace(id));
     }
 
@@ -95,6 +98,7 @@ public final class WaterlogGameTest implements FabricClientGameTest {
         l.add(Blocks.CANDLE.defaultBlockState());
         l.add(Blocks.DEAD_TUBE_CORAL_FAN.defaultBlockState());
         l.add(block("lightning_rod").defaultBlockState());
+        //? if >=1.21
         l.add(block("copper_grate").defaultBlockState());
         l.add(Blocks.POINTED_DRIPSTONE.defaultBlockState());
         l.add(Blocks.AMETHYST_CLUSTER.defaultBlockState());
@@ -103,6 +107,7 @@ public final class WaterlogGameTest implements FabricClientGameTest {
         l.add(Blocks.SEA_PICKLE.defaultBlockState());
         l.add(Blocks.CONDUIT.defaultBlockState());
         l.add(Blocks.DECORATED_POT.defaultBlockState());
+        //? if >=1.21
         l.add(Blocks.HEAVY_CORE.defaultBlockState());
         l.add(Blocks.GLOW_LICHEN.defaultBlockState().setValue(BlockStateProperties.DOWN, true));
         return l;
@@ -224,6 +229,7 @@ public final class WaterlogGameTest implements FabricClientGameTest {
             }
         });
         GT.waitSchematicBlock(context, cell(0, 1), expected.get(cell(0, 1)).getBlock());
+        //? if >=1.20.5
         sp.getServer().runCommand("attribute @p minecraft:block_interaction_range base set 20");
         context.waitTicks(10);
 

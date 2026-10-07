@@ -19,6 +19,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.network.protocol.game.ServerboundPlayerInputPacket;
+//? if >=1.21.2
 import net.minecraft.world.entity.player.Input;
 
 public class ActionManager {
@@ -167,6 +168,9 @@ public class ActionManager {
             BlockHitResult blockHitResult = new BlockHitResult(hitVec, side, target, false);
             if (DEBUG_LOOK) {
                 System.out.println("[printer-use] target=" + target.toShortString() + " hand=" + player.getMainHandItem().getItem()
+                        //? if <1.21.5 {
+                        /*+ " slot=" + player.getInventory().selected + " stateId=" + player.inventoryMenu.getStateId()
+                        *///?} else
                         + " slot=" + player.getInventory().getSelectedSlot() + " stateId=" + player.inventoryMenu.getStateId()
                         + " tick=" + player.tickCount);
             }

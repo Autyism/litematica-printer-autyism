@@ -54,6 +54,7 @@ public final class BigPrintGameTest implements FabricClientGameTest {
                 player.inventoryMenu.sendAllDataToRemote();
             });
             GT.waitSchematicBlock(context, MIN, expected(MIN).getBlock());
+            //? if >=1.20.5
             sp.getServer().runCommand("attribute @p minecraft:block_interaction_range base set 64");
             context.waitTicks(10);
 
