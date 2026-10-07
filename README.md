@@ -17,11 +17,14 @@
 - Restocks from shulker boxes; can also fill areas, drain fluids and break bedrock.
 - Caps Lock turns it on and off, Z + Y opens the settings.
 
+Everything else is in the folded sections below (features, how to use, settings, FAQ): click a title to open it.
+
 Litematica Printer Autyism Edition places the blocks of your loaded [Litematica](https://modrinth.com/mod/litematica) schematic around you automatically. It can also fill an area, remove water and lava, mine a selection and hand bedrock to a bedrock-breaking mod.
 
 It is a standalone mod (not an add-on), based on the BiliXWhite and water2004 forks of Litematica Printer and reworked so that what it places matches the schematic, also on real servers with lag. It replaces other Litematica Printer builds; do not install both.
 
-## Features
+<details>
+<summary><b>Features</b> (click to open)</summary>
 
 ### New in this edition
 
@@ -99,6 +102,8 @@ Compared with the 1.21.11 printer builds it is based on, this edition adds or re
 - Settings from a previous Litematica Printer install (BiliXWhite or water2004 builds) are imported on first start.
 - With Autyism's Litematica Enhancement (ALE) installed, every block list gets a **Pick blocks...** button with a visual block picker.
 
+</details>
+
 ## Screenshots
 
 ![A furnished villa with a pool, printed with layered printing](docs/images/printed-villa.png)
@@ -133,7 +138,8 @@ Bedrock tab: choose the bedrock-breaking mod and the blocks to break.
 
 With ALE installed, block lists get a visual picker. Here end portal frames are added to the bedrock list.
 
-## How to use
+<details>
+<summary><b>How to use</b> (click to open)</summary>
 
 ### Default keys
 
@@ -186,7 +192,10 @@ The printer follows Litematica's render layers, so you can limit printing to cer
 3. In the **Bedrock** tab, keep **Bedrock Miner Backend** on *Auto* or choose a mod.
 4. Start bedrock mode with the hotkey of **Enable Bedrock Breaking**, or select it with **Cycle Mode** and press Caps Lock. The printer turns the bedrock miner on while bedrock mode runs and restores it afterwards.
 
-## Settings
+</details>
+
+<details>
+<summary><b>Settings</b> (click to open)</summary>
 
 Names are shown as they appear in game. The settings screen has an **All** tab and one tab per topic.
 
@@ -294,6 +303,8 @@ The Printing tab ends with the placing settings, which Filling and Fluid Removal
 | Enable Block Highlighting | off | Outlines blocks the printer places (white), adjusts (green), breaks (red) or fails to place (gray). |
 | Highlight Style / Fade-out Duration / See-Through Mode | Outline / 0.5 s / off | Look of the highlights; colors are adjustable. |
 
+</details>
+
 ## Requirements
 
 There is a separate jar for each Minecraft version:
@@ -322,7 +333,8 @@ Optional:
 
 **Side:** client only. The server does not need this mod; only the optional integrations above have server parts.
 
-## Compatibility
+<details>
+<summary><b>Compatibility</b> (click to open)</summary>
 
 - **Other printers:** do not install together with another Litematica Printer build (BiliXWhite, water2004, aleksilassila). The game refuses to start next to them (mod ids `litematica-printer` and `litematica_printer`).
 - **Sodium and Iris:** no known problems; the printer was tested in a 1.21.11 modpack that uses both.
@@ -330,6 +342,8 @@ Optional:
 - **Meteor Client:** printing works with NoGhostBlocks on. Bedrock Miner (bunnyi116) cannot break anything while NoGhostBlocks is on; the printer shows a warning. Turn NoGhostBlocks off or use Fabric-Bedrock-Miner (LXYan2333).
 - **Carpet:** Carpet's Easy Place protocol (V2) is only used if you select Version 2 in Litematica's settings, because it needs the server's `accurateBlockPlacement` rule.
 - **ALE:** optional; neither mod needs the other.
+
+</details>
 
 ## Installation
 
@@ -339,7 +353,8 @@ Optional:
 4. Remove any other Litematica Printer jar from the folder.
 5. Start the game, join a world and press **Z + Y** to open the settings.
 
-## FAQ
+<details>
+<summary><b>FAQ</b> (click to open)</summary>
 
 **I pressed Caps Lock and nothing happens.**
 
@@ -375,7 +390,10 @@ Bedrock mode works in survival only, needs a supported bedrock-breaking mod and 
 
 Found a bug? Please open an issue: https://github.com/Autyism/litematica-printer-autyism/issues
 
-## Known limitations
+</details>
+
+<details>
+<summary><b>Known limitations</b> (click to open)</summary>
 
 - **Left empty on purpose:** observers that would trigger your machine (with Safe Observer Placement on), rails that vanilla cannot place in the right shape (for example tightly stacked ascending powered rails), and anything that depends on those blocks.
 - **Not printed:** entities (item frames, armor stands, paintings, minecarts), lily pads, bubble columns, piston heads, and flowing water or lava (these come from the sources). Waterlogged blocks are placed dry unless *Break Ice for Water* is on (survival only).
@@ -385,6 +403,8 @@ Found a bug? Please open an issue: https://github.com/Autyism/litematica-printer
 - **Many materials in survival:** when you use more block types than fit in the hotbar slots, printing is slower on laggy servers, because each swap from the main inventory waits for the server.
 - **Bedrock Miner (bunnyi116) and Meteor's NoGhostBlocks** do not work together.
 - **Translations:** English and Simplified Chinese are complete. In Traditional Chinese, Classical Chinese and Russian, newer options show Simplified Chinese or English text.
+
+</details>
 
 ## Credits
 
@@ -413,11 +433,14 @@ GNU Affero General Public License v3.0 ([AGPL-3.0](LICENSE.md)), inherited from 
 - 能从潜影盒补货；还能填充区域、排水排岩浆、破基岩。
 - Caps Lock 开关打印机，Z + Y 打开设置。
 
+详细说明都在下面折叠起来的部分（功能、使用方法、设置、常见问题），点标题就能展开。
+
 Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyism 版”）会自动把 [Litematica](https://modrinth.com/mod/litematica) 投影里的方块放到你身边。除了打印，它还能填充区域、排掉水和岩浆、挖空选区，以及把基岩交给破基岩模组去破。
 
 它是独立模组（不是插件），基于 BiliXWhite 和 water2004 两个 Litematica Printer 分支，重点改进了“放出来的东西和投影一致”，在有延迟的真实服务器上也一样。它会替代其他投影打印机，不要和它们一起装。
 
-## 功能
+<details>
+<summary><b>功能</b>（点开查看）</summary>
 
 ### 本版本的新内容
 
@@ -495,6 +518,8 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 - 第一次启动时会自动导入旧版投影打印机（BiliXWhite 或 water2004 版）的设置。
 - 同时装了 Autyism 的投影增强（ALE）时，每个方块列表都会多一个“选择方块…”按钮，可以用图形界面挑选方块。
 
+</details>
+
 ## 截图
 
 ![带泳池和内饰的别墅，用分层打印打出](docs/images/printed-villa.png)
@@ -529,7 +554,8 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 
 装了 ALE 后，方块列表可以用图形界面选择方块。这里正在把末地传送门框架加进破基岩列表。
 
-## 使用方法
+<details>
+<summary><b>使用方法</b>（点开查看）</summary>
 
 ### 默认按键
 
@@ -582,7 +608,10 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 3. 在 **破基岩** 分页把“破基岩模组”保持“自动”，或者手动选择。
 4. 用 **启用破基岩** 的快捷键开始，或者用 **轮换模式** 选中破基岩再按 Caps Lock。破基岩模式运行期间打印机会打开破基岩模组，结束后恢复原状。
 
-## 设置
+</details>
+
+<details>
+<summary><b>设置</b>（点开查看）</summary>
 
 下表的名称与游戏内显示一致。设置界面有一个“全部”分页，其余每个主题一个分页。
 
@@ -690,6 +719,8 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 | 启用方块高亮 | 关 | 用轮廓标出打印机放置（白）、调整（绿）、破坏（红）或放置失败（灰）的方块。 |
 | 高亮样式 / 渐隐时长 / 透视模式 | 轮廓 / 0.5 秒 / 关 | 高亮的外观，颜色可以自定义。 |
 
+</details>
+
 ## 前置要求
 
 每个 Minecraft 版本有单独的 jar：
@@ -718,7 +749,8 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 
 **安装端：** 仅客户端。服务器不需要装本模组，只有上面的部分可选联动需要服务器端。
 
-## 兼容性
+<details>
+<summary><b>兼容性</b>（点开查看）</summary>
 
 - **其他打印机：** 不要和其他 Litematica Printer（BiliXWhite 版、water2004 版、aleksilassila 原版）同时安装。和它们同时安装时游戏会拒绝启动（模组 ID 为 `litematica-printer` 或 `litematica_printer`）。
 - **Sodium 和 Iris：** 没有已知问题，打印机在同时装了两者的 1.21.11 整合包里测试过。
@@ -726,6 +758,8 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 - **Meteor Client：** 开着 NoGhostBlocks（防幽灵方块）时打印正常。但 Bedrock Miner（bunnyi116）在 NoGhostBlocks 开着时什么都破不掉，打印机会给出提示；请关掉 NoGhostBlocks，或改用 Fabric-Bedrock-Miner（LXYan2333）。
 - **Carpet：** Carpet 的轻松放置协议（V2）只有在 Litematica 设置里手动选择 V2 时才会用，因为它需要服务器打开 `accurateBlockPlacement` 规则。
 - **ALE：** 可选，两个模组互不依赖。
+
+</details>
 
 ## 安装
 
@@ -735,7 +769,8 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 4. 删掉文件夹里其他的 Litematica Printer jar。
 5. 启动游戏，进入世界，按 **Z + Y** 打开设置。
 
-## 常见问题
+<details>
+<summary><b>常见问题</b>（点开查看）</summary>
 
 **按了 Caps Lock 没反应。**
 
@@ -771,7 +806,10 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 
 发现 bug？欢迎提交 issue：https://github.com/Autyism/litematica-printer-autyism/issues
 
-## 已知限制
+</details>
+
+<details>
+<summary><b>已知限制</b>（点开查看）</summary>
 
 - **故意留空：** 会误触发机器的侦测器（开着侦测器安全放置时）、原版怎么放都放不成正确形状的铁轨（例如上下紧贴的一串上坡动力铁轨），以及依赖这些方块的东西。
 - **不会打印：** 实体（物品展示框、盔甲架、画、矿车）、睡莲、气泡柱、活塞头，以及流动的水和岩浆（它们由水源、岩浆源自然产生）。含水方块会被放成不含水的，除非开启“破冰放水”（仅生存模式）。
@@ -781,6 +819,8 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 - **生存模式材料种类多：** 材料种类比可用的快捷栏格子多时，在延迟高的服务器上打印会变慢，因为每次从背包换物品都要等服务器确认。
 - **Bedrock Miner（bunnyi116）和 Meteor 的 NoGhostBlocks** 不能同时使用。
 - **翻译：** 英文和简体中文是完整的。繁体中文、文言文和俄语里，较新的选项会显示简体中文或英文。
+
+</details>
 
 ## 致谢
 

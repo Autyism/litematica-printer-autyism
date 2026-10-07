@@ -6,11 +6,31 @@
 - New: **Hide Layer Messages** (off by default). No chat message after each layer.
 - Fixed: the missing-material list no longer flickers.
 
+More: open "Details" below.
+
+<details>
+<summary>Details</summary>
+
+- **Print Waterlogged Blocks:** the block must already match the schematic apart from the water. Below and the four sides are checked with the game's own water-flow rules. If a neighbour still has to be printed, the printer waits for it. A side the schematic itself leaves open keeps the block dry, and it still counts as finished. Water buckets come from your inventory or shulker boxes; missing ones show up in the missing-material list. The printer waits for the server to confirm the water and tries again if it didn't take. Tested with 45 kinds of waterloggable blocks, also with lag.
+- **Missing-material list:** it used to empty for one tick every time the printer rescanned. Now it only updates after a full scan.
+
+</details>
+
 ### 中文
 
 - 新增 **打印含水方块**（默认关）：给含水方块倒水，只在水漏不出去的地方倒。
 - 新增 **隐藏分层完成提示**（默认关）：每层完成时不发提示。
 - 修复：缺失材料提示不再闪烁。
+
+更多：点开下面的“详细说明”。
+
+<details>
+<summary>详细说明</summary>
+
+- **打印含水方块：** 世界里的方块除了水以外要已经和投影一样。按游戏自己的水流规则检查下方和四个侧面；旁边还有方块没打印的，会等它打好再倒。投影本身在某一侧就是开着的，这个方块保持不含水，也算完成。水桶从背包或潜影盒里拿，缺的会显示在缺失材料提示里。打印机会等服务器确认已经含水，没加上会重试。用 45 种可含水方块测试过，也测了模拟卡顿的情况。
+- **缺失材料提示：** 以前打印机每次重新扫描都会让列表空一下，现在等整轮扫描完才更新。
+
+</details>
 
 ## 1.0.0+1.21.10 — 2026-10-07
 
