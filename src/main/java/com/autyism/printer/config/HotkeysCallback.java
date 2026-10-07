@@ -37,6 +37,9 @@ public class HotkeysCallback {
         // 打开设置界面
         Configs.Hotkeys.OPEN_SCREEN.getKeybind().setCallback((action, keybind) -> {
             if (client.player != null && client.level != null) {
+                //? if >=26.2 {
+                /*client.gui.setScreen(new ConfigUi());
+                *///?} else
                 client.setScreen(new ConfigUi());
             }
             return true;

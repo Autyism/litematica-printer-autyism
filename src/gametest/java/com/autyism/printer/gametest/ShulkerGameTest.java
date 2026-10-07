@@ -97,6 +97,9 @@ public final class ShulkerGameTest implements FabricClientGameTest {
         int ticks;
         try {
             ticks = GT.waitServer(context, () -> {
+                //? if >=26.2 {
+                /*if (context.computeOnClient(c -> c.gui.screen() != null)) screenSeen[0] = true;
+                *///?} else
                 if (context.computeOnClient(c -> c.screen != null)) screenSeen[0] = true;
                 return GT.countPlaced(sp, ROW_MIN, ROW_MAX) == 6;
             }, 400, "[shulker] restock" + (full ? " (full inventory)" : "") + ": row was not printed");
@@ -108,6 +111,9 @@ public final class ShulkerGameTest implements FabricClientGameTest {
             }));
             GT.log("[shulker] FAIL STATE placed=" + GT.countPlaced(sp, ROW_MIN, ROW_MAX) + " " + context.computeOnClient(c ->
                     com.autyism.printer.handler.ModuleManager.PRINT.debugState() + " qsBusy=" + com.autyism.printer.utils.QuickShulkerUtils.isBusy()
+                            //? if >=26.2 {
+                            /*+ " screen=" + c.gui.screen() + " menu=" + c.player.containerMenu.getClass().getSimpleName()
+                            *///?} else
                             + " screen=" + c.screen + " menu=" + c.player.containerMenu.getClass().getSimpleName()
                             + " hand=" + c.player.getMainHandItem() + " slot20=" + c.player.getInventory().getItem(20)));
             throw e;

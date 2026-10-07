@@ -57,6 +57,9 @@ public final class ContainerPauseGameTest implements FabricClientGameTest {
     private int runScenario(ClientGameTestContext context, TestSingleplayerContext sp, boolean guard) {
         context.runOnClient(client -> {
             GT.disableAll();
+            //? if >=26.2 {
+            /*if (client.gui.screen() != null) client.player.closeContainer();
+            *///?} else
             if (client.screen != null) client.player.closeContainer();
         });
         GT.clearArena(sp, 36, -3, 50, 8, 70);
@@ -87,8 +90,14 @@ public final class ContainerPauseGameTest implements FabricClientGameTest {
                 // 背包同步偶尔被上一个测试留下的状态打断：重发一次
                 GT.log("[container] waiting for setup: " + context.computeOnClient(c -> "chest=" + c.level.getBlockState(CHEST)
                         + " slot9=" + c.player.getInventory().getItem(9) + " slot0=" + c.player.getInventory().getItem(0)
+                        //? if >=26.2 {
+                        /*+ " slot1=" + c.player.getInventory().getItem(1) + " z=" + c.player.getZ() + " screen=" + c.gui.screen()));
+                        *///?} else
                         + " slot1=" + c.player.getInventory().getItem(1) + " z=" + c.player.getZ() + " screen=" + c.screen));
                 // 上一个场景里延迟处理的容器操作可能在清空背包之后才生效：重新准备一遍
+                //? if >=26.2 {
+                /*context.runOnClient(c -> { if (c.gui.screen() != null) c.player.closeContainer(); });
+                *///?} else
                 context.runOnClient(c -> { if (c.screen != null) c.player.closeContainer(); });
                 sp.getServer().runOnServer(setup::accept);
                 sp.getServer().runCommand("tp @a 43.5 64 3.5 0 0");
@@ -110,6 +119,9 @@ public final class ContainerPauseGameTest implements FabricClientGameTest {
         // 玩家右键箱子（服务端立即打开，客户端 12 tick 后才知道）
         context.runOnClient(client -> client.gameMode.useItemOn(client.player, InteractionHand.MAIN_HAND,
                 new BlockHitResult(Vec3.atCenterOf(CHEST).add(0, 0.5, 0), Direction.UP, CHEST, false)));
+        //? if >=26.2 {
+        /*context.waitFor(client -> client.gui.screen() instanceof AbstractContainerScreen<?>, 100);
+        *///?} else
         context.waitFor(client -> client.screen instanceof AbstractContainerScreen<?>, 100);
         int atOpen = GT.countPlaced(sp, MIN, MAX);
         context.waitTicks(15);
@@ -125,6 +137,9 @@ public final class ContainerPauseGameTest implements FabricClientGameTest {
             GT.waitServer(context, () -> GT.countPlaced(sp, MIN, MAX) >= total, 600, "print did not finish");
         } catch (AssertionError e) {
             GT.log("[container] FAIL STATE placed=" + GT.countPlaced(sp, MIN, MAX) + "/" + total + " " + context.computeOnClient(c ->
+                    //? if >=26.2 {
+                    /*com.autyism.printer.handler.ModuleManager.PRINT.debugState() + " screen=" + c.gui.screen()
+                    *///?} else
                     com.autyism.printer.handler.ModuleManager.PRINT.debugState() + " screen=" + c.screen
                             + " menu=" + c.player.containerMenu.getClass().getSimpleName() + " hand=" + c.player.getMainHandItem()
                             + " paused=" + com.autyism.printer.printer.ContainerGuard.isPaused()

@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.blaze3d.systems.RenderSystem;
+//? if <26.2
 import com.mojang.blaze3d.vertex.Tesselator;
 import fi.dy.masa.malilib.interfaces.IRenderer;
 import com.autyism.printer.Reference;
@@ -150,9 +151,15 @@ public class BlockHighlightRenderer implements IRenderer {
                 ? MaLiLibPipelines.POSITION_COLOR_TRANSLUCENT_NO_DEPTH_NO_CULL
                 : MaLiLibPipelines.POSITION_COLOR_TRANSLUCENT_LEQUAL_DEPTH_NO_CULL;
 
+        //? if >=26.2 {
+        /*RenderContext ctx = new RenderContext(() -> "litematica_printer:highlight", linePipeline, 0);
+        *///?} else
         RenderContext ctx = new RenderContext(() -> "litematica_printer:highlight", linePipeline);
         try {
             if (hasOutline) {
+                //? if >=26.2 {
+                /*ctx.start(() -> "highlight_outline", linePipeline, 0);
+                *///?} else
                 ctx.start(() -> "highlight_outline", linePipeline);
                 BufferBuilder lineBuf = ctx.getBuilder();
                 for (HighlightEntry e : entries) {
@@ -168,6 +175,9 @@ public class BlockHighlightRenderer implements IRenderer {
             }
 
             if (hasFilled) {
+                //? if >=26.2 {
+                /*BufferBuilder filledBuf = ctx.start(() -> "highlight_filled", filledPipeline, 0);
+                *///?} else
                 BufferBuilder filledBuf = ctx.start(() -> "highlight_filled", filledPipeline);
                 for (HighlightEntry e : entries) {
                     if (e.style == HighlightStyleType.OUTLINE) continue;

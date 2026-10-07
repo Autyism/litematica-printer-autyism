@@ -9,6 +9,9 @@ import fi.dy.masa.litematica.selection.Box;
 import fi.dy.masa.litematica.selection.SelectionMode;
 import fi.dy.masa.litematica.util.EasyPlaceProtocol;
 import fi.dy.masa.litematica.util.PlacementHandler;
+//? if >=26.2 {
+/*import fi.dy.masa.litematica.util.EasyPlaceUtils;
+*///?} else
 import fi.dy.masa.litematica.util.WorldUtils;
 import fi.dy.masa.litematica.world.SchematicWorldHandler;
 import com.autyism.printer.config.Configs;
@@ -37,12 +40,18 @@ public class LitematicaUtils {
             EasyPlaceProtocol protocol = PlacementHandler.getEffectiveProtocolVersion();
             Vec3 hitPos = Vec3.atLowerCornerOf(pos);
             if (protocol == EasyPlaceProtocol.V3) {
+                //? if >=26.2 {
+                /*return EasyPlaceUtils.applyPlacementProtocolV3(pos, stateSchematic, hitPos);
+                *///?} else
                 return WorldUtils.applyPlacementProtocolV3(pos, stateSchematic, hitPos);
             } else if (protocol == EasyPlaceProtocol.V2
                     && fi.dy.masa.litematica.config.Configs.Generic.EASY_PLACE_PROTOCOL.getOptionListValue() == EasyPlaceProtocol.V2) {
                 // Carpet 的协议要服务器打开 accurateBlockPlacement 规则，没开时服务端会直接拒绝这种放置：
                 // 只有玩家在 Litematica 里明确选了 V2 才用，“自动”时只用确定可用的 V3（单人 / Servux）
                 // Carpet Accurate Block placements protocol support, plus slab support
+                //? if >=26.2 {
+                /*return EasyPlaceUtils.applyCarpetProtocolHitVec(pos, stateSchematic, hitPos);
+                *///?} else
                 return WorldUtils.applyCarpetProtocolHitVec(pos, stateSchematic, hitPos);
             }
         }
@@ -54,6 +63,9 @@ public class LitematicaUtils {
         List<SchematicPlacementManager.PlacementPart> allPlacementsTouchingChunk = schematicPlacementManager.getAllPlacementsTouchingChunk(pos);
 
         for (SchematicPlacementManager.PlacementPart placementPart : allPlacementsTouchingChunk) {
+            //? if >=26.2 {
+            /*if (placementPart.getBox().contains(pos)) {
+            *///?} else
             if (placementPart.getBox().containsPos(pos)) {
                 SubRegionPlacement subRegion = getSubRegionForPlacementPart(placementPart);
                 if (subRegion != null) {

@@ -12,17 +12,25 @@ public class MessageUtils {
     public static final Minecraft client = Minecraft.getInstance();
 
     public static void setOverlayMessage(Component message, boolean bl) {
+        //? if >=26.2 {
+        /*client.gui.hud.setOverlayMessage(message, bl);
+        *///?} else
         client.gui.setOverlayMessage(message, bl);
     }
 
     public static void addMessage(Component message) {
-        //? if >=26.1 {
+        //? if >=26.2 {
+        /*client.gui.hud.getChat().addClientSystemMessage(message);
+        *///?} elif >=26.1 {
         /*client.gui.getChat().addClientSystemMessage(message);
         *///?} else
         client.gui.getChat().addMessage(message);
     }
 
     public static void setOverlayMessage(Component message) {
+        //? if >=26.2 {
+        /*client.gui.hud.setOverlayMessage(message, false);
+        *///?} else
         client.gui.setOverlayMessage(message, false);
     }
 
