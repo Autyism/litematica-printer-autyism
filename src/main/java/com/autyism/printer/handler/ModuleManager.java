@@ -76,7 +76,10 @@ public class ModuleManager {
         // 每个世界开头 / 刚打开打印机：服务端选中的快捷栏格子和客户端对齐（有的模组会拦掉“重复”的切换包，见 SlotResync）
         if (printerEnabled) com.autyism.printer.printer.SlotResync.ensure(mc.player, mc.level, justEnabled);
 
-        MissingMaterialTracker.getInstance().startCycle();
+        // 停止工作的模式记录的缺失材料不再显示
+        for (Module module : VALUES) {
+            if (!module.isActive()) MissingMaterialTracker.getInstance().dropSource(module);
+        }
 
         if (ActionManager.INSTANCE.sendQueue(mc.player).needWaitModifyLook) {
             return;

@@ -100,12 +100,12 @@ public class FluidRemoval extends Module {
             }
             if (!InventoryUtils.switchToItems(player, fillItems.toArray(new Item[0]))) {
                 if (!fillItems.isEmpty() && fillItems.get(0) != null) {
-                    MissingMaterialTracker.getInstance().recordMissing(fillItems.get(0),
+                    MissingMaterialTracker.getInstance().recordMissing(this, fillItems.get(0),
                             //? if >=26.1 {
                             /*fillItems.get(0).components().getOrDefault(net.minecraft.core.component.DataComponents.ITEM_NAME, net.minecraft.network.chat.CommonComponents.EMPTY)
                             *///?} else
                             fillItems.get(0).getName()
-                    );
+                    , 0);
                 }
                 return;
             }
