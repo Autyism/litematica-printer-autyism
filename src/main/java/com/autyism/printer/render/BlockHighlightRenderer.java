@@ -36,11 +36,32 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.renderer.RenderBuffers;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.util.profiling.ProfilerFiller;
+//? if >=26.1 {
+/*import com.mojang.blaze3d.buffers.GpuBufferSlice;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
+import org.joml.Matrix4fc;
+import org.joml.Vector4f;
+*///?}
 
 public class BlockHighlightRenderer implements IRenderer {
 
     // ===== Render Entry Points =====
 
+    //? if >=26.1 {
+    /*@Override
+    public void onRenderWorldLast(
+            RenderTarget renderTarget,
+            Matrix4fc projMatrix,
+            CameraRenderState cameraRenderState,
+            Frustum frustum,
+            RenderBuffers buffers,
+            GpuBufferSlice fogBuffer,
+            Vector4f fogColor,
+            ProfilerFiller profiler
+    ) {
+        renderInternal(cameraRenderState.pos);
+    }
+    *///?} else {
     @Override
     public void onRenderWorldLastAdvanced(
             RenderTarget renderTarget,
@@ -53,6 +74,7 @@ public class BlockHighlightRenderer implements IRenderer {
     ) {
         renderInternal(camera.position());
     }
+    //?}
 
     /** Match malilib's camPos() pattern: rendering camera, not player eye */
 

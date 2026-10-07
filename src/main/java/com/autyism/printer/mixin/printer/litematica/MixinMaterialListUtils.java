@@ -8,6 +8,9 @@ import net.minecraft.world.Container;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
+//? if >=26.1 {
+/*import fi.dy.masa.malilib.util.data.ItemType;
+*///?} else
 import fi.dy.masa.malilib.util.ItemType;
 
 @Mixin(MaterialListUtils.class)

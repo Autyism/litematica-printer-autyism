@@ -130,6 +130,9 @@ public final class ShulkerGameTest implements FabricClientGameTest {
                     ItemStack st = inv.getItem(i);
                     if (st.is(Items.WHITE_SHULKER_BOX)) {
                         int n = 0;
+                        //? if >=26.1 {
+                        /*for (ItemStack c : (Iterable<ItemStack>) st.get(DataComponents.CONTAINER).nonEmptyItemCopyStream()::iterator) if (c.is(Items.ANDESITE)) n += c.getCount();
+                        *///?} else
                         for (ItemStack c : st.get(DataComponents.CONTAINER).nonEmptyItems()) if (c.is(Items.ANDESITE)) n += c.getCount();
                         return n;
                     }
@@ -195,6 +198,9 @@ public final class ShulkerGameTest implements FabricClientGameTest {
             for (int i = 0; i < 36; i++) {
                 ItemStack st = inv.getItem(i);
                 if (st.is(Items.WHITE_SHULKER_BOX)) {
+                    //? if >=26.1 {
+                    /*for (ItemStack c : (Iterable<ItemStack>) st.get(DataComponents.CONTAINER).nonEmptyItemCopyStream()::iterator) if (c.is(Items.DIRT)) dirtBoxKept = true;
+                    *///?} else
                     for (ItemStack c : st.get(DataComponents.CONTAINER).nonEmptyItems()) if (c.is(Items.DIRT)) dirtBoxKept = true;
                 }
             }

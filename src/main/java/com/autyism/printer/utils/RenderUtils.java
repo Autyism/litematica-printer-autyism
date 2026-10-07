@@ -35,6 +35,9 @@ public class RenderUtils {
             x -= client.font.width(text) / 2;
         }
         ensureInitialized();
+        //? if >=26.1 {
+        /*guiGraphics.text(client.font, text, x, y, color.getRGB(), withShadow);
+        *///?} else
         guiGraphics.drawString(client.font, text, x, y, color.getRGB(), withShadow);
     }
 

@@ -358,6 +358,9 @@ public class BlockUtils {
 
     @SuppressWarnings("UnstableApiUsage")
     public static Map<Block, Block> getStrippedBlocksMap() {
+        //? if >=26.1 {
+        /*return net.fabricmc.fabric.mixin.content.registry.AxeItemAccessor.getStrippables();
+        *///?} else
         return net.fabricmc.fabric.mixin.content.registry.AxeItemAccessor.getStrippedBlocks();
     }
 }

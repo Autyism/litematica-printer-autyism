@@ -99,6 +99,9 @@ public abstract class MixinGui {
     }
 
     // @formatter:off
+    //? if >=26.1 {
+    /*@Inject(method = "extractItemHotbar", at = @At("TAIL"))
+    *///?} else
     @Inject(method = "renderItemHotbar", at = @At("TAIL"))
 
     private void hookRenderItemHotbar(GuiGraphics guiGraphics, DeltaTracker deltaTracker, CallbackInfo ci) {

@@ -104,8 +104,13 @@ public class MissingMaterialHudRenderer implements IInfoHudRenderer
 
         drawContext.fill(x1, y1, x2, y2, BG_COLOR);
 
+        //? if >=26.1 {
+        /*drawContext.text(font, title,
+                posX + 2, posY + 2, TEXT_COLOR, true);
+        *///?} else {
         drawContext.drawString(font, title,
                 posX + 2, posY + 2, TEXT_COLOR, true);
+        //?}
 
         int itemIconX = posX;
         int itemTextX = posX + 18;
@@ -114,14 +119,22 @@ public class MissingMaterialHudRenderer implements IInfoHudRenderer
             MissingMaterialTracker.Entry entry = missing.get(i);
             ItemStack stack = entry.item.getDefaultInstance();
 
+            //? if >=26.1 {
+            /*drawContext.item(stack, itemIconX, itemY);
+            drawContext.itemDecorations(font, stack, itemIconX, itemY);
+            *///?} else {
             drawContext.renderItem(stack, itemIconX, itemY);
             drawContext.renderItemDecorations(font, stack, itemIconX, itemY);
+            //?}
 
             String name = getItemName(entry);
             int availableWidth = maxLineLength - 20;
             if (font.width(name) > availableWidth) {
                 name = font.plainSubstrByWidth(name, availableWidth - font.width("...")) + "...";
             }
+            //? if >=26.1 {
+            /*drawContext.text(font, name, itemTextX, itemY + 4, TEXT_COLOR, true);
+            *///?} else
             drawContext.drawString(font, name, itemTextX, itemY + 4, TEXT_COLOR, true);
 
             itemY += LINE_HEIGHT;
@@ -129,8 +142,13 @@ public class MissingMaterialHudRenderer implements IInfoHudRenderer
 
         if (showOverflow) {
             String overflow = String.format(Language.getInstance().getOrDefault("litematica-printer-autyism.hud.missing.overflow"), missing.size() - MAX_DISPLAY_ITEMS);
+            //? if >=26.1 {
+            /*drawContext.text(font, overflow,
+                    posX + 2, itemY + 4, TEXT_COLOR_GRAY, true);
+            *///?} else {
             drawContext.drawString(font, overflow,
                     posX + 2, itemY + 4, TEXT_COLOR_GRAY, true);
+            //?}
         }
 
         return contentHeight + 4;
