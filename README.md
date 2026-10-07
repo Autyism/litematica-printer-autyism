@@ -1,11 +1,11 @@
 <p align="center"><img src="docs/icon.png" width="128" alt="icon"></p>
 <h1 align="center">Litematica Printer Autyism Edition</h1>
-<p align="center">A standalone Litematica printer for Minecraft 1.21.11 and 26.1–26.1.2 that builds schematics from the bottom up and takes care with redstone, rails and laggy servers.</p>
-<p align="center">适用于 Minecraft 1.21.11 和 26.1–26.1.2 的独立投影打印机：从最底层开始往上打印，红石、铁轨和服务器延迟都处理得更稳。</p>
+<p align="center">A standalone Litematica printer for Minecraft 1.21.11 and 26.1–26.3 that builds schematics from the bottom up and takes care with redstone, rails and laggy servers.</p>
+<p align="center">适用于 Minecraft 1.21.11 和 26.1–26.3 的独立投影打印机：从最底层开始往上打印，红石、铁轨和服务器延迟都处理得更稳。</p>
 
 <p align="center"><a href="#english">English</a> · <a href="#简体中文">简体中文</a></p>
 
-[![Minecraft 1.21.11 | 26.1–26.1.2](https://img.shields.io/badge/Minecraft-1.21.11_%7C_26.1--26.1.2-62B47A)](https://www.minecraft.net/) [![Fabric](https://img.shields.io/badge/Loader-Fabric-DBD0B4)](https://fabricmc.net/) [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue)](LICENSE.md)
+[![Minecraft 1.21.11 | 26.1–26.3](https://img.shields.io/badge/Minecraft-1.21.11_%7C_26.1--26.3-62B47A)](https://www.minecraft.net/) [![Fabric](https://img.shields.io/badge/Loader-Fabric-DBD0B4)](https://fabricmc.net/) [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue)](LICENSE.md)
 
 # English
 
@@ -291,6 +291,8 @@ There is a separate jar for each Minecraft version:
 |---|---|---|---|---|---|
 | 1.21.11 | `litematica-printer-autyism-1.0.0.jar` | 21 | 0.17.0 or newer | 0.27.0 or newer | 0.26.0 or newer |
 | 26.1, 26.1.1, 26.1.2 | `litematica-printer-autyism-1.0.0+26.1.2.jar` | 25 | 0.19.3 or newer | 0.28.12 or newer | 0.27.14 or newer |
+| 26.2 | `litematica-printer-autyism-1.0.0+26.2.jar` | 25 | 0.19.3 or newer | 0.29.6 or newer | 0.28.8 or newer |
+| 26.3 | `litematica-printer-autyism-1.0.0+26.3.jar` | 25 | 0.19.3 or newer | 0.30.2 or newer | 0.29.1 or newer |
 
 [Fabric API](https://modrinth.com/mod/fabric-api), [MaLiLib](https://modrinth.com/mod/malilib) and [Litematica](https://modrinth.com/mod/litematica) are required, each in the build for your Minecraft version.
 
@@ -299,7 +301,7 @@ Optional:
 - [Mod Menu](https://modrinth.com/mod/modmenu): settings button in the mod list.
 - Autyism's Litematica Enhancement (ALE): visual block picker for all block lists.
 - [Tweakeroo](https://modrinth.com/mod/tweakeroo): use its block-breaking restriction lists for the printer.
-- [Advanced Shulkerboxes](https://modrinth.com/mod/advanced-shulkerboxes) or QuickShulker (mod id `quickshulker`): shulker box restocking. Install it on your client and on the server.
+- [Advanced Shulkerboxes](https://modrinth.com/mod/advanced-shulkerboxes) or QuickShulker (mod id `quickshulker`): shulker box restocking. Install it on your client and on the server. Advanced Shulkerboxes has no 26.3 version yet.
 - AxShulkers (server plugin): shulker box restocking on servers that use it.
 - [Servux](https://modrinth.com/mod/servux) on the server: Easy Place protocol in multiplayer.
 - A bedrock-breaking mod for bedrock mode: [Fabric-Bedrock-Miner](https://modrinth.com/mod/fabric-bedrock-miner) (LXYan2333), [Bedrock Miner](https://modrinth.com/mod/next-fabric-bedrock-miner) (bunnyi116) or [BlockMiner](https://github.com/z7087/blockminer).
@@ -671,6 +673,8 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 |---|---|---|---|---|---|
 | 1.21.11 | `litematica-printer-autyism-1.0.0.jar` | 21 | 0.17.0 或更高 | 0.27.0 或更高 | 0.26.0 或更高 |
 | 26.1、26.1.1、26.1.2 | `litematica-printer-autyism-1.0.0+26.1.2.jar` | 25 | 0.19.3 或更高 | 0.28.12 或更高 | 0.27.14 或更高 |
+| 26.2 | `litematica-printer-autyism-1.0.0+26.2.jar` | 25 | 0.19.3 或更高 | 0.29.6 或更高 | 0.28.8 或更高 |
+| 26.3 | `litematica-printer-autyism-1.0.0+26.3.jar` | 25 | 0.19.3 或更高 | 0.30.2 或更高 | 0.29.1 或更高 |
 
 [Fabric API](https://modrinth.com/mod/fabric-api)、[MaLiLib](https://modrinth.com/mod/malilib) 和 [Litematica](https://modrinth.com/mod/litematica) 都是必需的，各自下载你的 Minecraft 版本对应的那一版。
 
@@ -679,7 +683,7 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 - [Mod Menu](https://modrinth.com/mod/modmenu)：在模组列表里提供设置按钮。
 - Autyism 的投影增强（ALE）：所有方块列表都能用图形界面选择方块。
 - [Tweakeroo](https://modrinth.com/mod/tweakeroo)：打印机可以使用它的破坏限制列表。
-- [Advanced Shulkerboxes](https://modrinth.com/mod/advanced-shulkerboxes) 或 QuickShulker（模组 ID `quickshulker`）：潜影盒补货。客户端和服务器都要装。
+- [Advanced Shulkerboxes](https://modrinth.com/mod/advanced-shulkerboxes) 或 QuickShulker（模组 ID `quickshulker`）：潜影盒补货。客户端和服务器都要装。Advanced Shulkerboxes 目前还没有 26.3 版。
 - AxShulkers（服务器插件）：在使用它的服务器上补货。
 - 服务器装 [Servux](https://modrinth.com/mod/servux)：多人游戏也能用轻松放置协议。
 - 破基岩模式需要一个破基岩模组：[Fabric-Bedrock-Miner](https://modrinth.com/mod/fabric-bedrock-miner)（LXYan2333）、[Bedrock Miner](https://modrinth.com/mod/next-fabric-bedrock-miner)（bunnyi116）或 [BlockMiner](https://github.com/z7087/blockminer)。
