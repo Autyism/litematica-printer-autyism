@@ -1,11 +1,11 @@
 <p align="center"><img src="docs/icon.png" width="128" alt="icon"></p>
 <h1 align="center">Litematica Printer Autyism Edition</h1>
-<p align="center">A standalone Litematica printer for Minecraft 1.21.11 that builds schematics from the bottom up and takes care with redstone, rails and laggy servers.</p>
-<p align="center">适用于 Minecraft 1.21.11 的独立投影打印机：从最底层开始往上打印，红石、铁轨和服务器延迟都处理得更稳。</p>
+<p align="center">A standalone Litematica printer for Minecraft 1.21.11 and 26.1–26.1.2 that builds schematics from the bottom up and takes care with redstone, rails and laggy servers.</p>
+<p align="center">适用于 Minecraft 1.21.11 和 26.1–26.1.2 的独立投影打印机：从最底层开始往上打印，红石、铁轨和服务器延迟都处理得更稳。</p>
 
 <p align="center"><a href="#english">English</a> · <a href="#简体中文">简体中文</a></p>
 
-[![Minecraft 1.21.11](https://img.shields.io/badge/Minecraft-1.21.11-62B47A)](https://www.minecraft.net/) [![Fabric](https://img.shields.io/badge/Loader-Fabric-DBD0B4)](https://fabricmc.net/) [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue)](LICENSE.md)
+[![Minecraft 1.21.11 | 26.1–26.1.2](https://img.shields.io/badge/Minecraft-1.21.11_%7C_26.1--26.1.2-62B47A)](https://www.minecraft.net/) [![Fabric](https://img.shields.io/badge/Loader-Fabric-DBD0B4)](https://fabricmc.net/) [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue)](LICENSE.md)
 
 # English
 
@@ -285,14 +285,14 @@ The Printing tab ends with the placing settings, which Filling and Fluid Removal
 
 ## Requirements
 
-| | Version | Notes |
-|---|---|---|
-| Minecraft | 1.21.11 | Java Edition |
-| Java | 21 | |
-| Fabric Loader | 0.17.0 or newer | |
-| [Fabric API](https://modrinth.com/mod/fabric-api) | for 1.21.11 | required |
-| [MaLiLib](https://modrinth.com/mod/malilib) | 0.27.0 or newer | required |
-| [Litematica](https://modrinth.com/mod/litematica) | 0.26.0 or newer | required |
+There is a separate jar for each Minecraft version:
+
+| Minecraft | Jar | Java | Fabric Loader | MaLiLib | Litematica |
+|---|---|---|---|---|---|
+| 1.21.11 | `litematica-printer-autyism-1.0.0.jar` | 21 | 0.17.0 or newer | 0.27.0 or newer | 0.26.0 or newer |
+| 26.1, 26.1.1, 26.1.2 | `litematica-printer-autyism-1.0.0+26.1.2.jar` | 25 | 0.19.3 or newer | 0.28.12 or newer | 0.27.14 or newer |
+
+[Fabric API](https://modrinth.com/mod/fabric-api), [MaLiLib](https://modrinth.com/mod/malilib) and [Litematica](https://modrinth.com/mod/litematica) are required, each in the build for your Minecraft version.
 
 Optional:
 
@@ -309,7 +309,7 @@ Optional:
 ## Compatibility
 
 - **Other printers:** do not install together with another Litematica Printer build (BiliXWhite, water2004, aleksilassila). The game refuses to start next to them (mod ids `litematica-printer` and `litematica_printer`).
-- **Sodium and Iris:** no known problems; the printer was tested in a modpack that uses both.
+- **Sodium and Iris:** no known problems; the printer was tested in a 1.21.11 modpack that uses both.
 - **Tweakeroo:** works alongside it. The printer's tool switching is its own and does not need Tweakeroo's.
 - **Meteor Client:** printing works with NoGhostBlocks on. Bedrock Miner (bunnyi116) cannot break anything while NoGhostBlocks is on; the printer shows a warning. Turn NoGhostBlocks off or use Fabric-Bedrock-Miner (LXYan2333).
 - **Carpet:** Carpet's Easy Place protocol (V2) is only used if you select Version 2 in Litematica's settings, because it needs the server's `accurateBlockPlacement` rule.
@@ -317,8 +317,8 @@ Optional:
 
 ## Installation
 
-1. Install Fabric Loader 0.17.0 or newer for Minecraft 1.21.11 (Java 21).
-2. Download Fabric API, MaLiLib and Litematica for 1.21.11, and this mod.
+1. Install Fabric Loader for your Minecraft version (see the table above for the versions and Java you need).
+2. Download Fabric API, MaLiLib and Litematica for that Minecraft version, and the jar of this mod for it.
 3. Put all the jar files into your `mods` folder.
 4. Remove any other Litematica Printer jar from the folder.
 5. Start the game, join a world and press **Z + Y** to open the settings.
@@ -665,14 +665,14 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 
 ## 前置要求
 
-| | 版本 | 说明 |
-|---|---|---|
-| Minecraft | 1.21.11 | Java 版 |
-| Java | 21 | |
-| Fabric Loader | 0.17.0 或更高 | |
-| [Fabric API](https://modrinth.com/mod/fabric-api) | 1.21.11 对应版本 | 必需 |
-| [MaLiLib](https://modrinth.com/mod/malilib) | 0.27.0 或更高 | 必需 |
-| [Litematica](https://modrinth.com/mod/litematica) | 0.26.0 或更高 | 必需 |
+每个 Minecraft 版本有单独的 jar：
+
+| Minecraft | jar 文件 | Java | Fabric Loader | MaLiLib | Litematica |
+|---|---|---|---|---|---|
+| 1.21.11 | `litematica-printer-autyism-1.0.0.jar` | 21 | 0.17.0 或更高 | 0.27.0 或更高 | 0.26.0 或更高 |
+| 26.1、26.1.1、26.1.2 | `litematica-printer-autyism-1.0.0+26.1.2.jar` | 25 | 0.19.3 或更高 | 0.28.12 或更高 | 0.27.14 或更高 |
+
+[Fabric API](https://modrinth.com/mod/fabric-api)、[MaLiLib](https://modrinth.com/mod/malilib) 和 [Litematica](https://modrinth.com/mod/litematica) 都是必需的，各自下载你的 Minecraft 版本对应的那一版。
 
 可选：
 
@@ -689,7 +689,7 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 ## 兼容性
 
 - **其他打印机：** 不要和其他 Litematica Printer（BiliXWhite 版、water2004 版、aleksilassila 原版）同时安装。和它们同时安装时游戏会拒绝启动（模组 ID 为 `litematica-printer` 或 `litematica_printer`）。
-- **Sodium 和 Iris：** 没有已知问题，打印机在同时装了两者的整合包里测试过。
+- **Sodium 和 Iris：** 没有已知问题，打印机在同时装了两者的 1.21.11 整合包里测试过。
 - **Tweakeroo：** 可以一起用。打印机的自动换工具是自己实现的，不依赖 Tweakeroo 的换工具功能。
 - **Meteor Client：** 开着 NoGhostBlocks（防幽灵方块）时打印正常。但 Bedrock Miner（bunnyi116）在 NoGhostBlocks 开着时什么都破不掉，打印机会给出提示；请关掉 NoGhostBlocks，或改用 Fabric-Bedrock-Miner（LXYan2333）。
 - **Carpet：** Carpet 的轻松放置协议（V2）只有在 Litematica 设置里手动选择 V2 时才会用，因为它需要服务器打开 `accurateBlockPlacement` 规则。
@@ -697,8 +697,8 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 
 ## 安装
 
-1. 为 Minecraft 1.21.11 安装 Fabric Loader 0.17.0 或更高版本（Java 21）。
-2. 下载 1.21.11 对应的 Fabric API、MaLiLib、Litematica 以及本模组。
+1. 为你的 Minecraft 版本安装 Fabric Loader（需要的版本和 Java 见上表）。
+2. 下载这个 Minecraft 版本对应的 Fabric API、MaLiLib、Litematica，以及本模组对应这个版本的 jar。
 3. 把所有 jar 文件放进 `mods` 文件夹。
 4. 删掉文件夹里其他的 Litematica Printer jar。
 5. 启动游戏，进入世界，按 **Z + Y** 打开设置。
