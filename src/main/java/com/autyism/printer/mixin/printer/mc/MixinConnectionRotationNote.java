@@ -25,8 +25,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(Connection.class)
 public abstract class MixinConnectionRotationNote {
+    //? if <1.21.6 {
+    /*@Inject(method = "send(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketSendListener;Z)V", at = @At("HEAD"))
+    private void litematica_printer$noteRotation(Packet<?> packet, net.minecraft.network.PacketSendListener listener, boolean flush, CallbackInfo ci) {
+    *///?} else {
     @Inject(method = "send(Lnet/minecraft/network/protocol/Packet;Lio/netty/channel/ChannelFutureListener;Z)V", at = @At("HEAD"))
     private void litematica_printer$noteRotation(Packet<?> packet, ChannelFutureListener listener, boolean flush, CallbackInfo ci) {
+    //?}
         if (packet instanceof ServerboundMovePlayerPacket move && move.hasRotation()) {
             ActionManager.INSTANCE.noteSentRotation(move.getYRot(0));
         } else if (packet instanceof ServerboundUseItemPacket use) {
