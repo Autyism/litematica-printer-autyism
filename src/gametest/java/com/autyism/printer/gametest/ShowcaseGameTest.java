@@ -170,7 +170,7 @@ public final class ShowcaseGameTest implements FabricClientGameTest {
                     context.runOnClient(client -> Configs.Core.WORK_SWITCH.setBooleanValue(false));
                     context.waitTicks(10);
                     tidy(context);
-                    context.takeScreenshot("printer-showcase-building");
+                    GT.screenshot(context, "printer-showcase-building");
                     context.runOnClient(client -> Configs.Core.WORK_SWITCH.setBooleanValue(true));
                 }
                 return placed >= total;
@@ -188,7 +188,7 @@ public final class ShowcaseGameTest implements FabricClientGameTest {
             *///?} else
             context.runOnClient(client -> client.options.hideGui = true);
             context.waitTicks(3);
-            context.takeScreenshot("printer-showcase-done");
+            GT.screenshot(context, "printer-showcase-done");
             //? if >=26.2 {
             /*context.runOnClient(client -> { if (client.gui.hud.isHidden()) client.gui.hud.toggle(); });
             *///?} else

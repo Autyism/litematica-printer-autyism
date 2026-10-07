@@ -65,14 +65,14 @@ public final class VisualsGameTest implements FabricClientGameTest {
                 GT.enablePrint();
             });
             context.waitTicks(25);
-            GT.log("[visuals] SCREENSHOT " + context.takeScreenshot("visuals-1-both").toAbsolutePath());
+            GT.log("[visuals] SCREENSHOT " + GT.screenshot(context, "visuals-1-both").toAbsolutePath());
 
             context.runOnClient(client -> {
                 Configs.Highlight.HIGHLIGHT_STYLE.setOptionListValue(HighlightStyleType.FILLED);
                 Configs.Highlight.HIGHLIGHT_THROUGH_WALLS.setBooleanValue(true);
             });
             context.waitTicks(10);
-            GT.log("[visuals] SCREENSHOT " + context.takeScreenshot("visuals-2-filled-through-walls").toAbsolutePath());
+            GT.log("[visuals] SCREENSHOT " + GT.screenshot(context, "visuals-2-filled-through-walls").toAbsolutePath());
 
             int total = (MAX.getX() - MIN.getX() + 1) * (MAX.getY() - MIN.getY() + 1) * (MAX.getZ() - MIN.getZ() + 1);
             GT.waitServer(context, () -> GT.countPlaced(sp, MIN, MAX) >= total - 1, 1200, "[visuals] print did not finish");
@@ -84,7 +84,7 @@ public final class VisualsGameTest implements FabricClientGameTest {
                 Configs.Highlight.HIGHLIGHT_THROUGH_WALLS.setBooleanValue(false);
             });
             context.waitTicks(5);
-            GT.log("[visuals] SCREENSHOT " + context.takeScreenshot("visuals-3-missing-material").toAbsolutePath());
+            GT.log("[visuals] SCREENSHOT " + GT.screenshot(context, "visuals-3-missing-material").toAbsolutePath());
             if (!goldMissing) throw new AssertionError("[visuals] the gold block was not reported as a missing material");
             var wrong = GT.mismatches(sp, MIN, MAX, p -> p.equals(GOLD) ? Blocks.AIR.defaultBlockState() : expected(p));
             if (!wrong.isEmpty()) throw new AssertionError("[visuals] wrong blocks: " + wrong);
