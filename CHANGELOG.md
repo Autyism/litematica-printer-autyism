@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.0+1.20.1 — 2026-10-08
+
+- The printer for Minecraft 1.20.1, with the same features and settings as 1.1.0.
+- Needs Java 17, Fabric Loader 0.16.10, MaLiLib 0.16.3 and Litematica 0.15.4 or newer.
+
+### 中文
+
+- 适用于 Minecraft 1.20.1 的打印机，功能和设置与 1.1.0 相同。
+- 需要 Java 17、Fabric Loader 0.16.10、MaLiLib 0.16.3 和 Litematica 0.15.4 或更高版本。
+
 ## 1.1.0 — 2026-10-07
 
 - New: **Print Waterlogged Blocks** (off by default). Pours water into waterlogged blocks, only where it can't leak out.
