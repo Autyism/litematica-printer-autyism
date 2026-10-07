@@ -57,6 +57,11 @@ public final class WaterlogGameTest implements FabricClientGameTest {
         return s.setValue(BlockStateProperties.WATERLOGGED, true);
     }
 
+    /** 按 id 取方块（铜方块在 26.2 起是一组按氧化程度分的方块） */
+    private static Block block(String id) {
+        return net.minecraft.core.registries.BuiltInRegistries.BLOCK.getValue(net.minecraft.resources.Identifier.withDefaultNamespace(id));
+    }
+
     private static BlockState chain() {
         //? if <1.21.9 {
         /*return Blocks.CHAIN.defaultBlockState();
@@ -89,8 +94,8 @@ public final class WaterlogGameTest implements FabricClientGameTest {
         l.add(Blocks.RAIL.defaultBlockState());
         l.add(Blocks.CANDLE.defaultBlockState());
         l.add(Blocks.DEAD_TUBE_CORAL_FAN.defaultBlockState());
-        l.add(Blocks.LIGHTNING_ROD.defaultBlockState());
-        l.add(Blocks.COPPER_GRATE.defaultBlockState());
+        l.add(block("lightning_rod").defaultBlockState());
+        l.add(block("copper_grate").defaultBlockState());
         l.add(Blocks.POINTED_DRIPSTONE.defaultBlockState());
         l.add(Blocks.AMETHYST_CLUSTER.defaultBlockState());
         l.add(Blocks.MANGROVE_ROOTS.defaultBlockState());
