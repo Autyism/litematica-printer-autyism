@@ -9,6 +9,14 @@
 
 # English
 
+**In short**
+
+- Builds your loaded Litematica schematic for you, bottom layer first.
+- Redstone, rails, doors and stairs come out facing the right way.
+- Made for laggy servers: it waits for the server instead of guessing.
+- Restocks from shulker boxes; can also fill areas, drain fluids and break bedrock.
+- Caps Lock turns it on and off, Z + Y opens the settings.
+
 Litematica Printer Autyism Edition places the blocks of your loaded [Litematica](https://modrinth.com/mod/litematica) schematic around you automatically. It can also fill an area, remove water and lava, mine a selection and hand bedrock to a bedrock-breaking mod.
 
 It is a standalone mod (not an add-on), based on the BiliXWhite and water2004 forks of Litematica Printer and reworked so that what it places matches the schematic, also on real servers with lag. It replaces other Litematica Printer builds; do not install both.
@@ -74,6 +82,7 @@ Compared with the 1.21.11 printer builds it is based on, this edition adds or re
 
 - **Bucket printing (off by default).** Turn on *Print Fluids With Buckets* to place schematic water and lava sources with buckets and to fill cauldrons that should hold water, lava or powder snow. A source is only placed after the walls and floor around the whole body of fluid are printed, so nothing leaks. In survival, each source uses one filled bucket.
 - **Break Ice for Water** (off by default). The classic survival method: place ice, break it, then place waterlogged blocks into the water.
+- **Print Waterlogged Blocks** (off by default). Pours water into waterlogged blocks, only where it can't leak out.
 
 ### Laggy servers
 
@@ -213,6 +222,8 @@ Names are shown as they appear in game. The settings screen has an **All** tab a
 |---|---|---|
 | Enable Printing | off | Printing mode; it works while the printer is on. Turning the printer on with no mode enabled enables it. |
 | Layered Printing (bottom-up) | on | Prints the lowest unfinished layer first. |
+| Hide Layer Messages | off | No chat message after each layer. |
+| Print Waterlogged Blocks | off | Pours water into waterlogged blocks, only where it can't leak out. |
 | Selection Type | Visible Area | *Below Player* or *Above Player* limit printing to blocks below or above your feet; Litematica's render layers always apply. |
 | Use Easy Place Protocol | on | Uses Litematica's Easy Place protocol when the server supports it (singleplayer, Servux). |
 | Safe Observer Placement | on | Skips observers that would fire into your machine. |
@@ -292,7 +303,7 @@ There is a separate jar for each Minecraft version:
 | 1.21.5 | `litematica-printer-autyism-1.0.0+1.21.5.jar` | 21 | 0.17.0 or newer | 0.24.3 or newer | 0.22.5 or newer |
 | 1.21.6, 1.21.7, 1.21.8 | `litematica-printer-autyism-1.0.0+1.21.8.jar` | 21 | 0.17.0 or newer | 0.25.7 or newer | 0.23.7 or newer |
 | 1.21.9, 1.21.10 | `litematica-printer-autyism-1.0.0+1.21.10.jar` | 21 | 0.17.0 or newer | 0.26.8 or newer | 0.24.9 or newer |
-| 1.21.11 | `litematica-printer-autyism-1.0.0.jar` | 21 | 0.17.0 or newer | 0.27.0 or newer | 0.26.0 or newer |
+| 1.21.11 | `litematica-printer-autyism-1.1.0+1.21.11.jar` | 21 | 0.17.0 or newer | 0.27.0 or newer | 0.26.0 or newer |
 | 26.1, 26.1.1, 26.1.2 | `litematica-printer-autyism-1.0.0+26.1.2.jar` | 25 | 0.19.3 or newer | 0.28.12 or newer | 0.27.14 or newer |
 | 26.2 | `litematica-printer-autyism-1.0.0+26.2.jar` | 25 | 0.19.3 or newer | 0.29.6 or newer | 0.28.8 or newer |
 | 26.3 | `litematica-printer-autyism-1.0.0+26.3.jar` | 25 | 0.19.3 or newer | 0.30.2 or newer | 0.29.1 or newer |
@@ -394,6 +405,14 @@ GNU Affero General Public License v3.0 ([AGPL-3.0](LICENSE.md)), inherited from 
 
 # 简体中文
 
+**一句话看懂**
+
+- 自动帮你把加载的投影建出来，从最底层往上。
+- 红石、铁轨、门、楼梯的朝向都放对。
+- 专门照顾卡顿的服务器：等服务器确认，不靠猜。
+- 能从潜影盒补货；还能填充区域、排水排岩浆、破基岩。
+- Caps Lock 开关打印机，Z + Y 打开设置。
+
 Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyism 版”）会自动把 [Litematica](https://modrinth.com/mod/litematica) 投影里的方块放到你身边。除了打印，它还能填充区域、排掉水和岩浆、挖空选区，以及把基岩交给破基岩模组去破。
 
 它是独立模组（不是插件），基于 BiliXWhite 和 water2004 两个 Litematica Printer 分支，重点改进了“放出来的东西和投影一致”，在有延迟的真实服务器上也一样。它会替代其他投影打印机，不要和它们一起装。
@@ -459,6 +478,7 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 
 - **用桶打印流体（默认关）。** 打开“用桶打印流体”后，会用水桶 / 岩浆桶放投影里的水源和岩浆源，并给应该装满水、岩浆或细雪的炼药锅倒满。只有整片水体四周和下方的方块都打印好之后才放水，不会漏出去。生存模式每格水源消耗一个装满的桶。
 - **破冰放水**（默认关）。经典的生存方法：放冰、敲掉冰得到水，再把含水方块放进水里。
+- **打印含水方块**（默认关）。给含水方块倒水，只在水漏不出去的地方倒。
 
 ### 延迟高的服务器
 
@@ -598,6 +618,8 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 |---|---|---|
 | 启用打印 | 关 | 打印模式，打印机开着时工作。一个模式都没开时打开打印机，会自动开启它。 |
 | 分层打印（从下往上） | 开 | 先打印最低的未完成层。 |
+| 隐藏分层完成提示 | 关 | 每层完成时不发提示。 |
+| 打印含水方块 | 关 | 给含水方块倒水，只在水漏不出去的地方倒。 |
 | 选区类型 | 可见层 | “玩家下方 / 玩家上方”只处理你脚下以下或以上的部分；Litematica 的渲染层始终生效。 |
 | 使用轻松放置协议 | 开 | 服务器支持时使用 Litematica 的轻松放置协议（单人游戏、装了 Servux 的服务器）。 |
 | 侦测器安全放置 | 开 | 跳过会误触发机器的侦测器。 |
@@ -677,7 +699,7 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 | 1.21.5 | `litematica-printer-autyism-1.0.0+1.21.5.jar` | 21 | 0.17.0 或更高 | 0.24.3 或更高 | 0.22.5 或更高 |
 | 1.21.6、1.21.7、1.21.8 | `litematica-printer-autyism-1.0.0+1.21.8.jar` | 21 | 0.17.0 或更高 | 0.25.7 或更高 | 0.23.7 或更高 |
 | 1.21.9、1.21.10 | `litematica-printer-autyism-1.0.0+1.21.10.jar` | 21 | 0.17.0 或更高 | 0.26.8 或更高 | 0.24.9 或更高 |
-| 1.21.11 | `litematica-printer-autyism-1.0.0.jar` | 21 | 0.17.0 或更高 | 0.27.0 或更高 | 0.26.0 或更高 |
+| 1.21.11 | `litematica-printer-autyism-1.1.0+1.21.11.jar` | 21 | 0.17.0 或更高 | 0.27.0 或更高 | 0.26.0 或更高 |
 | 26.1、26.1.1、26.1.2 | `litematica-printer-autyism-1.0.0+26.1.2.jar` | 25 | 0.19.3 或更高 | 0.28.12 或更高 | 0.27.14 或更高 |
 | 26.2 | `litematica-printer-autyism-1.0.0+26.2.jar` | 25 | 0.19.3 或更高 | 0.29.6 或更高 | 0.28.8 或更高 |
 | 26.3 | `litematica-printer-autyism-1.0.0+26.3.jar` | 25 | 0.19.3 或更高 | 0.30.2 或更高 | 0.29.1 或更高 |

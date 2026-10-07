@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.0 — 2026-10-07
+
+- New: **Print Waterlogged Blocks** (off by default). Pours water into waterlogged blocks, only where it can't leak out.
+- New: **Hide Layer Messages** (off by default). No chat message after each layer.
+- Fixed: the missing-material list no longer flickers.
+
+### 中文
+
+- 新增 **打印含水方块**（默认关）：给含水方块倒水，只在水漏不出去的地方倒。
+- 新增 **隐藏分层完成提示**（默认关）：每层完成时不发提示。
+- 修复：缺失材料提示不再闪烁。
+
 ## 1.0.0+1.21.10 — 2026-10-07
 
 The printer for Minecraft 1.21.9–1.21.10, with the same features and settings as 1.0.0 for 1.21.11.
