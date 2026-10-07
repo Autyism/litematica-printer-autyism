@@ -84,6 +84,8 @@ public final class VisualsGameTest implements FabricClientGameTest {
                 Configs.Highlight.HIGHLIGHT_THROUGH_WALLS.setBooleanValue(false);
             });
             context.waitTicks(5);
+            // 缺失材料表在打印机每轮重新扫描时会空一个 tick（每 3 tick 里空 1 个）：等到不空的 tick 再截图，否则截不截得到看运气
+            context.waitFor(client -> MissingMaterialTracker.getInstance().hasMissing(), 20);
             GT.log("[visuals] SCREENSHOT " + GT.screenshot(context, "visuals-3-missing-material").toAbsolutePath());
             if (!goldMissing) throw new AssertionError("[visuals] the gold block was not reported as a missing material");
             var wrong = GT.mismatches(sp, MIN, MAX, p -> p.equals(GOLD) ? Blocks.AIR.defaultBlockState() : expected(p));
