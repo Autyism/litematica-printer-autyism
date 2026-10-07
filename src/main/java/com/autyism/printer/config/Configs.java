@@ -23,6 +23,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
+//? if <1.21.11 {
+/*import fi.dy.masa.malilib.util.JsonUtils;
+*///?} else
 import fi.dy.masa.malilib.util.data.json.JsonUtils;
 public class Configs extends ConfigBuilders implements IConfigHandler {
     private static final Configs INSTANCE = new Configs();
@@ -774,6 +777,9 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
         if (!settingFile.exists()) {
             File legacy = new File(LEGACY_FILE_PATH);
             if (legacy.isFile()) {
+                //? if <1.21.11 {
+                /*JsonElement legacyJson = JsonUtils.parseJsonFile(legacy);
+                *///?} else
                 JsonElement legacyJson = JsonUtils.parseJsonFile(legacy.toPath());
                 if (legacyJson != null && legacyJson.isJsonObject()) {
                     JsonObject root = legacyJson.getAsJsonObject();
@@ -793,6 +799,9 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
             }
         }
         if (settingFile.isFile() && settingFile.exists()) {
+            //? if <1.21.11 {
+            /*JsonElement jsonElement = JsonUtils.parseJsonFile(settingFile);
+            *///?} else
             JsonElement jsonElement = JsonUtils.parseJsonFile(settingFile.toPath());
             if (jsonElement != null && jsonElement.isJsonObject()) {
                 JsonObject obj = jsonElement.getAsJsonObject();
@@ -829,6 +838,9 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
         if ((CONFIG_DIR.exists() && CONFIG_DIR.isDirectory()) || CONFIG_DIR.mkdirs()) {
             JsonObject configRoot = new JsonObject();
             ConfigUtils.writeConfigBase(configRoot, Reference.MOD_ID, OPTIONS);
+            //? if <1.21.11 {
+            /*JsonUtils.writeJsonToFile(configRoot, new File(FILE_PATH));
+            *///?} else
             JsonUtils.writeJsonToFile(configRoot, new File(FILE_PATH).toPath());
         }
     }

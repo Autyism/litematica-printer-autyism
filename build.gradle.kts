@@ -48,12 +48,14 @@ dependencies {
             modLocalRuntime("net.fabricmc:fabric-language-kotlin:1.14.1+kotlin.2.4.20")
         }
     }
-    // 26.x: the same optional mods, official builds from Modrinth (test runtime only, never bundled)
-    if (providers.gradleProperty("aleGameTest").isPresent && sc.current.parsed >= "26.1") {
+    // Optional mods for the gametests on the other versions (test runtime only, never bundled): official builds from Modrinth
+    if (providers.gradleProperty("aleGameTest").isPresent && mc != "1.21.11") {
         // Bedrock Miner (bunnyi116): 1.6.1 like on 1.21.11; 26.3 only has 1.6.2
-        val bedrockMiner = mapOf("26.1.2" to "v1.6.1-mc26.1", "26.2" to "v1.6.1-mc26.2", "26.3" to "v1.6.2-mc26.3")
-        // Advanced Shulkerboxes 2.0.5 (Modrinth version ids: fabric-2.0.5+26.1.2, fabric-2.0.5+26.2); no 26.3 release exists
-        val shulkerbox = mapOf("26.1.2" to "hO8yONQQ", "26.2" to "gwthW8Gh")
+        val bedrockMiner = mapOf("1.21.5" to "v1.6.1-mc1.21.5", "1.21.8" to "v1.6.1-mc1.21.8", "1.21.10" to "v1.6.1-mc1.21.10",
+            "26.1.2" to "v1.6.1-mc26.1", "26.2" to "v1.6.1-mc26.2", "26.3" to "v1.6.2-mc26.3")
+        // Advanced Shulkerboxes 2.0.5 (Modrinth version ids); no 26.3 release exists
+        val shulkerbox = mapOf("1.21.5" to "Y8mwwbAg", "1.21.8" to "IpebOJTB", "1.21.10" to "k1b88TtL",
+            "26.1.2" to "hO8yONQQ", "26.2" to "gwthW8Gh")
         bedrockMiner[mc]?.let { modLocalRuntime("maven.modrinth:next-fabric-bedrock-miner:$it") }
         shulkerbox[mc]?.let { modLocalRuntime("maven.modrinth:advanced-shulkerboxes:$it") }
     }
