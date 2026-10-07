@@ -54,6 +54,9 @@ public final class PrinterFixGameTest implements FabricClientGameTest {
     public void runTest(ClientGameTestContext context) {
         if (!GTFilter.enabled("printer")) return;
         try (TestSingleplayerContext sp = context.worldBuilder().create()) {
+            //? if <1.21.9 {
+            /*GT.waitClientLoaded(context, sp);
+            *///?}
             //? if <1.21.11 {
             /*sp.getServer().runCommand("gamerule doDaylightCycle false");
             sp.getServer().runCommand("gamerule doMobSpawning false");

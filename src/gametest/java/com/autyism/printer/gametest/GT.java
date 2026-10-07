@@ -51,6 +51,9 @@ public final class GT {
 
     public static TestSingleplayerContext newWorld(ClientGameTestContext context) {
         TestSingleplayerContext sp = context.worldBuilder().create();
+        //? if <1.21.9 {
+        /*waitClientLoaded(context, sp);
+        *///?}
         // Litematica 会把上一个同名测试世界的投影放置读回来：每个测试开始时清空，避免互相影响
         removeAllPlacements(context);
         //? if <1.21.11 {
@@ -92,6 +95,17 @@ public final class GT {
         return sp;
     }
 
+    //? if <1.21.9 {
+    /*// 1.21.9 以前 create() 不等“下载地形”界面关闭就返回；客户端发出“已载入”之前，服务端会忽略玩家的所有操作（挖掘、放置、开箱子）。
+    // 1.21.9 起 create() 本来就会等到这一步，这里补上同样的等待，各版本的测试条件才一致
+    public static void waitClientLoaded(ClientGameTestContext context, TestSingleplayerContext sp) {
+        context.waitFor(client -> client.player != null && client.player.hasClientLoaded()
+                && !(client.screen instanceof net.minecraft.client.gui.screens.ReceivingLevelScreen), 1200);
+        waitServer(context, () -> sp.getServer().computeOnServer(server -> !server.getPlayerList().getPlayers().isEmpty()
+                && server.getPlayerList().getPlayers().getFirst().hasClientLoaded()), 200, "[GT] the server never saw the client as loaded");
+    }
+
+    *///?}
     /** 每 tick 在测试线程上检查（可访问服务端），返回用掉的 tick 数 */
     public static int waitServer(ClientGameTestContext context, BooleanSupplier done, int maxTicks, String failMessage) {
         for (int tick = 0; tick <= maxTicks; tick++) {
