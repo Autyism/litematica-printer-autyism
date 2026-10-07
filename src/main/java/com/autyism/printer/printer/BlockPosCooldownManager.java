@@ -64,6 +64,9 @@ public class BlockPosCooldownManager {
      */
     public void setCooldown(ClientLevel level, String type, BlockPos pos, int cooldownTicks, CooldownSource source) {
         if (cooldownTicks <= 0) return;
+        //? if <1.21.11 {
+        /*Identifier dimension = level.dimension().location();
+        *///?} else
         Identifier dimension = level.dimension().identifier();
         Info key = new Info(dimension, type, pos, source);
         cooldownMap.put(key, cooldownTicks);
@@ -73,6 +76,9 @@ public class BlockPosCooldownManager {
      * 判断指定方块是否处于冷却中（按 type 精确匹配）
      */
     public boolean isOnCooldown(ClientLevel level, String type, BlockPos pos) {
+        //? if <1.21.11 {
+        /*Identifier dimension = level.dimension().location();
+        *///?} else
         Identifier dimension = level.dimension().identifier();
         Info key = new Info(dimension, type, pos, CooldownSource.SELF);
         return cooldownMap.containsKey(key);
@@ -83,6 +89,9 @@ public class BlockPosCooldownManager {
      * 用于 BlockUpdate 回显过滤：查询该位置是否存在任何 SELF 来源的冷却
      */
     public boolean isOnCooldown(ClientLevel level, CooldownSource source, BlockPos pos) {
+        //? if <1.21.11 {
+        /*Identifier dimension = level.dimension().location();
+        *///?} else
         Identifier dimension = level.dimension().identifier();
         for (Info info : cooldownMap.keySet()) {
             if (info.dimension.equals(dimension) && info.source == source && info.pos.equals(pos)) {
@@ -100,6 +109,9 @@ public class BlockPosCooldownManager {
     }
 
     public void removeCooldown(ClientLevel level, String type, BlockPos pos, CooldownSource source) {
+        //? if <1.21.11 {
+        /*Identifier dimension = level.dimension().location();
+        *///?} else
         Identifier dimension = level.dimension().identifier();
         Info key = new Info(dimension, type, pos, source);
         cooldownMap.remove(key);
@@ -115,6 +127,9 @@ public class BlockPosCooldownManager {
     }
 
     public int getRemainingCooldown(ClientLevel level, String type, BlockPos pos, CooldownSource source) {
+        //? if <1.21.11 {
+        /*Identifier dimension = level.dimension().location();
+        *///?} else
         Identifier dimension = level.dimension().identifier();
         Info key = new Info(dimension, type, pos, source);
         return cooldownMap.getOrDefault(key, 0);
@@ -124,6 +139,9 @@ public class BlockPosCooldownManager {
      * 清空指定维度的所有冷却数据
      */
     public void clearDimensionCooldowns(ClientLevel level) {
+        //? if <1.21.11 {
+        /*Identifier dimension = level.dimension().location();
+        *///?} else
         Identifier dimension = level.dimension().identifier();
         cooldownMap.keySet().removeIf(info -> info.dimension.equals(dimension));
     }
@@ -132,6 +150,9 @@ public class BlockPosCooldownManager {
      * 清空指定维度+指定类型的所有冷却数据（如清空某维度所有打印冷却）
      */
     public void clearTypeCooldowns(ClientLevel level, String type) {
+        //? if <1.21.11 {
+        /*Identifier dimension = level.dimension().location();
+        *///?} else
         Identifier dimension = level.dimension().identifier();
         cooldownMap.keySet().removeIf(info -> info.dimension.equals(dimension) && info.type.equals(type));
     }

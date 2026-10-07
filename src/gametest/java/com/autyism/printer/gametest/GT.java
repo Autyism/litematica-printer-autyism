@@ -32,18 +32,40 @@ public final class GT {
 
     /** 关掉随机刻（草蔓延 / 变泥土、藤蔓生长、冰融化……这些自然变化不算打印机的错），并确认生效 */
     public static void randomTicksOff(TestSingleplayerContext sp) {
+        //? if <1.21.11 {
+        /*sp.getServer().runCommand("gamerule randomTickSpeed 0");
+        sp.getServer().runOnServer(server -> {
+            if (server.overworld().getGameRules().getInt(net.minecraft.world.level.GameRules.RULE_RANDOMTICKING) != 0) {
+                throw new AssertionError("[GT] gamerule randomTickSpeed did not apply");
+            }
+        });
+        *///?} else {
         sp.getServer().runCommand("gamerule random_tick_speed 0");
         sp.getServer().runOnServer(server -> {
             if (server.overworld().getGameRules().get(net.minecraft.world.level.gamerules.GameRules.RANDOM_TICK_SPEED) != 0) {
                 throw new AssertionError("[GT] gamerule random_tick_speed did not apply");
             }
         });
+        //?}
     }
 
     public static TestSingleplayerContext newWorld(ClientGameTestContext context) {
         TestSingleplayerContext sp = context.worldBuilder().create();
         // Litematica 会把上一个同名测试世界的投影放置读回来：每个测试开始时清空，避免互相影响
         removeAllPlacements(context);
+        //? if <1.21.11 {
+        /*sp.getServer().runCommand("gamerule doDaylightCycle false");
+        sp.getServer().runCommand("gamerule doMobSpawning false");
+        sp.getServer().runCommand("gamerule doWeatherCycle false");
+        sp.getServer().runOnServer(server -> {
+            var rules = server.overworld().getGameRules();
+            if (rules.getBoolean(net.minecraft.world.level.GameRules.RULE_DAYLIGHT)
+                    || rules.getBoolean(net.minecraft.world.level.GameRules.RULE_DOMOBSPAWNING)
+                    || rules.getBoolean(net.minecraft.world.level.GameRules.RULE_WEATHER_CYCLE)) {
+                throw new AssertionError("[GT] gamerule commands did not apply");
+            }
+        });
+        *///?} else {
         sp.getServer().runCommand("gamerule advance_time false");
         sp.getServer().runCommand("gamerule spawn_mobs false");
         sp.getServer().runCommand("gamerule advance_weather false");
@@ -56,6 +78,7 @@ public final class GT {
                 throw new AssertionError("[GT] gamerule commands did not apply");
             }
         });
+        //?}
         sp.getServer().runCommand("gamemode survival @a");
         // 相当于“允许作弊”的单人世界
         sp.getServer().runOnServer(server -> {
@@ -96,6 +119,9 @@ public final class GT {
         if (schematic == null) throw new AssertionError("Schematic world is unavailable");
         for (int cx = (min.getX() >> 4) - 1; cx <= (max.getX() >> 4) + 1; cx++) {
             for (int cz = (min.getZ() >> 4) - 1; cz <= (max.getZ() >> 4) + 1; cz++) {
+                //? if <1.21.11 {
+                /*schematic.getChunkProvider().loadChunk(cx, cz);
+                *///?} else
                 schematic.getChunkSource().loadChunk(cx, cz);
             }
         }

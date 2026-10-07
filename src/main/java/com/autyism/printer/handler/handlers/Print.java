@@ -84,6 +84,9 @@ public class Print extends Module {
         WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
         if (schematic == null) return null;
         return (sx, sy, sz) -> {
+            //? if <1.21.11 {
+            /*var chunk = schematic.getChunkProvider().getChunkIfExists(sx, sz);
+            *///?} else
             var chunk = schematic.getChunkSource().getChunkIfExists(sx, sz);
             if (chunk == null) {
                 // 世界里这个区块已经加载、投影世界里却还没有：投影还在后台载入，这一层不能算“已完成”
