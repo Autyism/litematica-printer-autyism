@@ -122,10 +122,14 @@ public final class WaterlogPlacer {
     private static boolean canHoldAnyFluid(BlockState state) {
         Block block = state.getBlock();
         if (block instanceof LiquidBlockContainer) return true;
+        //? if >=26.3 {
+        /*return state.is(BlockTags.WASHED_AWAY_BY_FLUIDS);
+        *///?} else {
         if (state.blocksMotion()) return false;
         return !(block instanceof DoorBlock) && !state.is(BlockTags.SIGNS) && !state.is(Blocks.LADDER) && !state.is(Blocks.SUGAR_CANE)
                 && !state.is(Blocks.BUBBLE_COLUMN) && !state.is(Blocks.NETHER_PORTAL) && !state.is(Blocks.END_PORTAL)
                 && !state.is(Blocks.END_GATEWAY) && !state.is(Blocks.STRUCTURE_VOID);
+        //?}
     }
 
     /** 同 FlowingFluid.canHoldSpecificFluid */
