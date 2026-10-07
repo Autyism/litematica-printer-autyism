@@ -16,6 +16,9 @@ public class MessageUtils {
     }
 
     public static void addMessage(Component message) {
+        //? if >=26.1 {
+        /*client.gui.getChat().addClientSystemMessage(message);
+        *///?} else
         client.gui.getChat().addMessage(message);
     }
 

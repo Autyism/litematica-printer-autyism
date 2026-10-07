@@ -250,6 +250,9 @@ public class PinYinSearchUtils {
             return false;
         }
         // 直接处理Block类型的TagKey流，无类型转换
+        //? if >=26.1 {
+        /*Stream<TagKey<Block>> blockTagStream = blockState.tags();
+        *///?} else
         Stream<TagKey<Block>> blockTagStream = blockState.getTags();
         return blockTagStream
                 .map(tag -> tag.location().toString())
@@ -264,6 +267,9 @@ public class PinYinSearchUtils {
             return false;
         }
         // 直接处理Item类型的TagKey流，无类型转换
+        //? if >=26.1 {
+        /*Stream<TagKey<Item>> itemTagStream = itemStack.tags();
+        *///?} else
         Stream<TagKey<Item>> itemTagStream = itemStack.getTags();
         return itemTagStream
                 .map(tag -> tag.location().toString())

@@ -43,6 +43,9 @@ public final class ShulkerContentUtils {
         List<ItemStack> result = new ArrayList<>();
         ItemContainerContents contents = shulker.get(DataComponents.CONTAINER);
         if (contents != null) {
+            //? if >=26.1 {
+            /*contents.nonEmptyItemCopyStream().forEach(result::add);
+            *///?} else
             for (ItemStack s : contents.nonEmptyItemsCopy()) result.add(s);
         }
         return result;

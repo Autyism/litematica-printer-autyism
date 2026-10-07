@@ -18,8 +18,13 @@ public abstract class ServerContainerClickDebugMixin {
     @Inject(method = "handleContainerClick", at = @At("HEAD"))
     private void gt$before(ServerboundContainerClickPacket p, CallbackInfo ci) {
         if (Boolean.getBoolean("ale.debuglook") && this.player.level().getServer().isSameThread()) {
+            //? if >=26.1 {
+            /*System.out.println("[server-click] slot=" + p.slotNum() + " button=" + p.buttonNum() + " type=" + p.containerInput()
+                    + " stateId(client)=" + p.stateId() + " stateId(server)=" + this.player.containerMenu.getStateId());
+            *///?} else {
             System.out.println("[server-click] slot=" + p.slotNum() + " button=" + p.buttonNum() + " type=" + p.clickType()
                     + " stateId(client)=" + p.stateId() + " stateId(server)=" + this.player.containerMenu.getStateId());
+            //?}
         }
     }
 

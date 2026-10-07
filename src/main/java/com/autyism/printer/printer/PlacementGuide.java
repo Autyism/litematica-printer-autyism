@@ -1185,6 +1185,9 @@ public class PlacementGuide {
 
     // 辅助方法：获取物品名称（版本适配）
     private static Component getNameFromItem(Item item) {
+        //? if >=26.1 {
+        /*return item.components().getOrDefault(net.minecraft.core.component.DataComponents.ITEM_NAME, net.minecraft.network.chat.CommonComponents.EMPTY);
+        *///?} else
         return item.getName();
     }
 
