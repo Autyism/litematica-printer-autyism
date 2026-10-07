@@ -7,6 +7,9 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.Entity;
+//? if <1.21.11 {
+/*import net.minecraft.world.entity.animal.horse.AbstractHorse;
+*///?} else
 import net.minecraft.world.entity.animal.equine.AbstractHorse;
 import net.minecraft.world.entity.npc.InventoryCarrier;
 import net.minecraft.world.entity.vehicle.ContainerEntity;

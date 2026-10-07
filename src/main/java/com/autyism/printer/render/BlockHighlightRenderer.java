@@ -216,8 +216,13 @@ public class BlockHighlightRenderer implements IRenderer {
 
     private void line(BufferBuilder buf, float x1, float y1, float z1,
                       float x2, float y2, float z2, int r, int g, int b, int a) {
+        //? if <1.21.11 {
+        /*buf.addVertex(x1, y1, z1).setColor(r, g, b, a);
+        buf.addVertex(x2, y2, z2).setColor(r, g, b, a);
+        *///?} else {
         buf.addVertex(x1, y1, z1).setColor(r, g, b, a).setLineWidth(1.0f);
         buf.addVertex(x2, y2, z2).setColor(r, g, b, a).setLineWidth(1.0f);
+        //?}
     }
 
     // ===== Intermediate path: MC >= 1.21.1 && < 1.21.5 (direct BufferUploader) =====

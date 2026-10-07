@@ -51,8 +51,13 @@ public final class PrinterFixGameTest implements FabricClientGameTest {
     public void runTest(ClientGameTestContext context) {
         if (!GTFilter.enabled("printer")) return;
         try (TestSingleplayerContext sp = context.worldBuilder().create()) {
+            //? if <1.21.11 {
+            /*sp.getServer().runCommand("gamerule doDaylightCycle false");
+            sp.getServer().runCommand("gamerule doMobSpawning false");
+            *///?} else {
             sp.getServer().runCommand("gamerule advance_time false");
             sp.getServer().runCommand("gamerule spawn_mobs false");
+            //?}
             sp.getServer().runCommand("gamemode survival @a");
             context.runOnClient(client -> configureCommon());
 
@@ -98,10 +103,17 @@ public final class PrinterFixGameTest implements FabricClientGameTest {
     private static void prepareSchematic() {
         WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
         if (schematic == null) throw new AssertionError("Schematic world is unavailable");
+        //? if <1.21.11 {
+        /*schematic.getChunkProvider().loadChunk(0, 0);
+        schematic.getChunkProvider().loadChunk(-1, 0);
+        schematic.getChunkProvider().loadChunk(0, -1);
+        schematic.getChunkProvider().loadChunk(-1, -1);
+        *///?} else {
         schematic.getChunkSource().loadChunk(0, 0);
         schematic.getChunkSource().loadChunk(-1, 0);
         schematic.getChunkSource().loadChunk(0, -1);
         schematic.getChunkSource().loadChunk(-1, -1);
+        //?}
         for (BlockPos pos : BlockPos.betweenClosed(PRINT_MIN, PRINT_MAX)) {
             schematic.setBlock(pos.immutable(), expectedPrintBlock(pos).defaultBlockState(), 3);
         }
