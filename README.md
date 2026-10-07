@@ -311,14 +311,14 @@ There is a separate jar for each Minecraft version:
 
 | Minecraft | Jar | Java | Fabric Loader | MaLiLib | Litematica |
 |---|---|---|---|---|---|
-| 1.20.1 | `litematica-printer-autyism-1.1.0+1.20.1.jar` | 17 | 0.16.10 or newer | 0.16.3 or newer | 0.15.4 or newer |
-| 1.21.5 | `litematica-printer-autyism-1.1.0+1.21.5.jar` | 21 | 0.17.0 or newer | 0.24.3 or newer | 0.22.5 or newer |
-| 1.21.6, 1.21.7, 1.21.8 | `litematica-printer-autyism-1.1.0+1.21.8.jar` | 21 | 0.17.0 or newer | 0.25.7 or newer | 0.23.7 or newer |
-| 1.21.9, 1.21.10 | `litematica-printer-autyism-1.1.0+1.21.10.jar` | 21 | 0.17.0 or newer | 0.26.8 or newer | 0.24.9 or newer |
-| 1.21.11 | `litematica-printer-autyism-1.1.0+1.21.11.jar` | 21 | 0.17.0 or newer | 0.27.0 or newer | 0.26.0 or newer |
-| 26.1, 26.1.1, 26.1.2 | `litematica-printer-autyism-1.1.0+26.1.2.jar` | 25 | 0.19.3 or newer | 0.28.12 or newer | 0.27.14 or newer |
-| 26.2 | `litematica-printer-autyism-1.1.0+26.2.jar` | 25 | 0.19.3 or newer | 0.29.6 or newer | 0.28.8 or newer |
-| 26.3 | `litematica-printer-autyism-1.1.0+26.3.jar` | 25 | 0.19.3 or newer | 0.30.2 or newer | 0.29.1 or newer |
+| 1.20.1 | `litematica-printer-autyism-1.1.1+1.20.1.jar` | 17 | 0.16.10 or newer | 0.16.3 or newer | 0.15.4 or newer |
+| 1.21.5 | `litematica-printer-autyism-1.1.1+1.21.5.jar` | 21 | 0.17.0 or newer | 0.24.3 or newer | 0.22.5 or newer |
+| 1.21.6, 1.21.7, 1.21.8 | `litematica-printer-autyism-1.1.1+1.21.8.jar` | 21 | 0.17.0 or newer | 0.25.7 or newer | 0.23.7 or newer |
+| 1.21.9, 1.21.10 | `litematica-printer-autyism-1.1.1+1.21.10.jar` | 21 | 0.17.0 or newer | 0.26.8 or newer | 0.24.9 or newer |
+| 1.21.11 | `litematica-printer-autyism-1.1.1+1.21.11.jar` | 21 | 0.17.0 or newer | 0.27.0 or newer | 0.26.0 or newer |
+| 26.1, 26.1.1, 26.1.2 | `litematica-printer-autyism-1.1.1+26.1.2.jar` | 25 | 0.19.3 or newer | 0.28.12 or newer | 0.27.14 or newer |
+| 26.2 | `litematica-printer-autyism-1.1.1+26.2.jar` | 25 | 0.19.3 or newer | 0.29.6 or newer | 0.28.8 or newer |
+| 26.3 | `litematica-printer-autyism-1.1.1+26.3.jar` | 25 | 0.19.3 or newer | 0.30.2 or newer | 0.29.1 or newer |
 
 [Fabric API](https://modrinth.com/mod/fabric-api), [MaLiLib](https://modrinth.com/mod/malilib) and [Litematica](https://modrinth.com/mod/litematica) are required, each in the build for your Minecraft version.
 
@@ -728,14 +728,14 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 
 | Minecraft | jar 文件 | Java | Fabric Loader | MaLiLib | Litematica |
 |---|---|---|---|---|---|
-| 1.20.1 | `litematica-printer-autyism-1.1.0+1.20.1.jar` | 17 | 0.16.10 或更高 | 0.16.3 或更高 | 0.15.4 或更高 |
-| 1.21.5 | `litematica-printer-autyism-1.1.0+1.21.5.jar` | 21 | 0.17.0 或更高 | 0.24.3 或更高 | 0.22.5 或更高 |
-| 1.21.6、1.21.7、1.21.8 | `litematica-printer-autyism-1.1.0+1.21.8.jar` | 21 | 0.17.0 或更高 | 0.25.7 或更高 | 0.23.7 或更高 |
-| 1.21.9、1.21.10 | `litematica-printer-autyism-1.1.0+1.21.10.jar` | 21 | 0.17.0 或更高 | 0.26.8 或更高 | 0.24.9 或更高 |
-| 1.21.11 | `litematica-printer-autyism-1.1.0+1.21.11.jar` | 21 | 0.17.0 或更高 | 0.27.0 或更高 | 0.26.0 或更高 |
-| 26.1、26.1.1、26.1.2 | `litematica-printer-autyism-1.1.0+26.1.2.jar` | 25 | 0.19.3 或更高 | 0.28.12 或更高 | 0.27.14 或更高 |
-| 26.2 | `litematica-printer-autyism-1.1.0+26.2.jar` | 25 | 0.19.3 或更高 | 0.29.6 或更高 | 0.28.8 或更高 |
-| 26.3 | `litematica-printer-autyism-1.1.0+26.3.jar` | 25 | 0.19.3 或更高 | 0.30.2 或更高 | 0.29.1 或更高 |
+| 1.20.1 | `litematica-printer-autyism-1.1.1+1.20.1.jar` | 17 | 0.16.10 或更高 | 0.16.3 或更高 | 0.15.4 或更高 |
+| 1.21.5 | `litematica-printer-autyism-1.1.1+1.21.5.jar` | 21 | 0.17.0 或更高 | 0.24.3 或更高 | 0.22.5 或更高 |
+| 1.21.6、1.21.7、1.21.8 | `litematica-printer-autyism-1.1.1+1.21.8.jar` | 21 | 0.17.0 或更高 | 0.25.7 或更高 | 0.23.7 或更高 |
+| 1.21.9、1.21.10 | `litematica-printer-autyism-1.1.1+1.21.10.jar` | 21 | 0.17.0 或更高 | 0.26.8 或更高 | 0.24.9 或更高 |
+| 1.21.11 | `litematica-printer-autyism-1.1.1+1.21.11.jar` | 21 | 0.17.0 或更高 | 0.27.0 或更高 | 0.26.0 或更高 |
+| 26.1、26.1.1、26.1.2 | `litematica-printer-autyism-1.1.1+26.1.2.jar` | 25 | 0.19.3 或更高 | 0.28.12 或更高 | 0.27.14 或更高 |
+| 26.2 | `litematica-printer-autyism-1.1.1+26.2.jar` | 25 | 0.19.3 或更高 | 0.29.6 或更高 | 0.28.8 或更高 |
+| 26.3 | `litematica-printer-autyism-1.1.1+26.3.jar` | 25 | 0.19.3 或更高 | 0.30.2 或更高 | 0.29.1 或更高 |
 
 [Fabric API](https://modrinth.com/mod/fabric-api)、[MaLiLib](https://modrinth.com/mod/malilib) 和 [Litematica](https://modrinth.com/mod/litematica) 都是必需的，各自下载你的 Minecraft 版本对应的那一版。
 
