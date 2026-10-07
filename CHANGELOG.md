@@ -1,5 +1,47 @@
 # Changelog
 
+## 1.0.0+1.21.10 — 2026-10-07
+
+The printer for Minecraft 1.21.9–1.21.10, with the same features and settings as 1.0.0 for 1.21.11.
+
+- Needs Java 21, Fabric Loader 0.17.0 or newer, MaLiLib 0.26.8 or newer and Litematica 0.24.9 or newer.
+- Other Minecraft versions have their own jar; see the table in the README.
+
+### 中文
+
+适用于 Minecraft 1.21.9–1.21.10 的打印机，功能和设置与 1.21.11 的 1.0.0 相同。
+
+- 需要 Java 21、Fabric Loader 0.17.0 或更高、MaLiLib 0.26.8 或更高、Litematica 0.24.9 或更高。
+- 其他 Minecraft 版本有各自的 jar，见说明里的表格。
+
+## 1.0.0+1.21.8 — 2026-10-07
+
+The printer for Minecraft 1.21.6–1.21.8, with the same features and settings as 1.0.0 for 1.21.11.
+
+- Needs Java 21, Fabric Loader 0.17.0 or newer, MaLiLib 0.25.7 or newer and Litematica 0.23.7 or newer.
+- Other Minecraft versions have their own jar; see the table in the README.
+
+### 中文
+
+适用于 Minecraft 1.21.6–1.21.8 的打印机，功能和设置与 1.21.11 的 1.0.0 相同。
+
+- 需要 Java 21、Fabric Loader 0.17.0 或更高、MaLiLib 0.25.7 或更高、Litematica 0.23.7 或更高。
+- 其他 Minecraft 版本有各自的 jar，见说明里的表格。
+
+## 1.0.0+1.21.5 — 2026-10-07
+
+The printer for Minecraft 1.21.5, with the same features and settings as 1.0.0 for 1.21.11.
+
+- Needs Java 21, Fabric Loader 0.17.0 or newer, MaLiLib 0.24.3 or newer and Litematica 0.22.5 or newer.
+- Other Minecraft versions have their own jar; see the table in the README.
+
+### 中文
+
+适用于 Minecraft 1.21.5 的打印机，功能和设置与 1.21.11 的 1.0.0 相同。
+
+- 需要 Java 21、Fabric Loader 0.17.0 或更高、MaLiLib 0.24.3 或更高、Litematica 0.22.5 或更高。
+- 其他 Minecraft 版本有各自的 jar，见说明里的表格。
+
 ## 1.0.0+26.3 — 2026-10-07
 
 The printer for Minecraft 26.3, with the same features and settings as 1.0.0 for 1.21.11.

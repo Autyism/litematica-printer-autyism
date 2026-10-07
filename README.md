@@ -1,11 +1,11 @@
 <p align="center"><img src="docs/icon.png" width="128" alt="icon"></p>
 <h1 align="center">Litematica Printer Autyism Edition</h1>
-<p align="center">A standalone Litematica printer for Minecraft 1.21.11 and 26.1–26.3 that builds schematics from the bottom up and takes care with redstone, rails and laggy servers.</p>
-<p align="center">适用于 Minecraft 1.21.11 和 26.1–26.3 的独立投影打印机：从最底层开始往上打印，红石、铁轨和服务器延迟都处理得更稳。</p>
+<p align="center">A standalone Litematica printer for Minecraft 1.21.5 to 26.3 that builds schematics from the bottom up and takes care with redstone, rails and laggy servers.</p>
+<p align="center">适用于 Minecraft 1.21.5 到 26.3 的独立投影打印机：从最底层开始往上打印，红石、铁轨和服务器延迟都处理得更稳。</p>
 
 <p align="center"><a href="#english">English</a> · <a href="#简体中文">简体中文</a></p>
 
-[![Minecraft 1.21.11 | 26.1–26.3](https://img.shields.io/badge/Minecraft-1.21.11_%7C_26.1--26.3-62B47A)](https://www.minecraft.net/) [![Fabric](https://img.shields.io/badge/Loader-Fabric-DBD0B4)](https://fabricmc.net/) [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue)](LICENSE.md)
+[![Minecraft 1.21.5–26.3](https://img.shields.io/badge/Minecraft-1.21.5--26.3-62B47A)](https://www.minecraft.net/) [![Fabric](https://img.shields.io/badge/Loader-Fabric-DBD0B4)](https://fabricmc.net/) [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue)](LICENSE.md)
 
 # English
 
@@ -289,6 +289,9 @@ There is a separate jar for each Minecraft version:
 
 | Minecraft | Jar | Java | Fabric Loader | MaLiLib | Litematica |
 |---|---|---|---|---|---|
+| 1.21.5 | `litematica-printer-autyism-1.0.0+1.21.5.jar` | 21 | 0.17.0 or newer | 0.24.3 or newer | 0.22.5 or newer |
+| 1.21.6, 1.21.7, 1.21.8 | `litematica-printer-autyism-1.0.0+1.21.8.jar` | 21 | 0.17.0 or newer | 0.25.7 or newer | 0.23.7 or newer |
+| 1.21.9, 1.21.10 | `litematica-printer-autyism-1.0.0+1.21.10.jar` | 21 | 0.17.0 or newer | 0.26.8 or newer | 0.24.9 or newer |
 | 1.21.11 | `litematica-printer-autyism-1.0.0.jar` | 21 | 0.17.0 or newer | 0.27.0 or newer | 0.26.0 or newer |
 | 26.1, 26.1.1, 26.1.2 | `litematica-printer-autyism-1.0.0+26.1.2.jar` | 25 | 0.19.3 or newer | 0.28.12 or newer | 0.27.14 or newer |
 | 26.2 | `litematica-printer-autyism-1.0.0+26.2.jar` | 25 | 0.19.3 or newer | 0.29.6 or newer | 0.28.8 or newer |
@@ -671,6 +674,9 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 
 | Minecraft | jar 文件 | Java | Fabric Loader | MaLiLib | Litematica |
 |---|---|---|---|---|---|
+| 1.21.5 | `litematica-printer-autyism-1.0.0+1.21.5.jar` | 21 | 0.17.0 或更高 | 0.24.3 或更高 | 0.22.5 或更高 |
+| 1.21.6、1.21.7、1.21.8 | `litematica-printer-autyism-1.0.0+1.21.8.jar` | 21 | 0.17.0 或更高 | 0.25.7 或更高 | 0.23.7 或更高 |
+| 1.21.9、1.21.10 | `litematica-printer-autyism-1.0.0+1.21.10.jar` | 21 | 0.17.0 或更高 | 0.26.8 或更高 | 0.24.9 或更高 |
 | 1.21.11 | `litematica-printer-autyism-1.0.0.jar` | 21 | 0.17.0 或更高 | 0.27.0 或更高 | 0.26.0 或更高 |
 | 26.1、26.1.1、26.1.2 | `litematica-printer-autyism-1.0.0+26.1.2.jar` | 25 | 0.19.3 或更高 | 0.28.12 或更高 | 0.27.14 或更高 |
 | 26.2 | `litematica-printer-autyism-1.0.0+26.2.jar` | 25 | 0.19.3 或更高 | 0.29.6 或更高 | 0.28.8 或更高 |
