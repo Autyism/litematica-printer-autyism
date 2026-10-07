@@ -7,6 +7,9 @@ import fi.dy.masa.litematica.selection.SelectionMode;
 import fi.dy.masa.litematica.world.SchematicWorldHandler;
 import fi.dy.masa.litematica.world.WorldSchematic;
 import fi.dy.masa.malilib.util.LayerMode;
+//? if >=26.2 {
+/*import fi.dy.masa.malilib.util.position.LayerRange;
+*///?} else
 import fi.dy.masa.malilib.util.LayerRange;
 import fi.dy.masa.malilib.util.restrictions.UsageRestriction;
 import com.autyism.printer.config.Configs;
@@ -115,9 +118,15 @@ public final class PrinterFixGameTest implements FabricClientGameTest {
         range.setLayerRangeMax(y);
         range.setLayerRangeMin(y);
         range.setLayerRangeMax(y);
+        //? if >=26.2 {
+        /*if (range.getMinLayerBoundary() != y || range.getMaxLayerBoundary() != y) {
+            throw new AssertionError("Could not set layer range, got " + range.getMinLayerBoundary() + ".." + range.getMaxLayerBoundary());
+        }
+        *///?} else {
         if (range.getLayerMin() != y || range.getLayerMax() != y) {
             throw new AssertionError("Could not set layer range, got " + range.getLayerMin() + ".." + range.getLayerMax());
         }
+        //?}
     }
 
     private static void enablePrint() {

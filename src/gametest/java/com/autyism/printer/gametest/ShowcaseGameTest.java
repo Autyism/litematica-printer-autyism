@@ -183,9 +183,15 @@ public final class ShowcaseGameTest implements FabricClientGameTest {
             context.runOnClient(client -> GT.disableAll());
             context.waitTicks(40);
             tidy(context);
+            //? if >=26.2 {
+            /*context.runOnClient(client -> { if (!client.gui.hud.isHidden()) client.gui.hud.toggle(); });
+            *///?} else
             context.runOnClient(client -> client.options.hideGui = true);
             context.waitTicks(3);
             context.takeScreenshot("printer-showcase-done");
+            //? if >=26.2 {
+            /*context.runOnClient(client -> { if (client.gui.hud.isHidden()) client.gui.hud.toggle(); });
+            *///?} else
             context.runOnClient(client -> client.options.hideGui = false);
             List<String> wrong = GT.mismatches(sp, min, max, p -> built.get(p));
             GT.log("[showcase] " + total + " blocks printed, " + wrong.size() + " differ from the schematic" + (wrong.isEmpty() ? "" : ": " + wrong.subList(0, Math.min(5, wrong.size()))));
@@ -195,6 +201,9 @@ public final class ShowcaseGameTest implements FabricClientGameTest {
             GT.removeAllPlacements(context);
             context.runOnClient(client -> {
                 GT.disableAll();
+                //? if >=26.2 {
+                /*if (client.gui.hud.isHidden()) client.gui.hud.toggle();
+                *///?} else
                 client.options.hideGui = false;
             });
         }
@@ -203,8 +212,13 @@ public final class ShowcaseGameTest implements FabricClientGameTest {
     /** No chat lines, toasts or malilib message boxes in the release screenshots. */
     private static void tidy(ClientGameTestContext context) {
         context.runOnClient(client -> {
+            //? if >=26.2 {
+            /*client.gui.hud.getChat().clearMessages(false);
+            client.gui.toastManager().clear();
+            *///?} else {
             client.gui.getChat().clearMessages(false);
             client.getToastManager().clear();
+            //?}
             // malilib keeps the in-game message box private and offers no way to clear it
             try {
                 Field box = fi.dy.masa.malilib.util.InfoUtils.class.getDeclaredField("IN_GAME_MESSAGES");

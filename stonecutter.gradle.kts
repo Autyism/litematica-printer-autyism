@@ -25,5 +25,12 @@ stonecutter parameters {
         regex(current.parsed >= "26.1") {
             replace("\\bWaterlilyBlock\\b", "LilyPadBlock", "\\bLilyPadBlock\\b", "WaterlilyBlock")
         }
+        // 26.2: dyed blocks and items are grouped by colour
+        regex(current.parsed >= "26.2") {
+            replace("\\bItems\\.WHITE_SHULKER_BOX\\b", "Items.DYED_SHULKER_BOX.white()", "\\bItems\\.DYED_SHULKER_BOX\\.white\\(\\)", "Items.WHITE_SHULKER_BOX")
+        }
+        regex(current.parsed >= "26.2") {
+            replace("\\bBlocks\\.WHITE_SHULKER_BOX\\b", "Blocks.DYED_SHULKER_BOX.white()", "\\bBlocks\\.DYED_SHULKER_BOX\\.white\\(\\)", "Blocks.WHITE_SHULKER_BOX")
+        }
     }
 }

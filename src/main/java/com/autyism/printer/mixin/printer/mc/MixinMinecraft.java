@@ -9,6 +9,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+//? if >=26.2 {
+/*@Mixin(net.minecraft.client.gui.Gui.class)
+*///?} else
 @Mixin(Minecraft.class)
 public class MixinMinecraft {
     //shit. In mapping-26.1.2-26.2.txt replaces setScreen to screen

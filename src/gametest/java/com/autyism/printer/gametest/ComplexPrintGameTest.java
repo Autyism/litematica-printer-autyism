@@ -189,6 +189,9 @@ public final class ComplexPrintGameTest implements FabricClientGameTest {
         sp.getServer().runCommand("time set noon");
         sp.getServer().runCommand(String.format(java.util.Locale.ROOT, "tp @a %.1f %.1f %.1f %.1f %.1f", px, py, pz, yaw, pitch));
         context.runOnClient(c -> {
+            //? if >=26.2 {
+            /*if (!c.gui.hud.isHidden()) c.gui.hud.toggle();
+            *///?} else
             c.options.hideGui = true;
             c.options.renderDistance().set(12);
             fi.dy.masa.litematica.config.Configs.Visuals.ENABLE_RENDERING.setBooleanValue(false);
@@ -197,6 +200,9 @@ public final class ComplexPrintGameTest implements FabricClientGameTest {
         java.nio.file.Path shot = context.takeScreenshot("complex-" + index);
         GT.log("[complex] " + name + " SCREENSHOT " + shot.toAbsolutePath());
         context.runOnClient(c -> {
+            //? if >=26.2 {
+            /*if (c.gui.hud.isHidden()) c.gui.hud.toggle();
+            *///?} else
             c.options.hideGui = false;
             fi.dy.masa.litematica.config.Configs.Visuals.ENABLE_RENDERING.setBooleanValue(true);
         });

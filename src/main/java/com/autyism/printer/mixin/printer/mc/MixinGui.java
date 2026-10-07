@@ -30,6 +30,9 @@ import net.minecraft.client.DeltaTracker;
 /**
  * HUD渲染Mixin，负责打印器调试信息和进度条的绘制
  */
+//? if >=26.2 {
+/*@Mixin(net.minecraft.client.gui.Hud.class)
+*///?} else
 @Mixin(Gui.class)
 public abstract class MixinGui {
     @Unique

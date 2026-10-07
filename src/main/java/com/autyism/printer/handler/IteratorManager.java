@@ -2,6 +2,9 @@ package com.autyism.printer.handler;
 
 import fi.dy.masa.litematica.data.DataManager;
 import fi.dy.masa.malilib.util.LayerMode;
+//? if >=26.2 {
+/*import fi.dy.masa.malilib.util.position.LayerRange;
+*///?} else
 import fi.dy.masa.malilib.util.LayerRange;
 import com.autyism.printer.config.Configs;
 import com.autyism.printer.enums.IterationOrderType;
@@ -115,8 +118,13 @@ public class IteratorManager {
         LayerRange layerRange = DataManager.getRenderLayerRange();
         LayerMode layerMode = respectRenderLayer ? layerRange.getLayerMode() : LayerMode.ALL;
         Direction.Axis layerAxis = layerRange.getAxis();
+        //? if >=26.2 {
+        /*int layerMin = layerRange.getMinLayerBoundary();
+        int layerMax = layerRange.getMaxLayerBoundary();
+        *///?} else {
         int layerMin = layerRange.getLayerMin();
         int layerMax = layerRange.getLayerMax();
+        //?}
         int layerSingle = layerRange.getLayerSingle();
         int layerAbove = layerRange.getLayerAbove();
         int layerBelow = layerRange.getLayerBelow();

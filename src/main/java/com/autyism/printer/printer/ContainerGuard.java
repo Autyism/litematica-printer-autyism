@@ -142,6 +142,9 @@ public final class ContainerGuard {
 
     /** 玩家能看见的容器界面（打印机自己打开的潜影盒界面会被拦截不显示，因此不会算在内）。 */
     public static boolean isUserContainerScreenOpen() {
+        //? if >=26.2 {
+        /*return mc.gui.screen() instanceof AbstractContainerScreen<?>;
+        *///?} else
         return mc.screen instanceof AbstractContainerScreen<?>;
     }
 }

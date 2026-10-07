@@ -27,6 +27,9 @@ public final class SettingsShotsGameTest implements FabricClientGameTest {
             shot(context, ConfigUi.Tab.BREAK, false, "settings-breaking");
             shot(context, ConfigUi.Tab.EXCAVATE, false, "settings-mining");
         } finally {
+            //? if >=26.2 {
+            /*context.runOnClient(c -> c.gui.setScreen(null));
+            *///?} else
             context.runOnClient(c -> c.setScreen(null));
         }
     }
@@ -40,6 +43,9 @@ public final class SettingsShotsGameTest implements FabricClientGameTest {
             } catch (ReflectiveOperationException e) {
                 throw new AssertionError(e);
             }
+            //? if >=26.2 {
+            /*c.gui.setScreen(new ConfigUi(null));
+            *///?} else
             c.setScreen(new ConfigUi(null));
         });
         context.waitTicks(5);
@@ -48,6 +54,9 @@ public final class SettingsShotsGameTest implements FabricClientGameTest {
                 try {
                     Method method = GuiListBase.class.getDeclaredMethod("getListWidget");
                     method.setAccessible(true);
+                    //? if >=26.2 {
+                    /*WidgetListBase<?, ?> list = (WidgetListBase<?, ?>) method.invoke(c.gui.screen());
+                    *///?} else
                     WidgetListBase<?, ?> list = (WidgetListBase<?, ?>) method.invoke(c.screen);
                     list.getScrollbar().setValue(list.getScrollbar().getMaxValue());
                 } catch (ReflectiveOperationException e) {

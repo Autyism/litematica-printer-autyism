@@ -312,6 +312,9 @@ public abstract class Module extends ConfigUtils {
                 + " breakQueue=" + com.autyism.printer.utils.BreakUtils.INSTANCE.isNeedHandle()
                 + " lookWait=" + ActionManager.INSTANCE.needWaitModifyLook
                 + " canExec=" + canExecute() + " canIter=" + canIterate() + " allowed=" + isConfigAllowed()
+                //? if >=26.2 {
+                /*+ " paused=" + ContainerGuard.isPaused() + " screen=" + (mc == null ? null : mc.gui.screen())
+                *///?} else
                 + " paused=" + ContainerGuard.isPaused() + " screen=" + (mc == null ? null : mc.screen)
                 + " iterBox=" + iteratorManager.getBox() + " effRange=" + ConfigUtils.getEffectiveRange()
                 + " workRange=" + Configs.Core.WORK_RANGE.getDoubleValue()
