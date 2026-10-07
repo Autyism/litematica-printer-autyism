@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.0.0+26.3 — 2026-10-07
+
+The printer for Minecraft 26.3, with the same features and settings as 1.0.0 for 1.21.11.
+
+- Needs Java 25, Fabric Loader 0.19.3 or newer, MaLiLib 0.30.2 or newer and Litematica 0.29.1 or newer.
+- Advanced Shulkerboxes has no 26.3 version yet, so restocking from shulker boxes through it could not be tested on 26.3.
+- Other Minecraft versions have their own jar: `litematica-printer-autyism-1.0.0.jar` for 1.21.11, `litematica-printer-autyism-1.0.0+26.1.2.jar` for 26.1–26.1.2.
+
+### 中文
+
+适用于 Minecraft 26.3 的打印机，功能和设置与 1.21.11 的 1.0.0 相同。
+
+- 需要 Java 25、Fabric Loader 0.19.3 或更高、MaLiLib 0.30.2 或更高、Litematica 0.29.1 或更高。
+- Advanced Shulkerboxes 目前还没有 26.3 版，所以 26.3 上没法测试通过它从潜影盒补货。
+- 其他 Minecraft 版本有各自的 jar：1.21.11 用 `litematica-printer-autyism-1.0.0.jar`，26.1–26.1.2 用 `litematica-printer-autyism-1.0.0+26.1.2.jar`。
+
+## 1.0.0+26.2 — 2026-10-07
+
+The printer for Minecraft 26.2, with the same features and settings as 1.0.0 for 1.21.11.
+
+- Needs Java 25, Fabric Loader 0.19.3 or newer, MaLiLib 0.29.6 or newer and Litematica 0.28.8 or newer.
+- Other Minecraft versions have their own jar: `litematica-printer-autyism-1.0.0.jar` for 1.21.11, `litematica-printer-autyism-1.0.0+26.1.2.jar` for 26.1–26.1.2.
+
+### 中文
+
+适用于 Minecraft 26.2 的打印机，功能和设置与 1.21.11 的 1.0.0 相同。
+
+- 需要 Java 25、Fabric Loader 0.19.3 或更高、MaLiLib 0.29.6 或更高、Litematica 0.28.8 或更高。
+- 其他 Minecraft 版本有各自的 jar：1.21.11 用 `litematica-printer-autyism-1.0.0.jar`，26.1–26.1.2 用 `litematica-printer-autyism-1.0.0+26.1.2.jar`。
+
 ## 1.0.0+26.1.2 — 2026-10-07
 
 The printer for Minecraft 26.1, 26.1.1 and 26.1.2, with the same features and settings as 1.0.0 for 1.21.11.
