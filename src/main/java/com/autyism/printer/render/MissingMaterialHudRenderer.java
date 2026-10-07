@@ -48,6 +48,9 @@ public class MissingMaterialHudRenderer implements IInfoHudRenderer
         return List.of();
     }
 
+    //? if <1.21.6 {
+    /*public int render(int xOffset, int yOffset, HudAlignment alignment, GuiGraphics drawContext)
+    *///?} else
     public int render(GuiGraphics drawContext, int xOffset, int yOffset, HudAlignment alignment)
     {
         MissingMaterialTracker tracker = MissingMaterialTracker.getInstance();
