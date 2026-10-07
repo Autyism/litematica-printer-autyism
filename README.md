@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/icon.png" width="128" alt="icon"></p>
+<p align="center"><img src="docs/icon_transparent.png" width="156" alt="icon"></p>
 <h1 align="center">Litematica Printer Autyism Edition</h1>
 <p align="center">A standalone Litematica printer for Minecraft 1.20.1 and 1.21.5 to 26.3 that builds schematics from the bottom up and takes care with redstone, rails and laggy servers.</p>
 <p align="center">适用于 Minecraft 1.20.1 和 1.21.5 到 26.3 的独立投影打印机：从最底层开始往上打印，红石、铁轨和服务器延迟都处理得更稳。</p>
