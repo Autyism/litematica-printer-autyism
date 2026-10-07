@@ -294,7 +294,7 @@
   "litematica-printer-autyism.config.printFluidsWithBucket": "用桶打印流体",
   "litematica-printer-autyism.config.printFluidsWithBucket.desc": "（默认关闭）用水桶 / 岩浆桶放置投影里的水源、岩浆源（像玩家一样瞄准相邻方块的面），并给投影里应该装满水 / 岩浆 / 细雪的空炼药锅倒满。只有整片水体四周和下方的方块都打印好之后才放，不会漏出去。站的位置看不到相邻方块面的水格会等你走到能看到的地方。生存模式每桶放一格。",
   "litematica-printer-autyism.config.printWaterlogged": "打印含水方块",
-  "litematica-printer-autyism.config.printWaterlogged.desc": "（默认关闭）投影里含水的方块放好之后，用水桶给它加水。只有世界里的方块除了水以外已经和投影一样、并且水流不出去时才加（按游戏自己的规则检查下方和四个侧面）。如果投影本身在某一侧就是开着的，这个方块保持不含水，算作已完成。水桶从背包或潜影盒补货里拿，缺水桶时会显示在缺失材料 HUD 里。打印机会等服务端确认含水之后才算完成，没加上会重试。站的位置看不到的方块会等你走到能看到的地方。",
+  "litematica-printer-autyism.config.printWaterlogged.desc": "（默认关闭）方块放好后给含水方块倒水，只在水漏不出去的地方倒。水桶从背包或潜影盒里拿。",
   "litematica-printer-autyism.config.category.bedrock": "§6破基岩",
   "litematica-printer-autyism.config.category.bedrock.desc": "破基岩模式相关设置（使用哪个破基岩模组、要破的方块列表）",
   "litematica-printer-autyism.config.bedrockBackend.auto": "自动",
