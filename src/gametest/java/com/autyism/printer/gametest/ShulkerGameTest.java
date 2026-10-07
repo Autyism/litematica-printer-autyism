@@ -31,6 +31,9 @@ public final class ShulkerGameTest implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext context) {
         if (!GTFilter.enabled("shulker")) return;
+        //? if >=26.3 {
+        /*if (!FabricLoader.getInstance().isModLoaded("shulkerbox")) { GT.log("[shulker] SKIPPED: Advanced Shulkerboxes has no release for this Minecraft version"); return; }
+        *///?} else
         if (!FabricLoader.getInstance().isModLoaded("shulkerbox")) throw new AssertionError("Advanced Shulkerboxes not loaded");
         try (TestSingleplayerContext sp = GT.newWorld(context)) {
             GT.clearArena(sp, 292, -8, 316, 10, 72);

@@ -48,6 +48,15 @@ dependencies {
             modLocalRuntime("net.fabricmc:fabric-language-kotlin:1.14.1+kotlin.2.4.20")
         }
     }
+    // 26.x: the same optional mods, official builds from Modrinth (test runtime only, never bundled)
+    if (providers.gradleProperty("aleGameTest").isPresent && sc.current.parsed >= "26.1") {
+        // Bedrock Miner (bunnyi116): 1.6.1 like on 1.21.11; 26.3 only has 1.6.2
+        val bedrockMiner = mapOf("26.1.2" to "v1.6.1-mc26.1", "26.2" to "v1.6.1-mc26.2", "26.3" to "v1.6.2-mc26.3")
+        // Advanced Shulkerboxes 2.0.5 (Modrinth version ids: fabric-2.0.5+26.1.2, fabric-2.0.5+26.2); no 26.3 release exists
+        val shulkerbox = mapOf("26.1.2" to "hO8yONQQ", "26.2" to "gwthW8Gh")
+        bedrockMiner[mc]?.let { modLocalRuntime("maven.modrinth:next-fabric-bedrock-miner:$it") }
+        shulkerbox[mc]?.let { modLocalRuntime("maven.modrinth:advanced-shulkerboxes:$it") }
+    }
 
     compileOnly("org.projectlombok:lombok:${prop("deps.lombok")}")
     annotationProcessor("org.projectlombok:lombok:${prop("deps.lombok")}")
