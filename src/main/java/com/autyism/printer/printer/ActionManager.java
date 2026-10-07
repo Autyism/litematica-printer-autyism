@@ -191,8 +191,15 @@ public class ActionManager {
     }
 
     public void setShift(LocalPlayer player, boolean shift) {
+        //? if <1.21.6 {
+        /*// 1.21.5 的服务端只按 PRESS_SHIFT_KEY / RELEASE_SHIFT_KEY 改潜行状态（输入包里的 shift 不影响潜行）
+        net.minecraft.network.protocol.game.ServerboundPlayerCommandPacket packet = new net.minecraft.network.protocol.game.ServerboundPlayerCommandPacket(player,
+                shift ? net.minecraft.network.protocol.game.ServerboundPlayerCommandPacket.Action.PRESS_SHIFT_KEY
+                        : net.minecraft.network.protocol.game.ServerboundPlayerCommandPacket.Action.RELEASE_SHIFT_KEY);
+        *///?} else {
         Input input = new Input(player.input.keyPresses.forward(), player.input.keyPresses.backward(), player.input.keyPresses.left(), player.input.keyPresses.right(), player.input.keyPresses.jump(), shift, player.input.keyPresses.sprint());
         ServerboundPlayerInputPacket packet = new ServerboundPlayerInputPacket(input);
+        //?}
         player.setShiftKeyDown(shift);
         PacketUtils.sendPacket(packet);
     }

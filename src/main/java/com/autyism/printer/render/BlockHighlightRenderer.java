@@ -41,6 +41,21 @@ public class BlockHighlightRenderer implements IRenderer {
 
     // ===== Render Entry Points =====
 
+    //? if <1.21.6 {
+    /*@Override
+    public void onRenderWorldLastAdvanced(
+            RenderTarget renderTarget,
+            Matrix4f posMatrix,
+            Matrix4f projMatrix,
+            Frustum frustum,
+            Camera camera,
+            net.minecraft.client.renderer.FogParameters fog,
+            RenderBuffers buffers,
+            ProfilerFiller profiler
+    ) {
+        renderInternal(camera.getPosition());
+    }
+    *///?} else {
     @Override
     public void onRenderWorldLastAdvanced(
             RenderTarget renderTarget,
@@ -53,6 +68,7 @@ public class BlockHighlightRenderer implements IRenderer {
     ) {
         renderInternal(camera.position());
     }
+    //?}
 
     /** Match malilib's camPos() pattern: rendering camera, not player eye */
 
@@ -126,11 +142,20 @@ public class BlockHighlightRenderer implements IRenderer {
                 : MaLiLibPipelines.DEBUG_LINES_MASA_SIMPLE_LEQUAL_DEPTH;
         RenderPipeline filledPipeline = seeThrough
                 ? MaLiLibPipelines.POSITION_COLOR_TRANSLUCENT_NO_DEPTH_NO_CULL
+                //? if <1.21.6 {
+                /*: translucentLequalDepthNoCull();
+                *///?} else
                 : MaLiLibPipelines.POSITION_COLOR_TRANSLUCENT_LEQUAL_DEPTH_NO_CULL;
 
+        //? if <1.21.6 {
+        /*RenderContext ctx = new RenderContext(() -> "litematica_printer:highlight", linePipeline, com.mojang.blaze3d.buffers.BufferUsage.STATIC_WRITE);
+        *///?} else
         RenderContext ctx = new RenderContext(() -> "litematica_printer:highlight", linePipeline);
         try {
             if (hasOutline) {
+                //? if <1.21.6 {
+                /*ctx.start(() -> "highlight_outline", linePipeline, com.mojang.blaze3d.buffers.BufferUsage.STATIC_WRITE);
+                *///?} else
                 ctx.start(() -> "highlight_outline", linePipeline);
                 BufferBuilder lineBuf = ctx.getBuilder();
                 for (HighlightEntry e : entries) {
@@ -146,6 +171,9 @@ public class BlockHighlightRenderer implements IRenderer {
             }
 
             if (hasFilled) {
+                //? if <1.21.6 {
+                /*BufferBuilder filledBuf = ctx.start(() -> "highlight_filled", filledPipeline, com.mojang.blaze3d.buffers.BufferUsage.STATIC_WRITE);
+                *///?} else
                 BufferBuilder filledBuf = ctx.start(() -> "highlight_filled", filledPipeline);
                 for (HighlightEntry e : entries) {
                     if (e.style == HighlightStyleType.OUTLINE) continue;
@@ -164,6 +192,23 @@ public class BlockHighlightRenderer implements IRenderer {
             try { ctx.close(); } catch (Exception ignored) {}
         }
     }
+
+    //? if <1.21.6 {
+    /*// 1.21.5 的 malilib 还没有 POSITION_COLOR_TRANSLUCENT_LEQUAL_DEPTH_NO_CULL：按新版 malilib 的定义建一个同样的
+    private static RenderPipeline translucentLequalDepthNoCull;
+
+    private static RenderPipeline translucentLequalDepthNoCull() {
+        if (translucentLequalDepthNoCull == null) {
+            translucentLequalDepthNoCull = RenderPipeline.builder(MaLiLibPipelines.POSITION_COLOR_TRANSLUCENT_STAGE)
+                    .withLocation(net.minecraft.resources.Identifier.fromNamespaceAndPath(Reference.MOD_ID, "pipeline/position_color/translucent/lequal_depth/no_cull"))
+                    .withCull(false)
+                    .withDepthWrite(false)
+                    .withDepthTestFunction(com.mojang.blaze3d.platform.DepthTestFunction.LEQUAL_DEPTH_TEST)
+                    .build();
+        }
+        return translucentLequalDepthNoCull;
+    }
+    *///?}
 
     private void addFilledBoxModern(BufferBuilder buf, BlockPos pos,
                                     int r, int g, int b, int a, Vec3 cameraPos) {
