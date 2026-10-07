@@ -2,7 +2,7 @@
 mod.id = "litematica-printer-autyism"
 mod.name = "Litematica Printer Autyism Edition"
 mod.group = "com.autyism.printer"
-mod.version = "1.1.0"
+mod.version = "1.1.1"
 mod.loader_compat = ">=0.17.0"
 
 deps.fabric_loader = "0.19.3"

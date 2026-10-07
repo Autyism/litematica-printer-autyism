@@ -50,6 +50,11 @@ public final class GT {
     }
 
     public static TestSingleplayerContext newWorld(ClientGameTestContext context) {
+        return newWorld(context, true);
+    }
+
+    /** cheats=false：不给 OP，和没开作弊的单人世界一样（玩家不能用指令） */
+    public static TestSingleplayerContext newWorld(ClientGameTestContext context, boolean cheats) {
         TestSingleplayerContext sp = context.worldBuilder().create();
         //? if <1.21.9 {
         /*waitClientLoaded(context, sp);
@@ -84,7 +89,7 @@ public final class GT {
         //?}
         sp.getServer().runCommand("gamemode survival @a");
         // 相当于“允许作弊”的单人世界
-        sp.getServer().runOnServer(server -> {
+        if (cheats) sp.getServer().runOnServer(server -> {
             var player = server.getPlayerList().getPlayers().getFirst();
             //? if <1.21.9 {
             /*server.getPlayerList().op(player.getGameProfile());

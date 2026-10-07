@@ -109,5 +109,63 @@ public final class LargeRangeGameTest implements FabricClientGameTest {
                 Configs.Print.LAYERED_MODE.setBooleanValue(false);
             });
         }
+        noCheats(context);
+    }
+
+    private static final java.util.List<String> GAME_MESSAGES = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private static boolean listening;
+
+    /** 没开作弊的单人世界：玩家不能用指令，自动调高交互距离什么都不做（聊天栏里不能有指令报错），够得着的照常打印 */
+    private static void noCheats(ClientGameTestContext context) {
+        if (!listening) {
+            listening = true;
+            net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents.GAME.register((message, overlay) -> GAME_MESSAGES.add(message.getString()));
+        }
+        BlockPos a = new BlockPos(102, 64, 0);
+        BlockPos b = new BlockPos(104, 64, 0);
+        try (TestSingleplayerContext sp = GT.newWorld(context, false)) {
+            GT.clearArena(sp, 96, -4, 110, 4, 72);
+            sp.getServer().runCommand("tp @a 100.5 64 0.5 -90 30");
+            context.waitFor(client -> client.player != null && Math.abs(client.player.getX() - 100.5) < 0.01, 200);
+            context.waitTicks(20);
+            sp.getServer().runOnServer(server -> {
+                for (BlockPos p : BlockPos.betweenClosed(a, b)) server.overworld().setBlockAndUpdate(p, Blocks.STONE.defaultBlockState());
+            });
+            context.waitFor(client -> client.level.getBlockState(b).is(Blocks.STONE), 200);
+            GT.captureAndPlace(context, sp, a, b, a, "ale_test_nocheats");
+            sp.getServer().runOnServer(server -> {
+                for (BlockPos p : BlockPos.betweenClosed(a, b)) server.overworld().setBlockAndUpdate(p, Blocks.AIR.defaultBlockState());
+                var player = server.getPlayerList().getPlayers().getFirst();
+                player.getInventory().clearContent();
+                player.getInventory().setItem(0, new ItemStack(Items.STONE, 64));
+                player.inventoryMenu.sendAllDataToRemote();
+            });
+            GT.waitSchematicBlock(context, a, Blocks.STONE);
+            context.waitFor(client -> client.player.getInventory().getItem(0).is(Items.STONE) && client.level.getBlockState(a).isAir(), 200);
+            if (context.computeOnClient(client -> client.player.connection.getCommands().getRoot().getChild("attribute") != null)) {
+                throw new AssertionError("[range/no cheats] the test world lets the player use /attribute");
+            }
+            GAME_MESSAGES.clear();
+            context.runOnClient(client -> {
+                // 比原版交互距离大：开了作弊的话会调高交互距离
+                Configs.Core.WORK_RANGE.setDoubleValue(8);
+                GT.enablePrint();
+            });
+            int ticks = GT.waitServer(context, () -> GT.countPlaced(sp, a, b) == 3, 200, "[range/no cheats] blocks within reach were not printed");
+            context.waitTicks(40);
+            context.runOnClient(client -> GT.disableAll());
+            java.util.List<String> errors = GAME_MESSAGES.stream().filter(m -> m.contains("Unknown or incomplete command") || m.contains("<--[HERE]")).toList();
+            if (!errors.isEmpty()) throw new AssertionError("[range/no cheats] command error in chat: " + errors);
+            //? if <1.20.5 {
+            /*if (com.autyism.printer.printer.ReachHelper.legacyRaised() > 0) throw new AssertionError("[range/no cheats] reach was raised");
+            *///?} else {
+            double base = sp.getServer().computeOnServer(server -> server.getPlayerList().getPlayers().getFirst()
+                    .getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.BLOCK_INTERACTION_RANGE).getBaseValue());
+            if (base != 4.5) throw new AssertionError("[range/no cheats] reach was raised: " + base);
+            //?}
+            GT.log("[range/no cheats] OK: 3 blocks printed in " + ticks + " ticks, reach not raised, no command error in chat");
+        } finally {
+            context.runOnClient(client -> GT.disableAll());
+        }
     }
 }

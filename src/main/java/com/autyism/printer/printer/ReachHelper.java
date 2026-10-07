@@ -9,7 +9,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 
 /**
  * 需求 13：单人世界里，工作半径大于原版交互距离时自动调高 block_interaction_range 属性（上限 64），
- * 否则内置服务端会撤回超出距离的放置。只在单人世界、且工作半径确实更大时执行，每个目标值只发一次指令。
+ * 否则内置服务端会撤回超出距离的放置。只在单人世界、开了作弊（能用 /attribute）、且工作半径确实更大时执行，每个目标值只发一次指令。
  */
 public final class ReachHelper {
     private static final Minecraft mc = Minecraft.getInstance();
@@ -45,6 +45,8 @@ public final class ReachHelper {
         if (attr == null) return;
         int target = (int) Math.min(VANILLA_ATTRIBUTE_MAX, Math.ceil(wanted - 1));
         if (attr.getBaseValue() >= target || requestedValue == target) return;
+        // 没开作弊（不能用 /attribute）时什么都不做：发出去只会在聊天栏报错。服务端只把玩家能用的指令发给客户端
+        if (player.connection.getCommands().getRoot().getChild("attribute") == null) return;
         requestedValue = target;
         requestedTick = player.tickCount;
         player.connection.sendCommand("attribute @s minecraft:block_interaction_range base set " + target);
