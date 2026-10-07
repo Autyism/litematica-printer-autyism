@@ -30,6 +30,9 @@ public abstract class MixinConnectionRotationNote {
         if (packet instanceof ServerboundMovePlayerPacket move && move.hasRotation()) {
             ActionManager.INSTANCE.noteSentRotation(move.getYRot(0));
         } else if (packet instanceof ServerboundUseItemPacket use) {
+            //? if >=26.3 {
+            /*ActionManager.INSTANCE.noteSentRotation(use.yRot());
+            *///?} else
             ActionManager.INSTANCE.noteSentRotation(use.getYRot());
         }
     }

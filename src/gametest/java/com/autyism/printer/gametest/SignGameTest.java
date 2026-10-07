@@ -27,6 +27,17 @@ public final class SignGameTest implements FabricClientGameTest {
     private static final BlockPos MIN = new BlockPos(X - 1, 64, Z - 2);
     private static final BlockPos MAX = new BlockPos(X + 15, 68, Z + 2);
 
+    //? if >=26.3 {
+    /*// 26.3 的 SignText 没有 setMessage 了：换掉一行（过滤前后都换，和旧版 setMessage 一样）
+    private static net.minecraft.world.level.block.entity.SignText withLine(net.minecraft.world.level.block.entity.SignText t, int line, Component c) {
+        List<Component> messages = new ArrayList<>(t.getMessages(false));
+        List<Component> filtered = new ArrayList<>(t.getMessages(true));
+        messages.set(line, c);
+        filtered.set(line, c);
+        return new net.minecraft.world.level.block.entity.SignText(messages, filtered, t.getColor(), t.hasGlowingText());
+    }
+
+    *///?}
     private static Map<BlockPos, BlockState> layout() {
         Map<BlockPos, BlockState> m = new LinkedHashMap<>();
         // A：立式告示牌上再立一块
@@ -71,8 +82,13 @@ public final class SignGameTest implements FabricClientGameTest {
                     level.setBlock(e.getKey(), e.getValue(), Block.UPDATE_CLIENTS);
                     if (level.getBlockEntity(e.getKey()) instanceof SignBlockEntity sign) {
                         String id = e.getKey().getX() + "," + e.getKey().getY();
+                        //? if >=26.3 {
+                        /*sign.updateText(t -> withLine(t, 0, Component.literal("F " + id)), net.minecraft.world.level.block.entity.SignTextSlot.FRONT);
+                        sign.updateText(t -> withLine(t, 1, Component.literal("B " + id)), net.minecraft.world.level.block.entity.SignTextSlot.BACK);
+                        *///?} else {
                         sign.updateText(t -> t.setMessage(0, Component.literal("F " + id)), true);
                         sign.updateText(t -> t.setMessage(1, Component.literal("B " + id)), false);
+                        //?}
                     }
                 }
             });
@@ -105,8 +121,13 @@ public final class SignGameTest implements FabricClientGameTest {
             for (var e : layout.entrySet()) {
                 BlockState got = sp.getServer().computeOnServer(s -> s.overworld().getBlockState(e.getKey()));
                 if (got != e.getValue()) wrong.add(e.getKey().toShortString() + " got " + got + " want " + e.getValue());
+                //? if >=26.3 {
+                /*String text = sp.getServer().computeOnServer(s -> s.overworld().getBlockEntity(e.getKey()) instanceof SignBlockEntity sign
+                        ? sign.getText(net.minecraft.world.level.block.entity.SignTextSlot.FRONT).getMessages(false).get(0).getString() : null);
+                *///?} else {
                 String text = sp.getServer().computeOnServer(s -> s.overworld().getBlockEntity(e.getKey()) instanceof SignBlockEntity sign
                         ? sign.getFrontText().getMessage(0, false).getString() : null);
+                //?}
                 String id = e.getKey().getX() + "," + e.getKey().getY();
                 if (text != null && !text.equals("F " + id)) wrong.add(e.getKey().toShortString() + " text '" + text + "'");
             }

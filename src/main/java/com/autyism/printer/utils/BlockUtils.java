@@ -358,7 +358,18 @@ public class BlockUtils {
 
     @SuppressWarnings("UnstableApiUsage")
     public static Map<Block, Block> getStrippedBlocksMap() {
-        //? if >=26.1 {
+        //? if >=26.3 {
+        /*// 26.3 起没有 AxeItem.STRIPPABLES 了（去皮改由数据包里的 block_transformer 决定）。
+        // 原版的去皮对应关系正好都是“X → stripped_X”，按方块 ID 找出同一张表
+        Map<Block, Block> stripped = new HashMap<>();
+        for (Block block : BuiltInRegistries.BLOCK) {
+            Identifier id = BuiltInRegistries.BLOCK.getKey(block);
+            if (id.getPath().startsWith("stripped_")) continue;
+            BuiltInRegistries.BLOCK.getOptional(Identifier.fromNamespaceAndPath(id.getNamespace(), "stripped_" + id.getPath()))
+                    .ifPresent(result -> stripped.put(block, result));
+        }
+        return stripped;
+        *///?} elif >=26.1 {
         /*return net.fabricmc.fabric.mixin.content.registry.AxeItemAccessor.getStrippables();
         *///?} else
         return net.fabricmc.fabric.mixin.content.registry.AxeItemAccessor.getStrippedBlocks();

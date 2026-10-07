@@ -45,6 +45,9 @@ public abstract class ServerItemMismatchMixin {
             }
         }
         if (diff.isEmpty()) return;
+        //? if >=26.3 {
+        /*System.out.println("[ORIENT-MISMATCH] seq=" + packet.sequence() + " pos=" + client.workPos().toShortString() + " " + diff
+        *///?} else
         System.out.println("[ORIENT-MISMATCH] seq=" + packet.getSequence() + " pos=" + client.workPos().toShortString() + " " + diff
                 + "click=" + client.target() + " serverRot=" + this.player.getYRot() + "/" + this.player.getXRot() + " head=" + this.player.getYHeadRot()
                 + " tick=" + this.player.tickCount + " recentRot=[" + UseRecord.recentServerRotations() + "]");
@@ -101,9 +104,15 @@ public abstract class ServerItemMismatchMixin {
     @Inject(method = "handleUseItemOn", at = @At("HEAD"))
     private void gt$checkItem(ServerboundUseItemOnPacket packet, CallbackInfo ci) {
         if (!this.player.level().getServer().isSameThread()) return; // 网络线程那一次只是转交给主线程
+        //? if >=26.3 {
+        /*UseRecord.Entry client = UseRecord.take(packet.sequence());
+        *///?} else
         UseRecord.Entry client = UseRecord.take(packet.getSequence());
         gt$current = client;
         if (client == null || client.item().equals("minecraft:air")) return; // 生存模式最后一个用掉后客户端手里是空的：不算
+        //? if >=26.3 {
+        /*String server = this.player.getItemInHand(packet.hand()).getItem().toString();
+        *///?} else
         String server = this.player.getItemInHand(packet.getHand()).getItem().toString();
         if (server.equals(client.item())) return;
         StringBuilder hotbar = new StringBuilder();
@@ -111,6 +120,9 @@ public abstract class ServerItemMismatchMixin {
             var s = this.player.getInventory().getItem(i);
             hotbar.append(i).append(':').append(s.isEmpty() ? "-" : s.getItem().toString().replace("minecraft:", "")).append(' ');
         }
+        //? if >=26.3 {
+        /*System.out.println("[ITEM-MISMATCH] seq=" + packet.sequence() + " target=" + client.target() + " client=" + client.item()
+        *///?} else
         System.out.println("[ITEM-MISMATCH] seq=" + packet.getSequence() + " target=" + client.target() + " client=" + client.item()
                 + " (slot " + client.slot() + ", tick " + client.tick() + ") server=" + server + " (slot "
                 + this.player.getInventory().getSelectedSlot() + ") serverHotbar=" + hotbar);
