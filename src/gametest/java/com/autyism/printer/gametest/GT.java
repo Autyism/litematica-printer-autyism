@@ -266,4 +266,28 @@ public final class GT {
         Configs.Fluid.ENABLED.setBooleanValue(false);
         Configs.Bedrock.ENABLED.setBooleanValue(false);
     }
+
+    /**
+     * 截图。26.1.x 上 Fabric 的 takeScreenshot 会另外渲染一帧，Litematica 0.27.14 在那条渲染路径里不画半透明的投影方块和投影实体，
+     * 所以 26.1.x 改为保存游戏正常循环里画好的最后一帧（文件名 screenshots/<name>.png）。
+     */
+    public static java.nio.file.Path screenshot(ClientGameTestContext context, String name) {
+        //? if >=26.1 <26.2 {
+        /*context.waitTicks(2);
+        java.util.concurrent.CompletableFuture<com.mojang.blaze3d.platform.NativeImage> image = new java.util.concurrent.CompletableFuture<>();
+        context.runOnClient(c -> net.minecraft.client.Screenshot.takeScreenshot(c.getMainRenderTarget(), image::complete));
+        for (int i = 0; i < 40 && !image.isDone(); i++) context.waitTick();
+        com.mojang.blaze3d.platform.NativeImage frame = image.getNow(null);
+        if (frame == null) throw new AssertionError("[GT] no frame captured for screenshot " + name);
+        java.nio.file.Path file = context.computeOnClient(c -> c.gameDirectory.toPath().resolve("screenshots").resolve(name + ".png"));
+        try (frame) {
+            java.nio.file.Files.createDirectories(file.getParent());
+            frame.writeToFile(file);
+        } catch (java.io.IOException e) {
+            throw new AssertionError(e);
+        }
+        return file;
+        *///?} else
+        return context.takeScreenshot(name);
+    }
 }
