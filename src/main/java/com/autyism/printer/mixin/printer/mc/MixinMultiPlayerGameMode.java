@@ -84,8 +84,13 @@ public abstract class MixinMultiPlayerGameMode implements MultiPlayerGameModeExt
     }
 
     @org.spongepowered.asm.mixin.injection.Inject(method = "interact", at = @org.spongepowered.asm.mixin.injection.At("HEAD"))
+    //? if >=26.1 {
+    /*private void ale$onInteract(net.minecraft.world.entity.player.Player player, net.minecraft.world.entity.Entity entity, net.minecraft.world.phys.EntityHitResult hit, InteractionHand hand,
+                                org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<InteractionResult> cir) {
+    *///?} else {
     private void ale$onInteract(net.minecraft.world.entity.player.Player player, net.minecraft.world.entity.Entity entity, InteractionHand hand,
                                 org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<InteractionResult> cir) {
+    //?}
         com.autyism.printer.printer.ContainerGuard.onInteractEntity(entity);
     }
 
