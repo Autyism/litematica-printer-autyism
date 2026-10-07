@@ -48,6 +48,11 @@ dependencies {
             modLocalRuntime("net.fabricmc:fabric-language-kotlin:1.14.1+kotlin.2.4.20")
         }
     }
+    // The same mods for the older 1.21 versions (official builds of the same mod versions)
+    if (providers.gradleProperty("aleGameTest").isPresent && mc in setOf("1.21.5", "1.21.8", "1.21.10")) {
+        modLocalRuntime(files(rootProject.file("libs/bedrock-miner-v1.6.1-mc$mc.jar")))
+        modLocalRuntime(files(rootProject.file("libs/shulkerbox-fabric-$mc-2.0.5.jar")))
+    }
 
     compileOnly("org.projectlombok:lombok:${prop("deps.lombok")}")
     annotationProcessor("org.projectlombok:lombok:${prop("deps.lombok")}")
