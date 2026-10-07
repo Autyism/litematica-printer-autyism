@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.1 — 2026-10-08
+
+- Fixed: with cheats off, Auto Raise Reach no longer sends a command, so no "Unknown or incomplete command" in chat.
+
+### 中文
+
+- 修复：没开作弊时，自动调高交互距离不再发指令，聊天栏不会再出现“未知或不完整的命令”。
+
 ## 1.1.0+1.20.1 — 2026-10-08
 
 - The printer for Minecraft 1.20.1, with the same features and settings as 1.1.0.
