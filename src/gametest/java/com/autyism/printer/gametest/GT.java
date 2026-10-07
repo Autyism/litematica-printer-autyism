@@ -83,6 +83,9 @@ public final class GT {
         // 相当于“允许作弊”的单人世界
         sp.getServer().runOnServer(server -> {
             var player = server.getPlayerList().getPlayers().getFirst();
+            //? if <1.21.9 {
+            /*server.getPlayerList().op(player.getGameProfile());
+            *///?} else
             server.getPlayerList().op(player.nameAndId());
         });
         context.runOnClient(client -> configureCommon());
