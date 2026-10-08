@@ -18,7 +18,7 @@
 ```
 git clone https://github.com/...
 ```
-3. Create a new branch for your changes
+2. Create a new branch for your changes
 ```
 cd YOUR-REPOSITORY-NAME
 git checkout -b my_branch
