@@ -145,6 +145,7 @@ public final class ProgressScopeGameTest implements FabricClientGameTest {
         int last = -1, same = 0;
         for (int t = 0; t < 1200; t++) {
             context.waitTick();
+            if (t % 20 == 0) GT.keepSchematic(context, MIN, MAX, p -> Blocks.STONE.defaultBlockState());
             int n = GT.countPlaced(sp, MIN, MAX);
             if (n == last && n > 0) {
                 if (++same >= 40) return n;

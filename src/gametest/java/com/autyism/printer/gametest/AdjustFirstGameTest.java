@@ -167,7 +167,14 @@ public final class AdjustFirstGameTest implements FabricClientGameTest {
         int maxTicks = 3000;
         int ticks;
         try {
-            ticks = GT.waitServer(context, () -> wrong(sp).isEmpty(), maxTicks, "[adjust] printing (adjustFirst=" + adjustFirst + ") did not finish");
+            int[] t = {0};
+            ticks = GT.waitServer(context, () -> {
+                if (++t[0] % 20 == 0) GT.keepSchematic(context, min, max, p -> schematic.getOrDefault(p, Blocks.AIR.defaultBlockState()));
+                if (t[0] % 100 == 0) {
+                    GT.log("[adjust] t" + t[0] + " wrong=" + wrong(sp).size() + " " + context.computeOnClient(c -> ModuleManager.PRINT.debugState()));
+                }
+                return wrong(sp).isEmpty();
+            }, maxTicks, "[adjust] printing (adjustFirst=" + adjustFirst + ") did not finish");
         } catch (AssertionError e) {
             throw new AssertionError(e.getMessage() + ": wrong=" + wrong(sp) + " state=" + context.computeOnClient(c -> ModuleManager.PRINT.debugState()));
         }

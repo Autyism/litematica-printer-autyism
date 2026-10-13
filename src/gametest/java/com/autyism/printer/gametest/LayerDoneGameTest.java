@@ -80,7 +80,10 @@ public final class LayerDoneGameTest implements FabricClientGameTest {
         if (counts[1] != 0) throw new AssertionError("[layerdone] the next layer was started before the whole layer was done: " + counts[1]);
         // 等一会儿：不会因为“没有放置尝试”被看门狗强行跳到上一层；没事可做时也不再每 tick 重扫范围
         int passesBefore = context.computeOnClient(c -> ModuleManager.PRINT.debugPasses());
-        context.waitTicks(120);
+        for (int t = 0; t < 6; t++) {
+            context.waitTicks(20);
+            GT.keepSchematic(context, MIN, MAX, LayerDoneGameTest::expected);
+        }
         int passes = context.computeOnClient(c -> ModuleManager.PRINT.debugPasses()) - passesBefore;
         GT.log("[layerdone] range scans while waiting 120 ticks for the player: " + passes);
         if (passes > 30) throw new AssertionError("[layerdone] the printer kept rescanning its range while there was nothing to do: " + passes + " scans in 120 ticks");
@@ -180,6 +183,7 @@ public final class LayerDoneGameTest implements FabricClientGameTest {
         int same = 0;
         for (int t = 0; t < 1200; t++) {
             context.waitTick();
+            if (t % 20 == 0) GT.keepSchematic(context, MIN, MAX, LayerDoneGameTest::expected);
             int[] now = {GT.countPlaced(sp, MIN, MAX.below()), GT.countPlaced(sp, MIN.above(), MAX)};
             if (last != null && now[0] == last[0] && now[1] == last[1] && now[0] > 0) {
                 if (++same >= 40) return now;

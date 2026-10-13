@@ -192,6 +192,26 @@ public final class GT {
     }
 
     /**
+     * 直接写进投影世界的方块（不是真正的投影放置）会被 Litematica 的后台任务清掉（它认为这些区块没有投影）：
+     * 等待期间定期调用，被清掉了就重写。返回是否重写过。
+     */
+    public static boolean keepSchematic(ClientGameTestContext context, BlockPos min, BlockPos max, Function<BlockPos, BlockState> states) {
+        boolean rewrite = context.computeOnClient(c -> {
+            WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
+            if (schematic == null) return false;
+            for (BlockPos pos : BlockPos.betweenClosed(min, max)) {
+                if (!schematic.getBlockState(pos).equals(states.apply(pos.immutable()))) return true;
+            }
+            return false;
+        });
+        if (rewrite) {
+            context.runOnClient(c -> setSchematic(min, max, states));
+            log("schematic blocks were cleared in the background, rewritten");
+        }
+        return rewrite;
+    }
+
+    /**
      * 真实流程：把客户端世界里 min..max 的方块（含方块实体/实体）截取成 .litematic 文件写到 schematics 目录，
      * 再从文件读回并创建投影放置（origin = 放置原点）。返回放置。
      */
