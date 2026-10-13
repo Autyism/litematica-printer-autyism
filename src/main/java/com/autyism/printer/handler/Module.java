@@ -178,6 +178,7 @@ public abstract class Module extends ConfigUtils {
                 scanState = ScanState.RUNNING;
                 if (pos != null && needsWork(pos)) {
                     executeIteration(pos, skipIteration);
+                    passDidWork = true;
                     execCount++;
                     if (maxExecs > 0 && execCount >= maxExecs) return;
                 }
@@ -187,8 +188,13 @@ public abstract class Module extends ConfigUtils {
             // 先调整完再放下一个：正在把一个方块点到投影里的状态时，这一 tick 不去碰别的格子
             if (holdForAdjust(skipIteration)) {
                 layerIdleTicks = 0;
+                passDidWork = true;
+                idle = false;
                 return;
             }
+
+            // 上一轮从头扫到尾什么都没得做：没有变化就先不重扫（见 idle）
+            if (idle && !wakeFromIdle()) return;
 
             boolean wholeLayer = layerY != null && isWholeLayerRule();
             while (true) {
@@ -222,7 +228,8 @@ public abstract class Module extends ConfigUtils {
                         if (pendingHere) {
                             layerVerdicts.put(key, true);
                             if (passPending.size() < MAX_PASS_PENDING) passPending.add(key);
-                        } else if (isCorrectBlock(pos)) {
+                        } else if (unfinished || isCorrectBlock(pos)) {
+                            // 打好了；或者只是这次在分层里被跳过（尝试太多次、被实体挡住、等上一层）：整层判定时现查，不记结论
                             layerVerdicts.remove(key);
                         } else {
                             layerVerdicts.put(key, false);
@@ -237,6 +244,7 @@ public abstract class Module extends ConfigUtils {
                     // 按方块分类：一轮扫描仅处理一种方块类型（可选开关）
                     if (!Configs.Core.CLASSIFY_BY_BLOCK.getBooleanValue() || isCycleItemMatch(pos)) {
                         executeIteration(pos, skipIteration);
+                        passDidWork = true;
                         executed = true;
                         // 刚放下（或点了）一个还要调整的方块：先把它调整完，这一 tick 不再放别的
                         if (adjustFocusActive()) return;
@@ -333,6 +341,70 @@ public abstract class Module extends ConfigUtils {
         return iteratorManager.covers(pos);
     }
 
+    // ---------------- 没事可做时少扫几遍 ----------------
+    /**
+     * 范围内从头扫到尾什么都没得做（没有放置、点击，也没有没完成的格子；分层时这一层在等范围外的部分，或者所有层都看过一遍）。
+     * 这时不用每 tick 重新扫一遍：范围里的方块变了、玩家移动了、或者过了 IDLE_RECHECK_TICKS 才再扫。
+     * 以前打印机做完了也每 tick 扫一遍工作范围（范围大时每 tick 几毫秒）。
+     */
+    private boolean idle;
+    private boolean passDidWork;
+    /** 分层：从上一次回到最底层起，有没有做过事 */
+    private boolean cycleDidWork;
+    private volatile boolean changedSinceIdle;
+    private int idleSinceTick;
+    @Nullable
+    private Integer idleLayer;
+    private double idleEyeX, idleEyeY, idleEyeZ;
+    /** 这次歇多久（没有变化时）再重新扫一遍 */
+    private int idleRecheckTicks;
+    /** 范围内做完了、在等别的（例如整层判定在等玩家走过去）：歇 10 tick */
+    private static final int IDLE_RECHECK_TICKS = 10;
+    /** 所有层都看过一遍、一件事都没做：歇 40 tick（方块有变化会马上叫醒） */
+    private static final int IDLE_CYCLE_RECHECK_TICKS = 40;
+
+    /** 这个模块没事做时可以少扫几遍（打印模块） */
+    protected boolean throttleWhenIdle() {
+        return false;
+    }
+
+    /** 客户端世界里的方块变了：落在扫描范围里（含旁边一格）就叫醒 */
+    protected final void noteClientBlockChange(BlockPos pos) {
+        if (!idle) return;
+        PrinterBox b = iteratorManager.getBox();
+        if (b == null || (pos.getX() >= b.minX - 1 && pos.getX() <= b.maxX + 1 && pos.getY() >= b.minY - 1 && pos.getY() <= b.maxY + 1
+                && pos.getZ() >= b.minZ - 1 && pos.getZ() <= b.maxZ + 1)) {
+            changedSinceIdle = true;
+        }
+    }
+
+    private void enterIdle(int recheckTicks) {
+        // 自己的动作还在等服务端回应、或者还有格子在冷却：结果回来之前随时可能又有事做，不歇
+        if (level == null || BlockPosCooldownManager.INSTANCE.hasAny() || ActionConfirm.anyPending(level, nowTick())) return;
+        idle = true;
+        idleRecheckTicks = recheckTicks;
+        changedSinceIdle = false;
+        idleSinceTick = nowTick();
+        idleLayer = layerY;
+        if (player != null) {
+            idleEyeX = player.getX();
+            idleEyeY = player.getY();
+            idleEyeZ = player.getZ();
+        }
+    }
+
+    /** 没事做的时候，要不要现在重新扫一遍 */
+    private boolean wakeFromIdle() {
+        int now = nowTick();
+        boolean moved = player != null && player.distanceToSqr(idleEyeX, idleEyeY, idleEyeZ) >= 1.0;
+        if (changedSinceIdle || moved || !java.util.Objects.equals(layerY, idleLayer)
+                || now - idleSinceTick >= idleRecheckTicks || now < idleSinceTick) {
+            idle = false;
+            return true;
+        }
+        return false;
+    }
+
     // ---------------- 先调整完再放下一个（子类实现） ----------------
     /** 返回 true：正在把一个方块调整到投影里的状态，这一 tick 不去处理别的格子 */
     protected boolean holdForAdjust(AtomicReference<Boolean> skipIteration) {
@@ -393,7 +465,12 @@ public abstract class Module extends ConfigUtils {
                 /*+ " reach=" + (player == null || mc.gameMode == null ? null : mc.gameMode.getPickRange()) + " eyeY=" + (player == null ? null : player.getEyeY())
                 *///?} else
                 + " reach=" + (player == null ? null : player.blockInteractionRange()) + " eyeY=" + (player == null ? null : player.getEyeY())
-                + " areaBoxes=" + getWorkAreaBoxes() + debugExtra();
+                + " areaBoxes=" + getWorkAreaBoxes() + " resting=" + idle + debugExtra();
+    }
+
+    /** 调试 / 测试用：完整扫完的轮数 */
+    public int debugPasses() {
+        return dbgPasses;
     }
 
     /** 子类补充的调试信息 */
@@ -514,12 +591,19 @@ public abstract class Module extends ConfigUtils {
 
     private void onPassFinished() {
         dbgPasses++;
+        boolean didWork = passDidWork;
+        passDidWork = false;
+        if (didWork) cycleDidWork = true;
         com.autyism.printer.printer.MissingMaterialTracker.getInstance().passFinished(this, passStartTick);
         passStartTick = nowTick();
         onScanPassFinished();
         // 注意：曾尝试“投影区块没载入完的层不算完成”，但会让层长时间挂起再被看门狗强制跳层，反而打乱顺序，已撤回
         consumeAreaNotReady();
-        if (layerY == null) return;
+        if (layerY == null) {
+            // 不分层：这一轮整个范围都没事做
+            if (throttleWhenIdle() && !didWork) enterIdle(IDLE_RECHECK_TICKS);
+            return;
+        }
         boolean wholeLayer = isWholeLayerRule();
         if (layerPending && layerIdleTicks > LAYER_STALL_TICKS) {
             // 本层剩下的格子一直放不了（缺材料、无处可贴、需要先有别的方块……）：先打上面的层，到顶后会回来复查
@@ -538,12 +622,22 @@ public abstract class Module extends ConfigUtils {
         // 看门狗只数“范围内有没完成的格子、却一直没有放置尝试”的时间：等玩家走到范围外那部分时不算
         if (!layerPending) layerIdleTicks = 0;
         onLayerPassFinished(layerY, layerDone);
+        boolean nothingPending = !layerPending;
+        if (!layerDone && nothingPending && !didWork && throttleWhenIdle()) {
+            // 整层判定：范围内的都做完了，在等范围外的部分（玩家走过去）
+            enterIdle(IDLE_RECHECK_TICKS);
+        }
         if (layerDone) {
             layerIdleTicks = 0;
             List<PrinterBox> areaBoxes = getWorkAreaBoxes();
             int[] bounds = areaBoxes == null ? null : layerBounds(areaBoxes);
             if (bounds != null) {
-                layerY = layerY + 1 > bounds[1] ? bounds[0] : layerY + 1;
+                boolean wrap = layerY + 1 > bounds[1];
+                boolean idleCycle = wrap && !cycleDidWork && throttleWhenIdle();
+                if (wrap) cycleDidWork = false;
+                layerY = wrap ? bounds[0] : layerY + 1;
+                // 所有层都看过一遍、一件事都没做：先歇一会儿（换层之后再记，免得马上又被“层变了”叫醒）
+                if (idleCycle) enterIdle(IDLE_CYCLE_RECHECK_TICKS);
                 layerAttempts.clear();
                 layerAttemptRemaining.clear();
                 layerDeferred.clear();
@@ -636,6 +730,9 @@ public abstract class Module extends ConfigUtils {
     }
 
     public void resetScanState() {
+        idle = false;
+        passDidWork = false;
+        cycleDidWork = false;
         passStartTick = nowTick();
         layerY = null;
         layerRange = Double.NaN;

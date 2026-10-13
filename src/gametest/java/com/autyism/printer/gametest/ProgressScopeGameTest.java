@@ -46,11 +46,13 @@ public final class ProgressScopeGameTest implements FabricClientGameTest {
             context.runOnClient(c -> {
                 Configs.Core.WORK_RANGE.setDoubleValue(6);
                 Configs.Core.RENDER_HUD.setBooleanValue(true);
+                Configs.Print.HIDE_LAYER_MESSAGES.setBooleanValue(true);
                 Configs.Print.LAYERED_MODE.setBooleanValue(true);
                 Configs.Print.LAYER_DONE_SCOPE.setOptionListValue(LayerDoneScope.WORK_RANGE);
                 GT.enablePrint();
             });
-            if (context.computeOnClient(c -> Configs.Core.PROGRESS_SCOPE.getOptionListValue()) != ProgressScope.LOADED_AREA) {
+            if (Configs.Core.PROGRESS_SCOPE.getDefaultOptionListValue() != ProgressScope.LOADED_AREA
+                    || context.computeOnClient(c -> Configs.Core.PROGRESS_SCOPE.getOptionListValue()) != ProgressScope.LOADED_AREA) {
                 throw new AssertionError("[progress] the default should be the whole schematic (loaded area)");
             }
             int placed = waitStable(context, sp);
@@ -67,6 +69,8 @@ public final class ProgressScopeGameTest implements FabricClientGameTest {
             if (loaded[1] != total || loaded[0] != placed) {
                 throw new AssertionError("[progress] whole-schematic progress should be " + placed + " / " + total + ", got " + loaded[0] + " / " + loaded[1]);
             }
+            context.runOnClient(c -> c.gui.getChat().clearMessages(false));
+            context.waitTicks(2);
             GT.screenshot(context, "progress-whole-schematic");
 
             // 工作范围内
@@ -107,6 +111,7 @@ public final class ProgressScopeGameTest implements FabricClientGameTest {
             context.runOnClient(c -> GT.disableAll());
 
             settings(context);
+            restore(context);
         } finally {
             context.runOnClient(c -> {
                 GT.disableAll();
@@ -121,6 +126,18 @@ public final class ProgressScopeGameTest implements FabricClientGameTest {
             });
             TestSchematicRegion.clear();
         }
+    }
+
+    /** 退出世界之前把改过的设置改回来（MaLiLib 退出世界时会保存设置，下一个测试进世界时读回来） */
+    private static void restore(ClientGameTestContext context) {
+        context.runOnClient(c -> {
+            GT.disableAll();
+            Configs.Core.PROGRESS_SCOPE.setOptionListValue(ProgressScope.LOADED_AREA);
+            Configs.Print.LAYER_DONE_SCOPE.setOptionListValue(LayerDoneScope.WHOLE_LAYER);
+            Configs.Core.RENDER_HUD.setBooleanValue(false);
+            Configs.Print.HIDE_LAYER_MESSAGES.setBooleanValue(false);
+            DataManager.getRenderLayerRange().setLayerMode(LayerMode.ALL);
+        });
     }
 
     /** 服务端放好的方块数连续 40 tick 不变 */
@@ -161,7 +178,25 @@ public final class ProgressScopeGameTest implements FabricClientGameTest {
         if (!problems.isEmpty()) throw new AssertionError("[progress/settings] " + problems);
         shot(context, ConfigUi.Tab.PRINT, "settings-120-printing");
         shot(context, ConfigUi.Tab.CORE, "settings-120-core");
+        language(context, "zh_cn");
+        try {
+            shot(context, ConfigUi.Tab.PRINT, "settings-120-printing-zh");
+            shot(context, ConfigUi.Tab.CORE, "settings-120-core-zh");
+        } finally {
+            language(context, "en_us");
+        }
         GT.log("[progress/settings] OK: Progress Counts (Core), Layer Counts as Done and Finish Adjusting First (Printing) are listed, visible and have texts");
+    }
+
+    private static void language(ClientGameTestContext context, String code) {
+        java.util.concurrent.CompletableFuture<Void> reload = context.computeOnClient(c -> {
+            c.getLanguageManager().setSelected(code);
+            c.options.languageCode = code;
+            return c.reloadResourcePacks();
+        });
+        // 重新加载资源时会盖一层加载画面，等它完全消失
+        context.waitFor(c -> reload.isDone() && c.getOverlay() == null, 1200);
+        context.waitTicks(5);
     }
 
     private static void check(List<String> out, ConfigUi.Tab tab, IConfigBase config) {

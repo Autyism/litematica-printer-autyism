@@ -1,5 +1,43 @@
 # Changelog
 
+## 1.2.0 — 2026-10-14
+
+- New: **Finish Adjusting First** (on by default). A block that still needs clicks (repeater delay, note pitch, comparator mode, lever, door, candles...) is finished before the next block is placed; each click waits for the server.
+- New: **Progress Counts** (default *Whole Schematic*). The progress bar counts the whole schematic in loaded chunks; *Within Range* is the old behaviour.
+- New: **Layer Counts as Done** (default *Whole Layer*). Layered printing moves up only when the whole layer in loaded chunks is printed, and the layer messages follow it; *Within Range* is the old behaviour.
+- Lighter on the game: with nothing to do, the printer no longer rescans its range every tick, and the progress bar and the layer check only recount where blocks changed.
+
+More: open "Details" below.
+
+<details>
+<summary>Details</summary>
+
+- **Why blocks were adjusted late:** after placing a block the printer scanned on, so the block was only clicked when the next scan came back to it, one click per scan (right after placing it also had to wait for the server and the per-block cooldown). Now it stays on that block: click, wait for the server's answer, click again, then the next block. A block that doesn't change after three confirmed clicks, or needs an item you don't have, is left for later as before.
+- **Whole layer:** when your range doesn't cover the whole layer, the printer prints what it can reach and waits; walk over to the rest and it carries on. Blocks it couldn't place for a few seconds (for example, missing materials) don't hold the layer. Unloaded chunks can't be checked and don't count.
+- **Whole schematic progress:** every block of all enabled placements in loaded chunks; Litematica's render layers apply.
+- Tested with simulated lag and with NoGhostBlocks: no block was placed while another one was still being adjusted.
+
+</details>
+
+### 中文
+
+- 新增 **调整完再放下一个**（默认开）：还要点几下的方块（中继器延迟、音符盒音高、比较器模式、拉杆、门、蜡烛……）先调好再放下一个方块，每点一下都等服务器确认。
+- 新增 **进度条统计范围**（默认“整个投影”）：进度条统计已加载区块里的整个投影；“工作范围内”是以前的算法。
+- 新增 **分层完成判定**（默认“整层”）：已加载区块里的整层都打完才往上一层，每层完成的提示也按这个；“工作范围内”是以前的做法。
+- 更省性能：没事可做时不再每 tick 重扫工作范围；进度条和分层判定只重算方块有变化的地方。
+
+更多：点开下面的“详细说明”。
+
+<details>
+<summary>详细说明</summary>
+
+- **以前为什么调得晚：** 放下方块后打印机接着往后扫，要等下一轮扫回来才点一下，每轮只点一下（刚放下时还要等服务器确认和这一格的冷却）。现在会停在这个方块上：点一下、等服务器回应、再点，调好了才放下一个。点了三次都没变化、或者缺需要的物品的方块，照旧留到以后再处理。
+- **整层：** 工作范围盖不住整层时，打印机先打能够到的部分然后等着，你走过去它就接着打。几秒都放不了的方块（例如缺材料）不会卡住这一层。没加载的区块看不到，不算。
+- **整个投影的进度：** 统计所有启用的投影放置在已加载区块里的方块，受 Litematica 渲染层限制。
+- 在模拟卡顿和开着 NoGhostBlocks 的情况下测试过：一个方块还没调好时，不会放别的方块。
+
+</details>
+
 ## 1.1.1 — 2026-10-08
 
 - Fixed: with cheats off, Auto Raise Reach no longer sends a command, so no "Unknown or incomplete command" in chat.

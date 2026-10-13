@@ -71,6 +71,7 @@ public class Print extends Module {
         super(NAME, Configs.Print.ENABLED, Configs.Print.PRINT_SELECTION_TYPE, true);
         this.guide = new PlacementGuide(client);
         this.needSchematic = true;
+        BlockChangeHub.register(this::onClientBlockChanged);
     }
 
     public com.autyism.printer.handler.IteratorManager.SectionFilter getPrintSectionFilter() {
@@ -160,8 +161,10 @@ public class Print extends Module {
     protected void onLayerPassFinished(int layer, boolean layerDone) {
         LayerStats stats = new LayerStats(layer, lsTotal, lsCorrect, lsWrongState, lsWrongBlock, lsMissing, lsSkipped);
         // 整层判定：提示和 HUD 上的分层统计都按整层（已加载的部分）算
-        LayerScanResult whole = layerScanResult;
-        if (isWholeLayerRule() && whole != null && whole.layer == layer) stats = whole.stats();
+        if (isWholeLayerRule()) {
+            LayerStats whole = wholeLayerStats(layer, layerDone);
+            if (whole != null) stats = whole;
+        }
         lastLayerStats = stats;
         lsTotal = lsCorrect = lsWrongState = lsWrongBlock = lsMissing = lsSkipped = 0;
         if (!layerDone) {
@@ -201,57 +204,43 @@ public class Print extends Module {
     }
 
     // ---------------- 整层判定（分层打印：已加载区块里的整层都打完才算这一层完成） ----------------
+    /** 每 tick 最多用在整层统计上的时间 */
+    private static final long LAYER_INDEX_BUDGET_NANOS = 1_000_000L;
+
     /**
-     * 一次整层扫描的结果：整层的统计，以及当时还没完成的格子（之后只需要复查这些格子）。
-     * 格子的分类和范围内的分层统计一样：对 / 状态错 / 方块错 / 缺失 / 跳过。
+     * 当前层的增量统计（只重算有变化的区块列，见 LayerIndex）。
+     * 判断用的规则：打印机在范围内看过的格子用它当时的结论，没看过的只看方块本身，都没有副作用。
      */
-    private static final class LayerScanResult {
-        static final byte CORRECT = 0, WRONG_STATE = 1, WRONG_BLOCK = 2, MISSING = 3, SKIPPED = 4;
-        final int layer;
-        final int startTick;
-        int endTick;
-        final int[] counts = new int[5];
-        it.unimi.dsi.fastutil.longs.LongArrayList blocking = new it.unimi.dsi.fastutil.longs.LongArrayList();
-        it.unimi.dsi.fastutil.bytes.ByteArrayList blockingKind = new it.unimi.dsi.fastutil.bytes.ByteArrayList();
-        /** 没完成的格子太多、没记全：只知道“还没完成” */
-        boolean overflow;
-
-        LayerScanResult(int layer, int startTick) {
-            this.layer = layer;
-            this.startTick = startTick;
-        }
-
-        int total() {
-            return counts[0] + counts[1] + counts[2] + counts[3] + counts[4];
-        }
-
-        LayerStats stats() {
-            return new LayerStats(layer, total(), counts[CORRECT], counts[WRONG_STATE], counts[WRONG_BLOCK], counts[MISSING], counts[SKIPPED]);
+    private final LayerIndex layerIndex = new LayerIndex(new LayerIndex.Rules() {
+        @Override
+        public boolean counts(BlockPos pos) {
+            return inPrintSelection(pos);
         }
 
         @Override
-        public String toString() {
-            return "y=" + layer + " total=" + total() + " correct=" + counts[CORRECT] + " blocking=" + blocking.size() + (overflow ? "+" : "")
-                    + " age=" + startTick + ".." + endTick;
+        public BlockMatchingType matching(BlockPos pos, BlockState required, BlockState current) {
+            return layerMatching(pos, required, current);
         }
-    }
 
-    /** 没完成的格子最多记这么多（超过了就只知道“还没完成”，等少了再重新扫） */
-    private static final int LAYER_SCAN_MAX_BLOCKING = 16384;
-    /** 后台每隔这么多 tick 重新扫一遍当前层（新加载的区块、HUD 上的统计） */
-    private static final int LAYER_SCAN_REFRESH_TICKS = 20;
-    /** 每 tick 最多用在整层扫描上的时间 */
-    private static final long LAYER_SCAN_BUDGET_NANOS = 1_500_000L;
+        @Override
+        public boolean adjustable(BlockState required, BlockState current) {
+            return AdjustFirst.canAdjustInPlace(required, current);
+        }
 
+        @Override
+        public boolean skipped(BlockPos pos) {
+            return isLayerSkipped(pos);
+        }
+
+        @Override
+        public boolean blocking(BlockPos pos, BlockState required, BlockState current, BlockMatchingType type) {
+            return blocksLayer(pos, required, current, type);
+        }
+    });
+    /** HUD 上的整层统计（最多每 10 tick 重新数一次） */
     @Nullable
-    private LoadedAreaScan layerScan;
-    @Nullable
-    private LayerScanResult layerScanBuilding;
-    @Nullable
-    private volatile LayerScanResult layerScanResult;
-    /** 这次扫描用的：跳过放置名单里的方块、缺材料的物品（扫描开始时取一次） */
-    private final java.util.Map<Block, Boolean> scanSkipCache = new java.util.HashMap<>();
-    private final java.util.Set<Item> scanMissingItems = new java.util.HashSet<>();
+    private LayerStats wholeLayerStats;
+    private int wholeLayerStatsTick = Integer.MIN_VALUE;
 
     @Override
     protected boolean isWholeLayerRule() {
@@ -272,92 +261,68 @@ public class Print extends Module {
         return true;
     }
 
+    /**
+     * 会改变“哪些格子算、算不算对、能不能在原地调整”的设置：增量统计在这些变了的时候从头算。
+     * 渲染层、选区类型（玩家下方 / 上方时还有玩家的高度）、可替换方块、含水方块、音符盒调音、堆肥、催熟。
+     */
+    public Object selectionSignature() {
+        Object selection = Configs.Print.PRINT_SELECTION_TYPE.getOptionListValue();
+        var player = net.minecraft.client.Minecraft.getInstance().player;
+        boolean byHeight = selection == com.autyism.printer.enums.SelectionType.LITEMATICA_SELECTION_BELOW_PLAYER
+                || selection == com.autyism.printer.enums.SelectionType.LITEMATICA_SELECTION_ABOVE_PLAYER;
+        return java.util.Arrays.asList(LitematicaUtils.renderLayerKey(), selection, byHeight && player != null ? player.getBlockY() : 0,
+                Configs.Print.PRINT_REPLACE.getBooleanValue(), Configs.Print.REPLACEABLE_LIST.getStrings(),
+                Configs.Print.PRINT_WATERLOGGED.getBooleanValue(), Configs.Print.NOTE_BLOCK_TUNING.getBooleanValue(),
+                Configs.Print.FILL_COMPOSTER.getBooleanValue(), Configs.Print.BONEMEAL_CROPS.getBooleanValue());
+    }
+
+    /** 客户端世界里的方块变了（BlockChangeHub） */
+    public void onClientBlockChanged(BlockPos pos) {
+        layerIndex.blockChanged(pos);
+        noteClientBlockChange(pos);
+    }
+
+    @Override
+    protected boolean throttleWhenIdle() {
+        return true;
+    }
+
     @Override
     protected void preprocess() {
-        // 整层判定：后台定期扫一遍当前层（判断这一层有没有整层打完，HUD 上的分层统计也用它）
+        // 整层判定：增量更新当前层的统计（只重算有变化的区块列）
         Integer layer = getCurrentLayer();
-        if (layer == null || !isWholeLayerRule()) {
-            layerScan = null;
-            layerScanBuilding = null;
-            layerScanResult = null;
+        WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
+        if (layer == null || !isWholeLayerRule() || schematic == null || level == null || player == null) {
+            layerIndex.clear();
+            wholeLayerStats = null;
             return;
         }
-        advanceLayerScan(layer);
+        net.minecraft.world.level.ChunkPos center = player.chunkPosition();
+        layerIndex.tick(level, schematic, layer, LitematicaUtils.getSchematicWorkBoxes(), selectionSignature(), center.x, center.z,
+                mc.options.getEffectiveRenderDistance() + 1, LAYER_INDEX_BUDGET_NANOS);
     }
 
     @Override
     protected boolean restOfLayerDone(int layer) {
-        if (SchematicWorldHandler.getSchematicWorld() == null || level == null) return true;
-        // 没有扫描结果就当场开始扫（小的层当场就扫完）；扫完之前不算完成
-        advanceLayerScan(layer);
-        LayerScanResult result = layerScanResult;
-        if (result == null || result.layer != layer || result.overflow) return false;
-        recheckLayerResult(result);
-        return result.blocking.isEmpty();
-    }
-
-    private void advanceLayerScan(int layer) {
         WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
-        if (schematic == null || level == null || player == null) return;
-        int now = player.tickCount;
-        LayerScanResult result = layerScanResult;
-        if (result != null && result.layer != layer) layerScanResult = result = null;
-        if (layerScan != null && (layerScanBuilding == null || layerScanBuilding.layer != layer)) {
-            layerScan = null;
-            layerScanBuilding = null;
-        }
-        if (layerScan == null && (result == null || now - result.endTick >= LAYER_SCAN_REFRESH_TICKS || now < result.endTick)) {
-            layerScan = new LoadedAreaScan(level, schematic, LitematicaUtils.getSchematicWorkBoxes(), layer);
-            layerScanBuilding = new LayerScanResult(layer, now);
-            scanSkipCache.clear();
-            scanMissingItems.clear();
-            for (MissingMaterialTracker.Entry e : MissingMaterialTracker.getInstance().getMissing()) scanMissingItems.add(e.item);
-        }
-        if (layerScan != null && layerScan.run(System.nanoTime() + LAYER_SCAN_BUDGET_NANOS, this::visitLayerPosition)) {
-            layerScanBuilding.endTick = now;
-            layerScanResult = layerScanBuilding;
-            layerScan = null;
-            layerScanBuilding = null;
-        }
+        if (schematic == null || level == null) return true;
+        if (layerIndex.layer() != layer) return false;
+        // 还没算完的部分当场算一会儿（小的层当场就算完）；算不完就当作还没完成
+        return layerIndex.done(schematic, level, LAYER_INDEX_BUDGET_NANOS);
     }
 
-    private void visitLayerPosition(BlockPos pos, BlockState required, BlockState current) {
-        if (!inPrintSelection(pos)) return;
-        LayerScanResult result = layerScanBuilding;
-        BlockMatchingType type = layerMatching(pos, required, current);
-        byte kind = layerKind(type, pos);
-        result.counts[kind]++;
-        if (kind == LayerScanResult.CORRECT || kind == LayerScanResult.SKIPPED || isLayerSkipped(pos)) return;
-        if (!blocksLayer(pos, required, current, type)) return;
-        if (result.blocking.size() >= LAYER_SCAN_MAX_BLOCKING) {
-            result.overflow = true;
-            return;
+    /** 整层统计（HUD 和完成提示用）；fresh = 当场重新数（完成提示），否则最多每 10 tick 数一次 */
+    @Nullable
+    private LayerStats wholeLayerStats(int layer, boolean fresh) {
+        if (layerIndex.layer() != layer) return null;
+        int now = player == null ? 0 : player.tickCount;
+        if (fresh || wholeLayerStats == null || wholeLayerStats.layer() != layer || now - wholeLayerStatsTick >= 10 || now < wholeLayerStatsTick) {
+            int[] s = layerIndex.stats();
+            if (s == null) return wholeLayerStats != null && wholeLayerStats.layer() == layer ? wholeLayerStats : null;
+            wholeLayerStats = new LayerStats(layer, s[0], s[1], s[2], s[3], s[4], s[5]);
+            wholeLayerStatsTick = now;
         }
-        result.blocking.add(pos.asLong());
-        result.blockingKind.add(kind);
-    }
-
-    /** 复查上次扫描时还没完成的格子：完成了的从列表里去掉，统计跟着改 */
-    private void recheckLayerResult(LayerScanResult result) {
-        WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
-        if (schematic == null || result.blocking.isEmpty()) return;
-        var keep = new it.unimi.dsi.fastutil.longs.LongArrayList();
-        var keepKind = new it.unimi.dsi.fastutil.bytes.ByteArrayList();
-        for (int i = 0; i < result.blocking.size(); i++) {
-            BlockPos pos = BlockPos.of(result.blocking.getLong(i));
-            BlockState required = schematic.getBlockState(pos);
-            BlockState current = level.getBlockState(pos);
-            BlockMatchingType type = layerMatching(pos, required, current);
-            byte kind = required.isAir() ? LayerScanResult.CORRECT : layerKind(type, pos);
-            result.counts[result.blockingKind.getByte(i)]--;
-            result.counts[kind]++;
-            if (kind == LayerScanResult.CORRECT || kind == LayerScanResult.SKIPPED || isLayerSkipped(pos)) continue;
-            if (!blocksLayer(pos, required, current, type)) continue;
-            keep.add(pos.asLong());
-            keepKind.add(kind);
-        }
-        result.blocking = keep;
-        result.blockingKind = keepKind;
+        return wholeLayerStats;
     }
 
     private BlockMatchingType layerMatching(BlockPos pos, BlockState required, BlockState current) {
@@ -368,15 +333,6 @@ public class Print extends Module {
             return BlockMatchingType.CORRECT;
         }
         return type;
-    }
-
-    private byte layerKind(BlockMatchingType type, BlockPos pos) {
-        return switch (type) {
-            case CORRECT -> LayerScanResult.CORRECT;
-            case ERROR_BLOCK_STATE -> LayerScanResult.WRONG_STATE;
-            case ERROR_BLOCK -> LayerScanResult.WRONG_BLOCK;
-            default -> isLayerSkipped(pos) ? LayerScanResult.SKIPPED : LayerScanResult.MISSING;
-        };
     }
 
     /**
@@ -394,15 +350,42 @@ public class Print extends Module {
         };
     }
 
-    /** 范围外缺的方块打印机走近以后能不能放（只看方块本身；和 PlacementGuide 里直接放弃的情况一致） */
-    private boolean looksPlaceable(BlockPos pos, BlockState required) {
-        Block block = required.getBlock();
-        if (Configs.Print.PRINT_SKIP.getBooleanValue() && scanSkipCache.computeIfAbsent(block, b -> {
-            for (String s : Configs.Print.PRINT_SKIP_LIST.getStrings()) {
+    /** 跳过放置名单里的方块（按名单内容缓存） */
+    private final java.util.Map<Block, Boolean> skipListCache = new java.util.HashMap<>();
+    private List<String> skipListCacheKey = Collections.emptyList();
+    /** 缺的材料（每 tick 最多取一次） */
+    private final java.util.Set<Item> missingItemsCache = new java.util.HashSet<>();
+    private int missingItemsTick = Integer.MIN_VALUE;
+
+    private boolean skipListed(BlockState required) {
+        if (!Configs.Print.PRINT_SKIP.getBooleanValue()) return false;
+        List<String> list = Configs.Print.PRINT_SKIP_LIST.getStrings();
+        if (!list.equals(skipListCacheKey)) {
+            skipListCache.clear();
+            skipListCacheKey = new ArrayList<>(list);
+        }
+        return skipListCache.computeIfAbsent(required.getBlock(), b -> {
+            for (String s : skipListCacheKey) {
                 if (PinYinSearchUtils.matchName(s, required)) return true;
             }
             return false;
-        })) return false;
+        });
+    }
+
+    private boolean materialMissing(Item item) {
+        int now = player == null ? 0 : player.tickCount;
+        if (now != missingItemsTick) {
+            missingItemsTick = now;
+            missingItemsCache.clear();
+            for (MissingMaterialTracker.Entry e : MissingMaterialTracker.getInstance().getMissing()) missingItemsCache.add(e.item);
+        }
+        return missingItemsCache.contains(item);
+    }
+
+    /** 范围外缺的方块打印机走近以后能不能放（只看方块本身；和 PlacementGuide 里直接放弃的情况一致） */
+    private boolean looksPlaceable(BlockPos pos, BlockState required) {
+        Block block = required.getBlock();
+        if (skipListed(required)) return false;
         if (Configs.Print.SKIP_WATERLOGGED_BLOCK.getBooleanValue() && (BlockUtils.needsWater(required) || BlockUtils.isLiveCoral(required))) return false;
         if (block instanceof LiquidBlock) return Configs.Print.PRINT_FLUIDS_WITH_BUCKET.getBooleanValue() && required.getFluidState().isSource();
         if (block instanceof BubbleColumnBlock || block instanceof WaterlilyBlock || block instanceof BaseFireBlock || block instanceof NetherPortalBlock
@@ -419,7 +402,7 @@ public class Print extends Module {
         if (!required.canSurvive(level, pos)) return false;
         // 打印机已经发现缺这种材料：走过去也放不了，不让它卡住这一层（缺材料的提示里会列出来）
         Item item = block.asItem();
-        return item == net.minecraft.world.item.Items.AIR || !scanMissingItems.contains(item);
+        return item == net.minecraft.world.item.Items.AIR || !materialMissing(item);
     }
 
     @Override
@@ -935,7 +918,7 @@ public class Print extends Module {
     @Override
     protected String debugExtra() {
         return " adjust=" + (adjustPos == null ? null : adjustPos.toShortString()) + " noEffect=" + adjustNoEffect
-                + " layerScan=" + layerScanResult + (layerScan != null ? " (scanning)" : "");
+                + " layerIndex=" + layerIndex;
     }
 
     @Override
@@ -949,9 +932,8 @@ public class Print extends Module {
         switchWaitCount = 0;
         clearAdjust();
         adjustGaveUp.clear();
-        layerScan = null;
-        layerScanBuilding = null;
-        layerScanResult = null;
+        layerIndex.clear();
+        wholeLayerStats = null;
     }
 
     private void ensureIceBreakQueued(BlockPos pos) {

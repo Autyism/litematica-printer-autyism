@@ -70,6 +70,9 @@ public final class DragonGameTest implements FabricClientGameTest {
             context.runOnClient(client -> {
                 Configs.Core.WORK_RANGE.setDoubleValue(range);
                 Configs.Print.LAYERED_MODE.setBooleanValue(layered);
+                // 这个测试看的是站着不动时工作范围内的分层打印（龙比加载范围还大）：一层按“工作范围内”算完成。
+                // 整层判定（默认）会等玩家走过去，见 LayerDoneGameTest
+                Configs.Print.LAYER_DONE_SCOPE.setOptionListValue(com.autyism.printer.enums.LayerDoneScope.WORK_RANGE);
                 Configs.Placement.PLACE_BLOCKS_PER_TICK.setIntegerValue(Integer.parseInt(System.getProperty("ale.bpt", "8")));
                 GT.enablePrint();
             });

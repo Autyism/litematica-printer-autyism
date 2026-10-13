@@ -8,19 +8,32 @@ import com.autyism.printer.config.Configs;
 import com.autyism.printer.enums.BlockMatchingType;
 import com.autyism.printer.handler.Module;
 import com.autyism.printer.handler.ModuleManager;
+import com.autyism.printer.printer.PrinterBox;
+import com.autyism.printer.printer.ProgressIndex;
 import com.autyism.printer.printer.SchematicBlockContext;
+import com.autyism.printer.printer.WaterlogPlacer;
+import com.autyism.printer.utils.LitematicaUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.LiquidBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.List;
 
 /**
- * GUI 统计处理器 — 增量遍历 box 计算进度，每 tick 分摊扫描量避免卡顿。
+ * GUI 统计处理器。
+ * <ul>
+ *   <li>整个投影（默认）：按区块段增量统计（ProgressIndex），只重算方块有变化的区块段；</li>
+ *   <li>工作范围内：遍历工作范围计算进度，每 tick 分摊扫描量；只有范围里的方块变了、范围变了、或者隔一段时间才重新扫一遍。</li>
+ * </ul>
  */
 public class GUI extends Module {
     public final static String NAME = "gui";
     private static final int SCAN_BUDGET_MS = 2;
+    private static final long LOADED_BUDGET_NANOS = SCAN_BUDGET_MS * 1_000_000L;
+    /** 范围内的统计没有任何变化时，隔多久再重新扫一遍（兜底） */
+    private static final int RANGE_RESCAN_TICKS = 40;
 
     @Getter
     private final Progress totalProgress = new Progress(Configs.Print.ENABLED);
@@ -39,6 +52,7 @@ public class GUI extends Module {
 
     public GUI() {
         super(NAME, Configs.Core.RENDER_HUD, null, true);
+        com.autyism.printer.printer.BlockChangeHub.register(this::onClientBlockChanged);
     }
 
     /** 打印模式下只统计“工作范围 ∩ 投影”的区域（与打印机实际处理的范围一致），其他模式统计整个工作范围 */
@@ -49,8 +63,8 @@ public class GUI extends Module {
     }
 
     @Override
-    protected java.util.List<com.autyism.printer.printer.PrinterBox> getWorkAreaBoxes() {
-        return com.autyism.printer.utils.LitematicaUtils.getSchematicWorkBoxes();
+    protected List<PrinterBox> getWorkAreaBoxes() {
+        return LitematicaUtils.getSchematicWorkBoxes();
     }
 
     @Override
@@ -62,12 +76,35 @@ public class GUI extends Module {
     private long wrongState, wrongBlock;
     private long scanWrongState, scanWrongBlock;
 
-    // ---------------- 整个投影的进度（已加载的区块） ----------------
-    @org.jetbrains.annotations.Nullable
-    private com.autyism.printer.printer.LoadedAreaScan loadedScan;
-    private long loadedWrongState, loadedWrongBlock;
-    private long loadedScanWrongState, loadedScanWrongBlock;
-    private static final long LOADED_SCAN_BUDGET_NANOS = SCAN_BUDGET_MS * 1_000_000L;
+    // ---------------- 工作范围内：只在有变化时重扫 ----------------
+    /** 上一轮扫描之后，范围里有方块变了 */
+    private boolean rangeDirty = true;
+    /** 这一轮 / 上一轮扫描用的范围（模块重建范围时换成新对象） */
+    @Nullable
+    private PrinterBox scanBox, lastScanBox;
+    @Nullable
+    private List<Boolean> lastModes;
+    private int rangeScanDoneTick;
+
+    // ---------------- 整个投影的进度（已加载的区块，增量统计） ----------------
+    private final ProgressIndex loadedIndex = new ProgressIndex(new ProgressIndex.Rules() {
+        @Override
+        public boolean counts(BlockPos pos) {
+            return ModuleManager.PRINT.inPrintSelection(pos);
+        }
+
+        @Override
+        public BlockMatchingType matching(BlockPos pos, BlockState required, BlockState current) {
+            BlockMatchingType type = BlockMatchingType.get(required, current);
+            // 投影里这一侧开着、保持不含水的含水方块算完成
+            if (type == BlockMatchingType.ERROR_BLOCK_STATE
+                    && WaterlogPlacer.acceptsDry(level, SchematicWorldHandler.getSchematicWorld(), mc.player, pos, required, current)) {
+                return BlockMatchingType.CORRECT;
+            }
+            return type;
+        }
+    });
+    private boolean loadedActive;
 
     /** 进度条统计整个投影（已加载的区块），而不是只算工作范围内 */
     public static boolean countsLoadedArea() {
@@ -90,11 +127,18 @@ public class GUI extends Module {
     }
 
     public long getWrongState() {
-        return countsLoadedArea() && Configs.Print.ENABLED.getBooleanValue() ? loadedWrongState : wrongState;
+        return countsLoadedArea() && Configs.Print.ENABLED.getBooleanValue() ? loadedIndex.shownWrongState() : wrongState;
     }
 
     public long getWrongBlock() {
-        return countsLoadedArea() && Configs.Print.ENABLED.getBooleanValue() ? loadedWrongBlock : wrongBlock;
+        return countsLoadedArea() && Configs.Print.ENABLED.getBooleanValue() ? loadedIndex.shownWrongBlock() : wrongBlock;
+    }
+
+    /** 客户端世界里的方块变了（BlockChangeHub）：只做标记 */
+    public void onClientBlockChanged(BlockPos pos) {
+        if (loadedActive) loadedIndex.blockChanged(pos);
+        PrinterBox current = box == null ? null : box.get();
+        if (current != null && current.contains(pos)) rangeDirty = true;
     }
 
     @Override
@@ -123,15 +167,28 @@ public class GUI extends Module {
 
         boolean loaded = Configs.Print.ENABLED.getBooleanValue() && countsLoadedArea();
         if (loaded) {
-            scanLoadedArea();
+            tickLoadedIndex();
             // 只开着打印时，工作范围内的统计用不上
             if (!Configs.Fluid.ENABLED.getBooleanValue() && !Configs.Fill.ENABLED.getBooleanValue() && !Configs.Mine.ENABLED.getBooleanValue()) return;
-        } else {
-            loadedScan = null;
+        } else if (loadedActive) {
+            loadedActive = false;
+            loadedIndex.clear();
         }
 
+        PrinterBox current = box.get();
+        int now = player == null ? 0 : player.tickCount;
+        // 扫到一半范围重建了（玩家走远了、换了范围）：重新开始，否则会把一部分格子数两遍
+        if (scanning && current != scanBox) scanning = false;
         if (!scanning) {
+            List<Boolean> modes = List.of(Configs.Print.ENABLED.getBooleanValue(), Configs.Fluid.ENABLED.getBooleanValue(),
+                    Configs.Fill.ENABLED.getBooleanValue(), Configs.Mine.ENABLED.getBooleanValue());
+            boolean needed = rangeDirty || current != lastScanBox || !modes.equals(lastModes)
+                    || now - rangeScanDoneTick >= RANGE_RESCAN_TICKS || now < rangeScanDoneTick;
+            if (!needed) return;
             startScan();
+            scanBox = current;
+            lastModes = modes;
+            rangeDirty = false;
         }
 
         long deadline = System.currentTimeMillis() + SCAN_BUDGET_MS;
@@ -142,18 +199,33 @@ public class GUI extends Module {
         }
 
         finishScan();
+        lastScanBox = scanBox;
+        rangeScanDoneTick = now;
     }
 
-    @org.jetbrains.annotations.Nullable
+    private void tickLoadedIndex() {
+        WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
+        if (schematic == null || player == null) return;
+        loadedActive = true;
+        net.minecraft.world.level.ChunkPos center = player.chunkPosition();
+        loadedIndex.tick(level, schematic, LitematicaUtils.getSchematicWorkBoxes(), ModuleManager.PRINT.selectionSignature(),
+                center.x, center.z, mc.options.getEffectiveRenderDistance() + 1, LOADED_BUDGET_NANOS);
+        if (loadedIndex.hasShown()) loadedPrintProgress.setShown(loadedIndex.shownCorrect(), loadedIndex.shownTotal());
+    }
+
+    @Nullable
     private net.minecraft.client.multiplayer.ClientLevel lastLevel;
 
     @Override
     public void resetScanState() {
         super.resetScanState();
         scanning = false;
+        rangeDirty = true;
+        scanBox = lastScanBox = null;
+        lastModes = null;
         wrongState = wrongBlock = 0;
-        loadedScan = null;
-        loadedWrongState = loadedWrongBlock = 0;
+        loadedActive = false;
+        loadedIndex.clear();
         loadedPrintProgress.clearShown();
         totalProgress.clearShown();
         printProgress.clearShown();
@@ -184,40 +256,6 @@ public class GUI extends Module {
         totalProgress.calculateProgress();
     }
 
-    /**
-     * 整个投影的进度：所有启用的投影放置里、已加载的区块中打印机会处理的方块（Litematica 的渲染层、玩家下方 / 上方的选区类型照样算），
-     * 分几个 tick 扫完一遍才更新显示。没加载的区块看不到，不算。
-     */
-    private void scanLoadedArea() {
-        WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
-        if (schematic == null) return;
-        if (loadedScan == null) {
-            loadedScan = new com.autyism.printer.printer.LoadedAreaScan(level, schematic, com.autyism.printer.utils.LitematicaUtils.getSchematicWorkBoxes(), null);
-            loadedPrintProgress.resetCounters();
-            loadedScanWrongState = loadedScanWrongBlock = 0;
-        }
-        if (loadedScan.run(System.nanoTime() + LOADED_SCAN_BUDGET_NANOS, this::countLoadedPosition)) {
-            loadedPrintProgress.calculateProgress();
-            loadedWrongState = loadedScanWrongState;
-            loadedWrongBlock = loadedScanWrongBlock;
-            loadedScan = null;
-        }
-    }
-
-    private void countLoadedPosition(BlockPos pos, net.minecraft.world.level.block.state.BlockState required, net.minecraft.world.level.block.state.BlockState current) {
-        if (!ModuleManager.PRINT.inPrintSelection(pos)) return;
-        BlockMatchingType type = BlockMatchingType.get(required, current);
-        // 投影里这一侧开着、保持不含水的含水方块算完成
-        if (type == BlockMatchingType.ERROR_BLOCK_STATE && com.autyism.printer.printer.WaterlogPlacer.acceptsDry(level,
-                SchematicWorldHandler.getSchematicWorld(), mc.player, pos, required, current)) {
-            type = BlockMatchingType.CORRECT;
-        }
-        if (type == BlockMatchingType.CORRECT) loadedPrintProgress.finished++;
-        else if (type == BlockMatchingType.ERROR_BLOCK_STATE) loadedScanWrongState++;
-        else if (type == BlockMatchingType.ERROR_BLOCK) loadedScanWrongBlock++;
-        loadedPrintProgress.total++;
-    }
-
     private void countPosition(BlockPos blockPos) {
         if (Configs.Print.ENABLED.getBooleanValue()) {
             WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
@@ -226,7 +264,7 @@ public class GUI extends Module {
                 if (!context.requiredState.isAir()) {
                     BlockMatchingType type = BlockMatchingType.get(context);
                     // 投影里这一侧开着、保持不含水的含水方块算完成
-                    if (type == BlockMatchingType.ERROR_BLOCK_STATE && com.autyism.printer.printer.WaterlogPlacer.acceptsDry(level, schematic, mc.player,
+                    if (type == BlockMatchingType.ERROR_BLOCK_STATE && WaterlogPlacer.acceptsDry(level, schematic, mc.player,
                             blockPos, context.requiredState, context.currentState)) {
                         type = BlockMatchingType.CORRECT;
                     }
@@ -304,6 +342,11 @@ public class GUI extends Module {
         }
 
         public void calculateProgress() {
+            setShown(finished, total);
+        }
+
+        /** 直接设置显示的结果（增量统计用） */
+        public void setShown(long finished, long total) {
             shownTotal = total;
             shownFinished = finished;
             progress = total < 1 ? 1.0 : (double) finished / total;

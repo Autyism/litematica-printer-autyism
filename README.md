@@ -54,16 +54,16 @@ Compared with the 1.21.11 printer builds it is based on, this edition adds or re
 
 - **Safe observers.** With *Safe Observer Placement* on (default), an observer is only placed when it will not fire into your machine. Observers that cannot be placed safely are skipped on purpose, and pistons that an observer would fire wait until the block that observer watches is finished.
 - **Safe rails.** Before each rail, the printer simulates vanilla's rail-connection rules. A rail is only placed when it will end up in the schematic's shape, will not bend rails that are already placed, and will not pop off for lack of support. Connected rails get a placement order planned in advance. A rail that vanilla cannot place correctly in any order is left empty; it is never placed wrong and broken again.
-- **Adjustable blocks, one confirmed click at a time.** Note blocks are tuned, repeaters set to their delay, comparators to their mode, wooden doors, trapdoors and fence gates opened or closed and levers flipped. Each click waits until the server has confirmed the previous one, so lag cannot make it overshoot.
+- **Adjustable blocks, one confirmed click at a time.** Note blocks are tuned, repeaters set to their delay, comparators to their mode, wooden doors, trapdoors and fence gates opened or closed and levers flipped. Each click waits until the server has confirmed the previous one, so lag cannot make it overshoot. With *Finish Adjusting First* (on by default) such a block is finished before the next block is placed.
 - **Stackable blocks.** Candles, sea pickles, snow layers, flower beds and double slabs are built up to the count in the schematic.
 - **Bottom-up order.** With layered printing, machines are built from the ground up, so upper pistons and observers are not placed before the parts beneath them.
 
 ### Big builds
 
-- **Layered printing, bottom-up** (on by default). Only the lowest unfinished layer within your range is printed; the next layer starts when it is done. A message reports every finished layer: either all blocks placed, or how many are correct, in the wrong state, the wrong block, or missing. If a layer cannot be finished (for example, materials ran out), the printer continues upward after a few seconds and comes back to it after reaching the top.
+- **Layered printing, bottom-up** (on by default). Only the lowest unfinished layer is printed; the next layer starts when it is done. By default that means the whole layer in loaded chunks, so with a small range the printer waits until you walk over to the rest (*Layer Counts as Done*). A message reports every finished layer: either all blocks placed, or how many are correct, in the wrong state, the wrong block, or missing. If a layer cannot be finished (for example, materials ran out), the printer continues upward after a few seconds and comes back to it after reaching the top.
 - **Large work radius.** The radius can be set up to 4096. Only the part of the schematic inside it is scanned, and completely empty sections are skipped, so the radius itself does not add work. The server's reach still limits what can be placed; in singleplayer the printer raises your reach up to the vanilla maximum of 64.
 - **Automatic reach in singleplayer.** With cheats allowed, the printer raises your block interaction range to match the work radius (vanilla limit 64) with the `/attribute` command, and waits until it applies before starting. In singleplayer it never works beyond the range the game accepts.
-- **Progress display.** Turn on *Show Work Status* for a progress bar under the crosshair: blocks placed within range, wrong states, wrong blocks and the current layer. The *Missing Material HUD* (on by default) lists materials the printer could not find.
+- **Progress display.** Turn on *Show Work Status* for a progress bar under the crosshair: blocks placed in the whole schematic (or only within range, see *Progress Counts*), wrong states, wrong blocks and the current layer. The *Missing Material HUD* (on by default) lists materials the printer could not find.
 
 ### Materials and inventory
 
@@ -208,6 +208,7 @@ Names are shown as they appear in game. The settings screen has an **All** tab a
 | Auto Raise Reach (Singleplayer) | on | In singleplayer the printer never works beyond your reach; with cheats allowed, this raises the reach to the work radius (max 64). |
 | Pause While Using Containers | on | Pauses while you open or use a container or inventory screen. |
 | Show Work Status | off | Progress display under the crosshair. |
+| Progress Counts | Whole Schematic | What the progress bar counts while printing: the whole schematic in loaded chunks, or only blocks within range. |
 | Missing Material HUD | on | Lists missing materials in Litematica's info HUD area. |
 | Lag Detection / Lag Detection Max | on / 20 ticks | Pauses when the server has sent nothing for this long. |
 | Work Area Shape | Sphere | Shape of the work area: Sphere, Cube or Octahedron. |
@@ -231,7 +232,9 @@ Names are shown as they appear in game. The settings screen has an **All** tab a
 |---|---|---|
 | Enable Printing | off | Printing mode; it works while the printer is on. Turning the printer on with no mode enabled enables it. |
 | Layered Printing (bottom-up) | on | Prints the lowest unfinished layer first. |
+| Layer Counts as Done | Whole Layer | When a layer is finished: the whole layer in loaded chunks, or only the part within range. Layer messages follow it. |
 | Hide Layer Messages | off | No chat message after each layer. |
+| Finish Adjusting First | on | Finishes a block that needs clicks (repeater delay, note pitch...) before placing the next one. Off: places everything first and adjusts afterwards. |
 | Print Waterlogged Blocks | off | Pours water into waterlogged blocks, only where it can't leak out. |
 | Selection Type | Visible Area | *Below Player* or *Above Player* limit printing to blocks below or above your feet; Litematica's render layers always apply. |
 | Use Easy Place Protocol | on | Uses Litematica's Easy Place protocol when the server supports it (singleplayer, Servux). |
@@ -471,16 +474,16 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 
 - **侦测器安全放置。** 开启“侦测器安全放置”（默认开）时，只有不会误触发机器的侦测器才会放；放不了的就故意跳过。会被侦测器触发的活塞，也会等侦测器盯着的那个方块放好再放。
 - **铁轨安全放置。** 每放一节铁轨之前，先按原版铁轨连接规则模拟一遍：只有这节会变成投影里的形状、不会把已经放好的铁轨拉歪、也不会因为没有支撑而掉落时才放。互相连着的一组铁轨会预先规划放置顺序。原版怎么排都放不对的铁轨会留空，绝不会先放错再敲掉。
-- **可调方块一次点一下，等确认再点。** 音符盒调音、中继器调延迟、比较器切模式、木门 / 活板门 / 栅栏门的开关、拉杆的开关，每点一下都要等服务器确认上一下，延迟再高也不会点过头。
+- **可调方块一次点一下，等确认再点。** 音符盒调音、中继器调延迟、比较器切模式、木门 / 活板门 / 栅栏门的开关、拉杆的开关，每点一下都要等服务器确认上一下，延迟再高也不会点过头。开着“调整完再放下一个”（默认开）时，这种方块调好之后才放下一个方块。
 - **可叠加方块。** 蜡烛、海泡菜、雪层、花簇和双层台阶会补到投影里的数量。
 - **从下往上。** 开着分层打印时，机器从底部开始搭，上层的活塞、侦测器不会比下面的部分先放。
 
 ### 大型建筑
 
-- **分层打印，从下往上**（默认开）。只打印工作范围内最低的、还没完成的那一层，这层完成后才开始上一层。每层完成时会提示结果：全部放好，或者正确、状态错误、方块错误、缺失各有多少。如果某一层暂时完成不了（例如材料用完了），几秒后会先往上打，到顶后再回来补。
+- **分层打印，从下往上**（默认开）。只打印最低的、还没完成的那一层，这层完成后才开始上一层。默认要已加载区块里的整层都打完才算完成，工作范围小时打印机会等你走过去把剩下的打完（“分层完成判定”）。每层完成时会提示结果：全部放好，或者正确、状态错误、方块错误、缺失各有多少。如果某一层暂时完成不了（例如材料用完了），几秒后会先往上打，到顶后再回来补。
 - **超大工作半径。** 半径最大可设到 4096。只扫描半径内的投影部分，整段都是空气的区块段直接跳过，所以半径本身不会增加工作量。实际能放多远仍受服务器触及距离限制；单人世界里打印机会把触及距离调高，最多到原版上限 64。
 - **单人世界自动调高交互距离。** 允许作弊时，打印机会用 `/attribute` 指令把你的方块交互距离调到和工作半径一致（原版上限 64），并等指令生效后才开始。单人世界里打印机不会在游戏不接受的距离外工作。
-- **进度显示。** 打开“显示工作状态”后，准星下方会显示进度条：范围内已放好的方块数、状态错误、方块错误和当前层。“缺失材料 HUD”（默认开）会列出打印机找不到的材料。
+- **进度显示。** 打开“显示工作状态”后，准星下方会显示进度条：整个投影已放好的方块数（也可以只算工作范围内，见“进度条统计范围”）、状态错误、方块错误和当前层。“缺失材料 HUD”（默认开）会列出打印机找不到的材料。
 
 ### 材料和背包
 
@@ -625,6 +628,7 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 | 单人世界自动调高交互距离 | 开 | 单人世界里打印机不会超出你的交互距离工作；允许作弊时，会把交互距离调到工作半径（最大 64）。 |
 | 使用容器时暂停 | 开 | 打开或使用容器、背包界面时暂停。 |
 | 显示工作状态 | 关 | 在准星下方显示进度。 |
+| 进度条统计范围 | 整个投影 | 打印时进度条统计什么：已加载区块里的整个投影，或者只算工作范围内。 |
 | 缺失材料 HUD | 开 | 在 Litematica 信息 HUD 区域列出缺少的材料。 |
 | 延迟检测 / 延迟检测最大值 | 开 / 20 tick | 服务器这么久没有发来数据时暂停。 |
 | 工作范围形状 | 球体 | 工作范围的形状：球体、正方体或八面体。 |
@@ -648,7 +652,9 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 |---|---|---|
 | 启用打印 | 关 | 打印模式，打印机开着时工作。一个模式都没开时打开打印机，会自动开启它。 |
 | 分层打印（从下往上） | 开 | 先打印最低的未完成层。 |
+| 分层完成判定 | 整层 | 一层什么时候算完成：已加载区块里的整层，或者只算工作范围内的部分。每层完成的提示也按这个。 |
 | 隐藏分层完成提示 | 关 | 每层完成时不发提示。 |
+| 调整完再放下一个 | 开 | 还要点几下的方块（中继器延迟、音符盒音高……）先调好再放下一个。关闭：先放完再回来调整。 |
 | 打印含水方块 | 关 | 给含水方块倒水，只在水漏不出去的地方倒。 |
 | 选区类型 | 可见层 | “玩家下方 / 玩家上方”只处理你脚下以下或以上的部分；Litematica 的渲染层始终生效。 |
 | 使用轻松放置协议 | 开 | 服务器支持时使用 Litematica 的轻松放置协议（单人游戏、装了 Servux 的服务器）。 |

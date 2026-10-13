@@ -85,6 +85,7 @@ public final class AdjustFirstGameTest implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext context) {
         if (!GTFilter.enabled("adjust")) return;
+        if (!Configs.Print.ADJUST_FIRST.getDefaultBooleanValue()) throw new AssertionError("[adjust] Finish Adjusting First should be on by default");
         design();
         BlockPos min = BASE.offset(-1, 0, -1), max = BASE.offset(12, 0, 5);
         try (TestSingleplayerContext sp = GT.newWorld(context)) {
@@ -111,7 +112,13 @@ public final class AdjustFirstGameTest implements FabricClientGameTest {
                 for (BlockPos p : schematic.keySet()) server.overworld().setBlock(p, Blocks.AIR.defaultBlockState(), 2 | 16);
             });
             context.waitTicks(10);
-            Result old = print(context, sp, min, max, false);
+            Result old;
+            try {
+                old = print(context, sp, min, max, false);
+            } finally {
+                // 退出世界之前改回来（MaLiLib 退出世界时会保存设置）
+                context.runOnClient(c -> Configs.Print.ADJUST_FIRST.setBooleanValue(true));
+            }
             GT.log("[adjust] old order (setting off): " + old.summary());
             if (!old.wrong.isEmpty()) throw new AssertionError("[adjust] wrong after printing in the old order: " + old.wrong);
             if (old.violations.isEmpty()) throw new AssertionError("[adjust] the old order did not place other blocks before adjusting (setting has no effect?)");

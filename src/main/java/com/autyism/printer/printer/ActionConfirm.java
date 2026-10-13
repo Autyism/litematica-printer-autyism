@@ -78,6 +78,13 @@ public final class ActionConfirm {
         return true;
     }
 
+    /** 还有没被服务端确认的动作（超时的不算） */
+    public static boolean anyPending(ClientLevel level, int tick) {
+        sync(level);
+        PENDING.values().removeIf(e -> e[0] <= lastAcked || tick - e[1] > TIMEOUT_TICKS || tick < e[1]);
+        return !PENDING.isEmpty();
+    }
+
     /** 这个格子或者它旁边（6 个方向）有还没被确认的动作 */
     public static boolean pendingNear(ClientLevel level, BlockPos pos, int tick) {
         if (pending(level, pos, tick)) return true;

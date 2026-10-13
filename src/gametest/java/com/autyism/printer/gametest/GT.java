@@ -295,6 +295,10 @@ public final class GT {
         // 默认测普通模式（发假视角）；-Pprotocol=true 测轻松放置协议模式
         Configs.Print.EASY_PLACE_PROTOCOL.setBooleanValue(Boolean.getBoolean("ale.protocol"));
         Configs.Print.USE_QUICK_SHULKER.setBooleanValue(false);
+        // 1.2.0 的设置都从默认值开始（MaLiLib 退出世界时保存设置、进入世界时重新读取，上一个测试改过的值会被带过来）
+        Configs.Print.ADJUST_FIRST.setBooleanValue(Configs.Print.ADJUST_FIRST.getDefaultBooleanValue());
+        Configs.Print.LAYER_DONE_SCOPE.setOptionListValue(Configs.Print.LAYER_DONE_SCOPE.getDefaultOptionListValue());
+        Configs.Core.PROGRESS_SCOPE.setOptionListValue(Configs.Core.PROGRESS_SCOPE.getDefaultOptionListValue());
         disableAll();
     }
 

@@ -43,11 +43,21 @@ public final class LayerDoneGameTest implements FabricClientGameTest {
                 Configs.Core.WORK_RANGE.setDoubleValue(6);
                 Configs.Print.LAYERED_MODE.setBooleanValue(true);
             });
-            if (context.computeOnClient(c -> Configs.Print.LAYER_DONE_SCOPE.getOptionListValue()) != LayerDoneScope.WHOLE_LAYER) {
+            if (Configs.Print.LAYER_DONE_SCOPE.getDefaultOptionListValue() != LayerDoneScope.WHOLE_LAYER
+                    || context.computeOnClient(c -> Configs.Print.LAYER_DONE_SCOPE.getOptionListValue()) != LayerDoneScope.WHOLE_LAYER) {
                 throw new AssertionError("[layerdone] the default should be the whole layer");
             }
-            wholeLayer(context, sp);
-            withinRange(context, sp);
+            try {
+                wholeLayer(context, sp);
+                withinRange(context, sp);
+            } finally {
+                // 退出世界之前改回来（MaLiLib 退出世界时会保存设置）
+                context.runOnClient(c -> {
+                    GT.disableAll();
+                    Configs.Print.LAYER_DONE_SCOPE.setOptionListValue(LayerDoneScope.WHOLE_LAYER);
+                    Configs.Print.HIDE_LAYER_MESSAGES.setBooleanValue(false);
+                });
+            }
         } finally {
             BlockLog.stop();
             context.runOnClient(c -> {
@@ -68,8 +78,12 @@ public final class LayerDoneGameTest implements FabricClientGameTest {
         GT.log("[layerdone] whole layer, standing at the west end: layer " + LAYER + " " + counts[0] + "/" + PER_LAYER + ", layer " + (LAYER + 1) + " " + counts[1]);
         if (counts[0] == 0 || counts[0] >= PER_LAYER) throw new AssertionError("[layerdone] expected part of layer " + LAYER + " in range, got " + counts[0]);
         if (counts[1] != 0) throw new AssertionError("[layerdone] the next layer was started before the whole layer was done: " + counts[1]);
-        // 等一会儿：不会因为“没有放置尝试”被看门狗强行跳到上一层
+        // 等一会儿：不会因为“没有放置尝试”被看门狗强行跳到上一层；没事可做时也不再每 tick 重扫范围
+        int passesBefore = context.computeOnClient(c -> ModuleManager.PRINT.debugPasses());
         context.waitTicks(120);
+        int passes = context.computeOnClient(c -> ModuleManager.PRINT.debugPasses()) - passesBefore;
+        GT.log("[layerdone] range scans while waiting 120 ticks for the player: " + passes);
+        if (passes > 30) throw new AssertionError("[layerdone] the printer kept rescanning its range while there was nothing to do: " + passes + " scans in 120 ticks");
         int upper = GT.countPlaced(sp, MIN.above(), MAX);
         int layerNow = context.computeOnClient(c -> ModuleManager.PRINT.getCurrentLayer());
         if (upper != 0 || layerNow != LAYER) throw new AssertionError("[layerdone] moved on while the layer was unfinished: upper=" + upper + " layer=" + layerNow);
@@ -150,7 +164,14 @@ public final class LayerDoneGameTest implements FabricClientGameTest {
         });
         sp.getServer().runCommand(String.format(java.util.Locale.ROOT, "tp @a %.1f %d %.1f -90 60", x, MAX.getY() + 1, z));
         context.waitFor(c -> c.player != null && Math.abs(c.player.getX() - x) < 0.01, 200);
-        context.waitTicks(2);
+        context.runOnClient(c -> {
+            c.player.getAbilities().flying = true;
+            c.player.onUpdateAbilities();
+        });
+        context.waitTicks(5);
+        // 必须飞在两层上面：站在地上会挡住这一层的格子
+        double y = context.computeOnClient(c -> c.player.getY());
+        if (y < MAX.getY() + 0.9) throw new AssertionError("[layerdone] the player is not flying above the layers: y=" + y);
     }
 
     /** 等到服务端两层的方块数连续 40 tick 不变，返回 {这一层, 上一层} */

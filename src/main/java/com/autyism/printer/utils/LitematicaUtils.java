@@ -35,6 +35,17 @@ public class LitematicaUtils {
         return DataManager.getRenderLayerRange().isPositionWithinRange(pos);
     }
 
+    /** Litematica 渲染层的当前设置（变了就说明“哪些格子在渲染层里”变了） */
+    public static List<Object> renderLayerKey() {
+        var range = DataManager.getRenderLayerRange();
+        //? if >=26.2 {
+        /*return List.of(range.getLayerMode(), range.getAxis(), range.getMinLayerBoundary(), range.getMaxLayerBoundary(),
+                range.getLayerSingle(), range.getLayerAbove(), range.getLayerBelow());
+        *///?} else
+        return List.of(range.getLayerMode(), range.getAxis(), range.getLayerMin(), range.getLayerMax(),
+                range.getLayerSingle(), range.getLayerAbove(), range.getLayerBelow());
+    }
+
     public static Vec3 usePrecisionPlacement(BlockPos pos, BlockState stateSchematic) {
         if (Configs.Print.EASY_PLACE_PROTOCOL.getBooleanValue()) {
             EasyPlaceProtocol protocol = PlacementHandler.getEffectiveProtocolVersion();

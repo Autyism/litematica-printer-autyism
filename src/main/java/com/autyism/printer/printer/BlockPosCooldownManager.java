@@ -164,6 +164,11 @@ public class BlockPosCooldownManager {
         cooldownMap.clear();
     }
 
+    /** 还有格子在冷却 */
+    public boolean hasAny() {
+        return !cooldownMap.isEmpty();
+    }
+
     @SuppressWarnings("ClassCanBeRecord")
     private static final class Info {
         private final Identifier dimension;
