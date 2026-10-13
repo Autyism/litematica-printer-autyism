@@ -194,7 +194,9 @@ public final class RedstoneGameTest implements FabricClientGameTest {
                 GT.enablePrint();
             });
             int t = 0, lastBad = -1, lastChange = 0;
-            for (t = 20; t <= 3000; t += 20) {
+            // 不用轻松放置协议时，音符盒 / 中继器 / 比较器要一下一下点到投影里的状态，“调整完再放下一个”（默认）一块一块地调，比以前慢
+            int maxTicks = 8000;
+            for (t = 20; t <= maxTicks; t += 20) {
                 context.waitTicks(20);
                 context.runOnClient(c -> {
                     var ws = fi.dy.masa.litematica.world.SchematicWorldHandler.getSchematicWorld();

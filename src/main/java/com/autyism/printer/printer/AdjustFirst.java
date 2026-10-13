@@ -18,13 +18,15 @@ import java.util.Map;
 /**
  * 先调整完再放下一个。
  * <p>
- * 有些方块放下以后还要在同一格点几下、或者再放几次，才和投影一样：中继器延迟、比较器模式、音符盒音高、阳光探测器反相、
- * 拉杆、木门 / 活板门 / 栅栏门开关、蜡烛 / 海泡菜 / 雪层 / 花簇的数量、双层台阶、花盆里的花、耕地 / 土径、去皮原木……
+ * 有些方块放下以后还要在同一格点几下才和投影一样：中继器延迟、比较器模式、音符盒音高、阳光探测器反相、
+ * 拉杆、木门 / 活板门 / 栅栏门开关、蜡烛 / 海泡菜 / 雪层 / 花簇的数量（拿着同样的物品点）、花盆里的花、耕地 / 土径、去皮原木……
  * 以前打印机按扫描顺序往后走：放下这种方块后接着把这一轮剩下的方块都放完，下一轮扫描回到这一格才点一下
  * （刚放下时服务端还没确认、这一格还有冷却，扫到了也要等下一轮），点几下就要几轮 —— 看起来就是“先把方块都放完，再回去一个个调”。
  * 现在打印机停在这一格，每点一下都等服务端确认，调整完再放下一个方块（Print 里的 adjust 相关代码）。
  * <p>
- * 这里只列打印机会在原地调整的方块（和 PlacementGuide 里“状态错误 / 方块错误”时点击或者再放一次的分支对应），其他方块不受影响。
+ * 这里只列打印机会在原地点击调整的方块（和 PlacementGuide 里“状态错误 / 方块错误”时点击的分支对应），其他方块不受影响。
+ * 在同一格再放一次的（双层台阶的第二块、藤蔓 / 发光地衣多贴一面）不算：它们不影响机器怎么动，双层台阶又很常见，
+ * 一块一块等服务器确认会让大建筑慢很多，照旧的顺序处理。
  */
 public final class AdjustFirst {
     private AdjustFirst() {
@@ -56,11 +58,9 @@ public final class AdjustFirst {
         if (b instanceof CandleBlock) return required.getValue(CandleBlock.CANDLES) > 1 || required.getValue(CandleBlock.LIT);
         if (b instanceof SeaPickleBlock) return required.getValue(SeaPickleBlock.PICKLES) > 1;
         if (b instanceof SnowLayerBlock) return required.getValue(SnowLayerBlock.LAYERS) > 1;
-        if (b instanceof SlabBlock) return required.getValue(SlabBlock.TYPE) == SlabType.DOUBLE;
         if (b instanceof CampfireBlock) return !required.getValue(CampfireBlock.LIT) && !required.getValue(CampfireBlock.WATERLOGGED);
         if (b instanceof EndPortalFrameBlock) return required.getValue(EndPortalFrameBlock.HAS_EYE);
         if (isFlowerBed(b)) return required.getValue(BlockStateProperties.FLOWER_AMOUNT) > 1;
-        if (b instanceof VineBlock || b instanceof GlowLichenBlock) return faces(required) > 1;
         // 花盆里的花：先放空花盆再把花放进去
         if (b instanceof FlowerPotBlock && b != Blocks.FLOWER_POT) return true;
         // 耕地 / 土径：先放泥土再用锄头 / 锹
@@ -155,15 +155,6 @@ public final class AdjustFirst {
         /*return b instanceof PinkPetalsBlock;
         *///?} else
         return b instanceof FlowerBedBlock;
-    }
-
-    private static int faces(BlockState state) {
-        int n = 0;
-        for (Direction d : Direction.values()) {
-            if (d == Direction.DOWN && state.getBlock() == Blocks.VINE) continue;
-            if (Boolean.TRUE.equals(BlockUtils.getPropertyByName(state, d.name()))) n++;
-        }
-        return n;
     }
 
     private static boolean allSides(BlockState wire, RedstoneSide side) {

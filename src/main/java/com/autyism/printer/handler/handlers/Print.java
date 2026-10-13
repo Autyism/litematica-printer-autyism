@@ -147,7 +147,7 @@ public class Print extends Module {
         }
     }
 
-    /** 最近几次“某层完成”的提示（不管有没有隐藏提示都记；调试 / 测试用） */
+    /** 打印机这次开启以来最近几次“某层完成”的提示（不管有没有隐藏提示都记；调试 / 测试用） */
     public record LayerAnnouncement(LayerStats stats, boolean shown, int tick) {
     }
 
@@ -817,8 +817,8 @@ public class Print extends Module {
     private void considerAdjustFocus(BlockPos pos, Item usedItem, boolean protocolSetsState) {
         if (!Configs.Print.ADJUST_FIRST.getBooleanValue() || ctx == null || action == null) return;
         boolean adjusting = switch (BlockMatchingType.get(ctx.requiredState, ctx.currentState)) {
-            // 方块对了、状态不对：这个动作就是在调整（点一下、再放一个）
-            case ERROR_BLOCK_STATE -> true;
+            // 方块对了、状态不对：点一下调整（在同一格再放一块的双层台阶、多贴一面的藤蔓照旧的顺序）
+            case ERROR_BLOCK_STATE -> action instanceof ClickAction;
             // 方块不对但能在原地转换（泥土锄成耕地、空花盆放花、原木去皮）
             case ERROR_BLOCK -> action instanceof ClickAction;
             // 刚放下：放好以后还要调整的方块（中继器延迟、音符盒音高、双层台阶、几根蜡烛……）
@@ -896,8 +896,8 @@ public class Print extends Module {
             clearAdjust();
             return false;
         }
-        // 没有能在原地做的了（例如只剩红石运行时的属性不同）、要用桶倒水（含水方块有自己的规则）、要拆掉重放：交回正常顺序
-        if (!canProcessPos(pos) || fluidPlan != null || (type == BlockMatchingType.ERROR_BLOCK && !(action instanceof ClickAction))) {
+        // 没有能在原地点的了（例如只剩红石运行时的属性不同）、要用桶倒水（含水方块有自己的规则）、要在同一格再放一块：交回正常顺序
+        if (!canProcessPos(pos) || fluidPlan != null || !(action instanceof ClickAction)) {
             clearAdjust();
             return false;
         }
@@ -925,6 +925,7 @@ public class Print extends Module {
     public void resetScanState() {
         super.resetScanState();
         announcedLayers.clear();
+        announcements.clear();
         watingForWaterPos = null;
         watingForWaterTicks = 0;
         placingIceForWater = false;

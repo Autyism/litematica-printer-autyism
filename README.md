@@ -60,7 +60,7 @@ Compared with the 1.21.11 printer builds it is based on, this edition adds or re
 
 ### Big builds
 
-- **Layered printing, bottom-up** (on by default). Only the lowest unfinished layer is printed; the next layer starts when it is done. By default that means the whole layer in loaded chunks, so with a small range the printer waits until you walk over to the rest (*Layer Counts as Done*). A message reports every finished layer: either all blocks placed, or how many are correct, in the wrong state, the wrong block, or missing. If a layer cannot be finished (for example, materials ran out), the printer continues upward after a few seconds and comes back to it after reaching the top.
+- **Layered printing, bottom-up** (on by default). Only the lowest unfinished layer is printed; the next layer starts when it is done. By default that means the whole layer in loaded chunks, so with a small range the printer waits until you walk over to the rest (*Layer Counts as Done*). A message reports every finished layer: either all blocks placed, or how many are correct, in the wrong state, the wrong block, or missing. If some blocks of a layer can't be placed (for example, materials ran out), the printer stops waiting for them after a few seconds and comes back to them after reaching the top.
 - **Large work radius.** The radius can be set up to 4096. Only the part of the schematic inside it is scanned, and completely empty sections are skipped, so the radius itself does not add work. The server's reach still limits what can be placed; in singleplayer the printer raises your reach up to the vanilla maximum of 64.
 - **Automatic reach in singleplayer.** With cheats allowed, the printer raises your block interaction range to match the work radius (vanilla limit 64) with the `/attribute` command, and waits until it applies before starting. In singleplayer it never works beyond the range the game accepts.
 - **Progress display.** Turn on *Show Work Status* for a progress bar under the crosshair: blocks placed in the whole schematic (or only within range, see *Progress Counts*), wrong states, wrong blocks and the current layer. The *Missing Material HUD* (on by default) lists materials the printer could not find.
@@ -480,7 +480,7 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 
 ### 大型建筑
 
-- **分层打印，从下往上**（默认开）。只打印最低的、还没完成的那一层，这层完成后才开始上一层。默认要已加载区块里的整层都打完才算完成，工作范围小时打印机会等你走过去把剩下的打完（“分层完成判定”）。每层完成时会提示结果：全部放好，或者正确、状态错误、方块错误、缺失各有多少。如果某一层暂时完成不了（例如材料用完了），几秒后会先往上打，到顶后再回来补。
+- **分层打印，从下往上**（默认开）。只打印最低的、还没完成的那一层，这层完成后才开始上一层。默认要已加载区块里的整层都打完才算完成，工作范围小时打印机会等你走过去把剩下的打完（“分层完成判定”）。每层完成时会提示结果：全部放好，或者正确、状态错误、方块错误、缺失各有多少。如果某一层有方块暂时放不了（例如材料用完了），几秒后就不再等它们，到顶后再回来补。
 - **超大工作半径。** 半径最大可设到 4096。只扫描半径内的投影部分，整段都是空气的区块段直接跳过，所以半径本身不会增加工作量。实际能放多远仍受服务器触及距离限制；单人世界里打印机会把触及距离调高，最多到原版上限 64。
 - **单人世界自动调高交互距离。** 允许作弊时，打印机会用 `/attribute` 指令把你的方块交互距离调到和工作半径一致（原版上限 64），并等指令生效后才开始。单人世界里打印机不会在游戏不接受的距离外工作。
 - **进度显示。** 打开“显示工作状态”后，准星下方会显示进度条：整个投影已放好的方块数（也可以只算工作范围内，见“进度条统计范围”）、状态错误、方块错误和当前层。“缺失材料 HUD”（默认开）会列出打印机找不到的材料。

@@ -23,7 +23,8 @@ import java.util.Set;
 
 /**
  * 调整完再放下一个（默认）：放下一个还要点几下才对的方块（中继器延迟、比较器模式、音符盒音高、阳光探测器、拉杆、活板门、栅栏门、
- * 蜡烛、海泡菜、雪层、双层台阶、花盆、花簇、耕地），服务端处理的先后顺序里，从这个方块放下到它完全调好之间不能放任何别的方块。
+ * 蜡烛、海泡菜、雪层、花盆、花簇、耕地），服务端处理的先后顺序里，从这个方块放下到它完全调好之间不能放任何别的方块。
+ * 双层台阶（在同一格再放一块）照旧的顺序，只要求最后是对的。
  * 然后把设置关掉再打一遍：旧的顺序（先放完再调整），应该看得到中间放了别的方块；两次最后都必须完全正确。
  * 用 BlockLog 按服务端处理顺序记下每一次方块变化。生存模式、材料在背包里（要从背包换到手上）。可以加 -Plag / -Pnoghost 跑。
  */
@@ -40,9 +41,14 @@ public final class AdjustFirstGameTest implements FabricClientGameTest {
     private final Map<BlockPos, BlockState> floor = new LinkedHashMap<>();
 
     private void cell(int x, int z, BlockState target) {
+        cell(x, z, target, true);
+    }
+
+    /** adjust = false：只要求最后是对的（在同一格再放一块的双层台阶照旧的顺序，不算“调整”） */
+    private void cell(int x, int z, BlockState target, boolean adjust) {
         BlockPos pos = BASE.offset(x, 0, z);
         schematic.put(pos, target);
-        adjustable.add(pos);
+        if (adjust) adjustable.add(pos);
         // 每个要调整的方块后面跟一块玻璃：扫描顺序里紧接着就是“别的方块”
         schematic.put(pos.east(), Blocks.GLASS.defaultBlockState());
     }
@@ -70,7 +76,7 @@ public final class AdjustFirstGameTest implements FabricClientGameTest {
         cell(10, 2, Blocks.SEA_PICKLE.defaultBlockState().setValue(SeaPickleBlock.PICKLES, 3).setValue(SeaPickleBlock.WATERLOGGED, false));
         // 第三排：再放一次 / 转换
         cell(0, 4, Blocks.SNOW.defaultBlockState().setValue(SnowLayerBlock.LAYERS, 4));
-        cell(2, 4, Blocks.OAK_SLAB.defaultBlockState().setValue(SlabBlock.TYPE, SlabType.DOUBLE));
+        cell(2, 4, Blocks.OAK_SLAB.defaultBlockState().setValue(SlabBlock.TYPE, SlabType.DOUBLE), false);
         cell(4, 4, Blocks.POTTED_DANDELION.defaultBlockState());
         cell(6, 4, Blocks.PINK_PETALS.defaultBlockState().setValue(BlockStateProperties.FLOWER_AMOUNT, 3)
                 .setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.NORTH));

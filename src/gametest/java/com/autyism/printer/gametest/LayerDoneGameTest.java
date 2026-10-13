@@ -70,7 +70,6 @@ public final class LayerDoneGameTest implements FabricClientGameTest {
     }
 
     private static void wholeLayer(ClientGameTestContext context, TestSingleplayerContext sp) {
-        int announcedBefore = context.computeOnClient(c -> ModuleManager.PRINT.getAnnouncements().size());
         int skipsBefore = context.computeOnClient(c -> ModuleManager.PRINT.getForcedLayerSkips());
         BlockLog.start(MIN, MAX);
         context.runOnClient(c -> GT.enablePrint());
@@ -90,7 +89,7 @@ public final class LayerDoneGameTest implements FabricClientGameTest {
         int upper = GT.countPlaced(sp, MIN.above(), MAX);
         int layerNow = context.computeOnClient(c -> ModuleManager.PRINT.getCurrentLayer());
         if (upper != 0 || layerNow != LAYER) throw new AssertionError("[layerdone] moved on while the layer was unfinished: upper=" + upper + " layer=" + layerNow);
-        if (context.computeOnClient(c -> ModuleManager.PRINT.getAnnouncements().size()) != announcedBefore) {
+        if (!context.computeOnClient(c -> ModuleManager.PRINT.getAnnouncements()).isEmpty()) {
             throw new AssertionError("[layerdone] a layer was announced as done although it was not");
         }
         GT.log("[layerdone] waited 120 ticks: still on layer " + layerNow + ", nothing above, no message, state "
@@ -120,7 +119,8 @@ public final class LayerDoneGameTest implements FabricClientGameTest {
         }
         if (firstUpper < lastLower) throw new AssertionError("[layerdone] an upper block (#" + firstUpper + ") was placed before the last lower block (#" + lastLower + ")");
         List<Print.LayerAnnouncement> announced = context.computeOnClient(c -> ModuleManager.PRINT.getAnnouncements());
-        Print.LayerAnnouncement done = announced.stream().skip(announcedBefore).filter(a -> a.stats().layer() == LAYER).findFirst()
+        // 打印机开启时会清空这个列表：里面只有这一段的提示
+        Print.LayerAnnouncement done = announced.stream().filter(a -> a.stats().layer() == LAYER).findFirst()
                 .orElseThrow(() -> new AssertionError("[layerdone] no 'layer done' message for layer " + LAYER));
         if (done.stats().total() != PER_LAYER || done.stats().correct() != PER_LAYER || !done.shown()) {
             throw new AssertionError("[layerdone] the message should count the whole layer (" + PER_LAYER + " correct), got " + done);
@@ -136,7 +136,6 @@ public final class LayerDoneGameTest implements FabricClientGameTest {
             for (BlockPos p : BlockPos.betweenClosed(MIN, MAX)) server.overworld().setBlock(p, Blocks.AIR.defaultBlockState(), 2 | 16);
         });
         teleport(context, sp, MIN.getX() - 1.5);
-        int announcedBefore = context.computeOnClient(c -> ModuleManager.PRINT.getAnnouncements().size());
         context.runOnClient(c -> {
             Configs.Print.LAYER_DONE_SCOPE.setOptionListValue(LayerDoneScope.WORK_RANGE);
             Configs.Print.HIDE_LAYER_MESSAGES.setBooleanValue(true);
@@ -149,7 +148,7 @@ public final class LayerDoneGameTest implements FabricClientGameTest {
             throw new AssertionError("[layerdone] 'within range' should start the next layer as soon as the part in range is done: " + counts[0] + ", " + counts[1]);
         }
         List<Print.LayerAnnouncement> announced = context.computeOnClient(c -> ModuleManager.PRINT.getAnnouncements());
-        Print.LayerAnnouncement done = announced.stream().skip(announcedBefore).filter(a -> a.stats().layer() == LAYER).findFirst()
+        Print.LayerAnnouncement done = announced.stream().filter(a -> a.stats().layer() == LAYER).findFirst()
                 .orElseThrow(() -> new AssertionError("[layerdone] no 'layer done' record for layer " + LAYER + " within range"));
         if (done.stats().total() >= PER_LAYER || done.shown()) {
             throw new AssertionError("[layerdone] 'within range' should count only the part in range and the message should be hidden: " + done);
