@@ -146,9 +146,22 @@ public class Print extends Module {
         }
     }
 
+    /** 最近几次“某层完成”的提示（不管有没有隐藏提示都记；调试 / 测试用） */
+    public record LayerAnnouncement(LayerStats stats, boolean shown, int tick) {
+    }
+
+    private final java.util.Deque<LayerAnnouncement> announcements = new java.util.concurrent.ConcurrentLinkedDeque<>();
+
+    public java.util.List<LayerAnnouncement> getAnnouncements() {
+        return new java.util.ArrayList<>(announcements);
+    }
+
     @Override
     protected void onLayerPassFinished(int layer, boolean layerDone) {
         LayerStats stats = new LayerStats(layer, lsTotal, lsCorrect, lsWrongState, lsWrongBlock, lsMissing, lsSkipped);
+        // 整层判定：提示和 HUD 上的分层统计都按整层（已加载的部分）算
+        LayerScanResult whole = layerScanResult;
+        if (isWholeLayerRule() && whole != null && whole.layer == layer) stats = whole.stats();
         lastLayerStats = stats;
         lsTotal = lsCorrect = lsWrongState = lsWrongBlock = lsMissing = lsSkipped = 0;
         if (!layerDone) {
@@ -159,7 +172,10 @@ public class Print extends Module {
         // 到顶后回到底层复查时，已提示过的层不重复提示
         if (stats.total() > 0 && announcedLayers.add(layer)) {
             layersCompleted++;
-            if (Configs.Print.HIDE_LAYER_MESSAGES.getBooleanValue()) return;
+            boolean hide = Configs.Print.HIDE_LAYER_MESSAGES.getBooleanValue();
+            announcements.addLast(new LayerAnnouncement(stats, !hide, player == null ? 0 : player.tickCount));
+            while (announcements.size() > 64) announcements.pollFirst();
+            if (hide) return;
             if (stats.correct() == stats.total()) {
                 fi.dy.masa.malilib.util.InfoUtils.showInGameMessage(fi.dy.masa.malilib.gui.Message.MessageType.SUCCESS, 4000,
                         I18n.LAYER_DONE_ALL.getWithPrefixNameKey(), layer, stats.total());
@@ -182,6 +198,228 @@ public class Print extends Module {
     @Override
     protected boolean isLayeredMode() {
         return Configs.Print.LAYERED_MODE.getBooleanValue();
+    }
+
+    // ---------------- 整层判定（分层打印：已加载区块里的整层都打完才算这一层完成） ----------------
+    /**
+     * 一次整层扫描的结果：整层的统计，以及当时还没完成的格子（之后只需要复查这些格子）。
+     * 格子的分类和范围内的分层统计一样：对 / 状态错 / 方块错 / 缺失 / 跳过。
+     */
+    private static final class LayerScanResult {
+        static final byte CORRECT = 0, WRONG_STATE = 1, WRONG_BLOCK = 2, MISSING = 3, SKIPPED = 4;
+        final int layer;
+        final int startTick;
+        int endTick;
+        final int[] counts = new int[5];
+        it.unimi.dsi.fastutil.longs.LongArrayList blocking = new it.unimi.dsi.fastutil.longs.LongArrayList();
+        it.unimi.dsi.fastutil.bytes.ByteArrayList blockingKind = new it.unimi.dsi.fastutil.bytes.ByteArrayList();
+        /** 没完成的格子太多、没记全：只知道“还没完成” */
+        boolean overflow;
+
+        LayerScanResult(int layer, int startTick) {
+            this.layer = layer;
+            this.startTick = startTick;
+        }
+
+        int total() {
+            return counts[0] + counts[1] + counts[2] + counts[3] + counts[4];
+        }
+
+        LayerStats stats() {
+            return new LayerStats(layer, total(), counts[CORRECT], counts[WRONG_STATE], counts[WRONG_BLOCK], counts[MISSING], counts[SKIPPED]);
+        }
+
+        @Override
+        public String toString() {
+            return "y=" + layer + " total=" + total() + " correct=" + counts[CORRECT] + " blocking=" + blocking.size() + (overflow ? "+" : "")
+                    + " age=" + startTick + ".." + endTick;
+        }
+    }
+
+    /** 没完成的格子最多记这么多（超过了就只知道“还没完成”，等少了再重新扫） */
+    private static final int LAYER_SCAN_MAX_BLOCKING = 16384;
+    /** 后台每隔这么多 tick 重新扫一遍当前层（新加载的区块、HUD 上的统计） */
+    private static final int LAYER_SCAN_REFRESH_TICKS = 20;
+    /** 每 tick 最多用在整层扫描上的时间 */
+    private static final long LAYER_SCAN_BUDGET_NANOS = 1_500_000L;
+
+    @Nullable
+    private LoadedAreaScan layerScan;
+    @Nullable
+    private LayerScanResult layerScanBuilding;
+    @Nullable
+    private volatile LayerScanResult layerScanResult;
+    /** 这次扫描用的：跳过放置名单里的方块、缺材料的物品（扫描开始时取一次） */
+    private final java.util.Map<Block, Boolean> scanSkipCache = new java.util.HashMap<>();
+    private final java.util.Set<Item> scanMissingItems = new java.util.HashSet<>();
+
+    @Override
+    protected boolean isWholeLayerRule() {
+        return Configs.Print.LAYER_DONE_SCOPE.getOptionListValue() == com.autyism.printer.enums.LayerDoneScope.WHOLE_LAYER;
+    }
+
+    /** 打印机会处理的格子：Litematica 的渲染层，以及“玩家下方 / 上方”的选区类型（和迭代框的裁剪一样） */
+    public boolean inPrintSelection(BlockPos pos) {
+        if (!LitematicaUtils.isPositionWithinRange(pos)) return false;
+        Object selection = Configs.Print.PRINT_SELECTION_TYPE.getOptionListValue();
+        var player = net.minecraft.client.Minecraft.getInstance().player;
+        if (player != null && selection == com.autyism.printer.enums.SelectionType.LITEMATICA_SELECTION_BELOW_PLAYER) {
+            return pos.getY() <= (int) Math.floor(player.getY());
+        }
+        if (player != null && selection == com.autyism.printer.enums.SelectionType.LITEMATICA_SELECTION_ABOVE_PLAYER) {
+            return pos.getY() >= (int) Math.ceil(player.getY());
+        }
+        return true;
+    }
+
+    @Override
+    protected void preprocess() {
+        // 整层判定：后台定期扫一遍当前层（判断这一层有没有整层打完，HUD 上的分层统计也用它）
+        Integer layer = getCurrentLayer();
+        if (layer == null || !isWholeLayerRule()) {
+            layerScan = null;
+            layerScanBuilding = null;
+            layerScanResult = null;
+            return;
+        }
+        advanceLayerScan(layer);
+    }
+
+    @Override
+    protected boolean restOfLayerDone(int layer) {
+        if (SchematicWorldHandler.getSchematicWorld() == null || level == null) return true;
+        // 没有扫描结果就当场开始扫（小的层当场就扫完）；扫完之前不算完成
+        advanceLayerScan(layer);
+        LayerScanResult result = layerScanResult;
+        if (result == null || result.layer != layer || result.overflow) return false;
+        recheckLayerResult(result);
+        return result.blocking.isEmpty();
+    }
+
+    private void advanceLayerScan(int layer) {
+        WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
+        if (schematic == null || level == null || player == null) return;
+        int now = player.tickCount;
+        LayerScanResult result = layerScanResult;
+        if (result != null && result.layer != layer) layerScanResult = result = null;
+        if (layerScan != null && (layerScanBuilding == null || layerScanBuilding.layer != layer)) {
+            layerScan = null;
+            layerScanBuilding = null;
+        }
+        if (layerScan == null && (result == null || now - result.endTick >= LAYER_SCAN_REFRESH_TICKS || now < result.endTick)) {
+            layerScan = new LoadedAreaScan(level, schematic, LitematicaUtils.getSchematicWorkBoxes(), layer);
+            layerScanBuilding = new LayerScanResult(layer, now);
+            scanSkipCache.clear();
+            scanMissingItems.clear();
+            for (MissingMaterialTracker.Entry e : MissingMaterialTracker.getInstance().getMissing()) scanMissingItems.add(e.item);
+        }
+        if (layerScan != null && layerScan.run(System.nanoTime() + LAYER_SCAN_BUDGET_NANOS, this::visitLayerPosition)) {
+            layerScanBuilding.endTick = now;
+            layerScanResult = layerScanBuilding;
+            layerScan = null;
+            layerScanBuilding = null;
+        }
+    }
+
+    private void visitLayerPosition(BlockPos pos, BlockState required, BlockState current) {
+        if (!inPrintSelection(pos)) return;
+        LayerScanResult result = layerScanBuilding;
+        BlockMatchingType type = layerMatching(pos, required, current);
+        byte kind = layerKind(type, pos);
+        result.counts[kind]++;
+        if (kind == LayerScanResult.CORRECT || kind == LayerScanResult.SKIPPED || isLayerSkipped(pos)) return;
+        if (!blocksLayer(pos, required, current, type)) return;
+        if (result.blocking.size() >= LAYER_SCAN_MAX_BLOCKING) {
+            result.overflow = true;
+            return;
+        }
+        result.blocking.add(pos.asLong());
+        result.blockingKind.add(kind);
+    }
+
+    /** 复查上次扫描时还没完成的格子：完成了的从列表里去掉，统计跟着改 */
+    private void recheckLayerResult(LayerScanResult result) {
+        WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
+        if (schematic == null || result.blocking.isEmpty()) return;
+        var keep = new it.unimi.dsi.fastutil.longs.LongArrayList();
+        var keepKind = new it.unimi.dsi.fastutil.bytes.ByteArrayList();
+        for (int i = 0; i < result.blocking.size(); i++) {
+            BlockPos pos = BlockPos.of(result.blocking.getLong(i));
+            BlockState required = schematic.getBlockState(pos);
+            BlockState current = level.getBlockState(pos);
+            BlockMatchingType type = layerMatching(pos, required, current);
+            byte kind = required.isAir() ? LayerScanResult.CORRECT : layerKind(type, pos);
+            result.counts[result.blockingKind.getByte(i)]--;
+            result.counts[kind]++;
+            if (kind == LayerScanResult.CORRECT || kind == LayerScanResult.SKIPPED || isLayerSkipped(pos)) continue;
+            if (!blocksLayer(pos, required, current, type)) continue;
+            keep.add(pos.asLong());
+            keepKind.add(kind);
+        }
+        result.blocking = keep;
+        result.blockingKind = keepKind;
+    }
+
+    private BlockMatchingType layerMatching(BlockPos pos, BlockState required, BlockState current) {
+        BlockMatchingType type = BlockMatchingType.get(required, current);
+        // 投影里这一侧开着、保持不含水的含水方块算对（和范围内的统计一样）
+        if (type == BlockMatchingType.ERROR_BLOCK_STATE
+                && WaterlogPlacer.acceptsDry(level, SchematicWorldHandler.getSchematicWorld(), player, pos, required, current)) {
+            return BlockMatchingType.CORRECT;
+        }
+        return type;
+    }
+
+    private byte layerKind(BlockMatchingType type, BlockPos pos) {
+        return switch (type) {
+            case CORRECT -> LayerScanResult.CORRECT;
+            case ERROR_BLOCK_STATE -> LayerScanResult.WRONG_STATE;
+            case ERROR_BLOCK -> LayerScanResult.WRONG_BLOCK;
+            default -> isLayerSkipped(pos) ? LayerScanResult.SKIPPED : LayerScanResult.MISSING;
+        };
+    }
+
+    /**
+     * 这一格（没打好、也没被放弃）会不会让这一层还不算完成。
+     * 打印机在范围内看过这一格的，用它当时的结论（例如门在等旁边的方块、缺材料以外的原因放不了，就不算）；
+     * 没看过的（范围外）只看方块本身：缺的方块能放、或者状态能在原地点对，就还没完成。不会有任何副作用（不发包、不排挖掘）。
+     */
+    private boolean blocksLayer(BlockPos pos, BlockState required, BlockState current, BlockMatchingType type) {
+        Boolean verdict = layerVerdict(pos);
+        if (verdict != null && (!verdict || coveredByScan(pos))) return verdict;
+        return switch (type) {
+            case MISSING_BLOCK -> looksPlaceable(pos, required);
+            case ERROR_BLOCK_STATE, ERROR_BLOCK -> AdjustFirst.canAdjustInPlace(required, current);
+            default -> false;
+        };
+    }
+
+    /** 范围外缺的方块打印机走近以后能不能放（只看方块本身；和 PlacementGuide 里直接放弃的情况一致） */
+    private boolean looksPlaceable(BlockPos pos, BlockState required) {
+        Block block = required.getBlock();
+        if (Configs.Print.PRINT_SKIP.getBooleanValue() && scanSkipCache.computeIfAbsent(block, b -> {
+            for (String s : Configs.Print.PRINT_SKIP_LIST.getStrings()) {
+                if (PinYinSearchUtils.matchName(s, required)) return true;
+            }
+            return false;
+        })) return false;
+        if (Configs.Print.SKIP_WATERLOGGED_BLOCK.getBooleanValue() && (BlockUtils.needsWater(required) || BlockUtils.isLiveCoral(required))) return false;
+        if (block instanceof LiquidBlock) return Configs.Print.PRINT_FLUIDS_WITH_BUCKET.getBooleanValue() && required.getFluidState().isSource();
+        if (block instanceof BubbleColumnBlock || block instanceof WaterlilyBlock || block instanceof BaseFireBlock || block instanceof NetherPortalBlock
+                || block instanceof net.minecraft.world.level.block.piston.PistonHeadBlock || block instanceof net.minecraft.world.level.block.piston.MovingPistonBlock) {
+            return false;
+        }
+        // 两格高的方块上半部分、床头：跟着另一半一起出现
+        if ((block instanceof DoublePlantBlock || block instanceof DoorBlock)
+                && required.getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.DOUBLE_BLOCK_HALF)
+                == net.minecraft.world.level.block.state.properties.DoubleBlockHalf.UPPER) {
+            return false;
+        }
+        if (block instanceof BedBlock && required.getValue(BedBlock.PART) == net.minecraft.world.level.block.state.properties.BedPart.HEAD) return false;
+        if (!required.canSurvive(level, pos)) return false;
+        // 打印机已经发现缺这种材料：走过去也放不了，不让它卡住这一层（缺材料的提示里会列出来）
+        Item item = block.asItem();
+        return item == net.minecraft.world.item.Items.AIR || !scanMissingItems.contains(item);
     }
 
     @Override
@@ -347,6 +585,7 @@ public class Print extends Module {
     @Override
     protected void executeIteration(BlockPos blockPos, AtomicReference<Boolean> skipIteration) {
         placingIceForWater = false;
+        lastOutcome = Outcome.NOT_POSSIBLE;
         if (fluidPlan != null && fluidPlan.target().equals(blockPos)) {
             executeFluid(blockPos, skipIteration);
             return;
@@ -380,6 +619,7 @@ public class Print extends Module {
                     watingForWaterTicks++;
                     enterWaiting(blockPos);
                     skipIteration.set(true);
+                    lastOutcome = Outcome.WAITING;
                     return;
                 }
                 case WAIT_TIMEOUT -> {
@@ -396,6 +636,7 @@ public class Print extends Module {
                     watingForWaterTicks = 0;
                     enterWaiting(blockPos);
                     skipIteration.set(true);
+                    lastOutcome = Outcome.WAITING;
                     return;
                 }
                 case PLACE_ICE -> {
@@ -436,6 +677,7 @@ public class Print extends Module {
         if (RemoteContainerUtils.hasPendingExchange()) {
             enterWaiting(blockPos);
             skipIteration.set(true);
+            lastOutcome = Outcome.WAITING;
             return;
         }
         Direction side = action.getValidSide(level, blockPos);
@@ -473,12 +715,14 @@ public class Print extends Module {
                 if (switchWaitCount <= MAX_SWITCH_WAIT_TICKS || QuickShulkerUtils.isBusy()) {
                     enterWaiting(blockPos);
                     skipIteration.set(true);
+                    lastOutcome = Outcome.WAITING;
                     return;
                 }
                 switchWaitPos = null;
                 switchWaitCount = 0;
                 setCooldown(blockPos, ConfigUtils.getPlaceCooldown());
                 addHighlight(blockPos, HighlightType.FAILED);
+                lastOutcome = Outcome.SWITCH_TIMEOUT;
                 return;
             }
             setCooldown(blockPos, ConfigUtils.getPlaceCooldown());
@@ -504,7 +748,10 @@ public class Print extends Module {
         } else {
             useShift = action.getShift();
         }
+        // 放下去用的物品（拿来判断这一格之后还要不要接着调整，例如先放没去皮的原木再去皮）
+        Item usedItem = player.getMainHandItem().getItem();
         action.queueAction(blockPos, side, useShift, player);
+        lastOutcome = Outcome.QUEUED;
         notePlacementAttempt(blockPos);
         if (reqItems != null && reqItems.length > 0 && reqItems[0] != null) InventoryUtils.markRecentlyUsed(reqItems[0]);
         // 放冰完成：入队挖掘并进入等待水生成
@@ -542,6 +789,153 @@ public class Print extends Module {
             addHighlight(blockPos, HighlightType.PLACE);
         else
             addHighlight(blockPos, HighlightType.ADJUST);
+        // 先调整完再放下一个：这一格接下来还要在原地点几下 / 再放几次（单人游戏里的 V3 协议已经直接按投影的状态放了）
+        boolean protocolSetsState = hitModifier != null && mc.hasSingleplayerServer()
+                && fi.dy.masa.litematica.util.PlacementHandler.getEffectiveProtocolVersion() == fi.dy.masa.litematica.util.EasyPlaceProtocol.V3;
+        considerAdjustFocus(blockPos, usedItem, protocolSetsState);
+    }
+
+    // ---------------- 先调整完再放下一个 ----------------
+    /** executeIteration 最后的结果 */
+    private enum Outcome {
+        /** 动作发出去了 */
+        QUEUED,
+        /** 在等换物品 / 容器交换，下一 tick 接着做这一格 */
+        WAITING,
+        /** 换物品一直没生效，这一格冷却后再试 */
+        SWITCH_TIMEOUT,
+        /** 现在做不了（缺材料、没有能点的面……） */
+        NOT_POSSIBLE
+    }
+
+    private Outcome lastOutcome = Outcome.NOT_POSSIBLE;
+    /** 正在调整的格子：调整完之前不放别的方块 */
+    @Nullable
+    private BlockPos adjustPos;
+    /** 上一个动作发出之前这一格的状态（服务端回应后对比，看这个动作有没有起作用） */
+    @Nullable
+    private BlockState adjustStateBefore;
+    private boolean adjustActionSent;
+    /** 连续几个动作被服务端确认了、这一格却没变 */
+    private int adjustNoEffect;
+    private int adjustLastProgressTick;
+    /** 放弃过的格子和当时的状态：状态没变之前不再停下来等它（按旧的顺序处理） */
+    private final it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap<BlockState> adjustGaveUp = new it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap<>();
+    private static final int ADJUST_MAX_NO_EFFECT = 3;
+    private static final int ADJUST_MAX_IDLE_TICKS = 200;
+
+    /** 调试 / 测试用：正在调整的格子 */
+    @Nullable
+    public BlockPos getAdjustPos() {
+        return adjustPos;
+    }
+
+    /** 刚对 pos 发出了动作：如果这一格还要在原地接着调整，就停在这一格，调整完再放下一个方块 */
+    private void considerAdjustFocus(BlockPos pos, Item usedItem, boolean protocolSetsState) {
+        if (!Configs.Print.ADJUST_FIRST.getBooleanValue() || ctx == null || action == null) return;
+        boolean adjusting = switch (BlockMatchingType.get(ctx.requiredState, ctx.currentState)) {
+            // 方块对了、状态不对：这个动作就是在调整（点一下、再放一个）
+            case ERROR_BLOCK_STATE -> true;
+            // 方块不对但能在原地转换（泥土锄成耕地、空花盆放花、原木去皮）
+            case ERROR_BLOCK -> action instanceof ClickAction;
+            // 刚放下：放好以后还要调整的方块（中继器延迟、音符盒音高、双层台阶、几根蜡烛……）
+            case MISSING_BLOCK -> AdjustFirst.expectsFollowUp(ctx.requiredState, usedItem, protocolSetsState);
+            default -> false;
+        };
+        if (!adjusting) return;
+        long key = pos.asLong();
+        BlockState gaveUpAt = adjustGaveUp.get(key);
+        if (gaveUpAt != null) {
+            if (gaveUpAt == ctx.currentState) return;
+            adjustGaveUp.remove(key);
+        }
+        if (!pos.equals(adjustPos)) {
+            adjustPos = pos.immutable();
+            adjustNoEffect = 0;
+            adjustLastProgressTick = player.tickCount;
+        }
+        adjustStateBefore = ctx.currentState;
+        adjustActionSent = true;
+    }
+
+    @Override
+    protected boolean adjustFocusActive() {
+        return adjustPos != null;
+    }
+
+    /**
+     * 正在调整一个方块时，每 tick 先处理它：上一个动作服务端还没回应就等（不放别的方块）；
+     * 回应了、还没调好就接着点；调好了、或者现在没法在原地调整了就交回正常的扫描顺序。
+     */
+    @Override
+    protected boolean holdForAdjust(AtomicReference<Boolean> skipIteration) {
+        BlockPos pos = adjustPos;
+        if (pos == null) return false;
+        WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
+        if (!Configs.Print.ADJUST_FIRST.getBooleanValue() || schematic == null || level == null || player == null) {
+            clearAdjust();
+            return false;
+        }
+        // 不在投影里、不在选中的渲染层、够不着了：交回正常顺序
+        if (!LitematicaUtils.isSchematicBlock(pos) || !LitematicaUtils.isPositionWithinRange(pos) || !PlayerUtils.canInteracted(pos)) {
+            clearAdjust();
+            return false;
+        }
+        // 上一个动作服务端还没回应：客户端看到的不一定是结果，等着
+        if (isAwaitingServer(pos)) return true;
+        int now = player.tickCount;
+        BlockState current = level.getBlockState(pos);
+        if (adjustActionSent) {
+            adjustActionSent = false;
+            if (current == adjustStateBefore) {
+                adjustNoEffect++;
+            } else {
+                adjustNoEffect = 0;
+                adjustLastProgressTick = now;
+            }
+        }
+        if (isCorrectBlock(pos)) {
+            clearAdjust();
+            return false;
+        }
+        // 服务端一直不接受（点了没反应）：放弃这一格，按旧的顺序以后再处理
+        if (adjustNoEffect >= ADJUST_MAX_NO_EFFECT || now - adjustLastProgressTick > ADJUST_MAX_IDLE_TICKS || now < adjustLastProgressTick) {
+            if (adjustGaveUp.size() > 4096) adjustGaveUp.clear();
+            adjustGaveUp.put(pos.asLong(), current);
+            clearAdjust();
+            return false;
+        }
+        // 换物品一直没生效：等这一格的冷却过了再试
+        if (lastOutcome == Outcome.SWITCH_TIMEOUT && isOnCooldown(pos)) return true;
+        BlockMatchingType type = BlockMatchingType.get(schematic.getBlockState(pos), current);
+        // 方块不见了（服务端没让放）或者成了别的方块：交回正常顺序
+        if (type != BlockMatchingType.ERROR_BLOCK_STATE && type != BlockMatchingType.ERROR_BLOCK) {
+            clearAdjust();
+            return false;
+        }
+        // 没有能在原地做的了（例如只剩红石运行时的属性不同）、要用桶倒水（含水方块有自己的规则）、要拆掉重放：交回正常顺序
+        if (!canProcessPos(pos) || fluidPlan != null || (type == BlockMatchingType.ERROR_BLOCK && !(action instanceof ClickAction))) {
+            clearAdjust();
+            return false;
+        }
+        executeIteration(pos, skipIteration);
+        if (lastOutcome == Outcome.QUEUED || lastOutcome == Outcome.WAITING || lastOutcome == Outcome.SWITCH_TIMEOUT) return true;
+        // 缺材料、没有能点的面……：先接着放别的，这一格以后照旧处理
+        clearAdjust();
+        return false;
+    }
+
+    private void clearAdjust() {
+        adjustPos = null;
+        adjustStateBefore = null;
+        adjustActionSent = false;
+        adjustNoEffect = 0;
+    }
+
+    @Override
+    protected String debugExtra() {
+        return " adjust=" + (adjustPos == null ? null : adjustPos.toShortString()) + " noEffect=" + adjustNoEffect
+                + " layerScan=" + layerScanResult + (layerScan != null ? " (scanning)" : "");
     }
 
     @Override
@@ -553,6 +947,11 @@ public class Print extends Module {
         placingIceForWater = false;
         switchWaitPos = null;
         switchWaitCount = 0;
+        clearAdjust();
+        adjustGaveUp.clear();
+        layerScan = null;
+        layerScanBuilding = null;
+        layerScanResult = null;
     }
 
     private void ensureIceBreakQueued(BlockPos pos) {

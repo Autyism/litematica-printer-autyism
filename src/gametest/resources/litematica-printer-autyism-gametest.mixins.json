@@ -21,7 +21,8 @@
     "ServerContainerClickDebugMixin",
     "PistonMoveDebugMixin",
     "ServerItemMismatchMixin",
-    "ServerPlayerTickDebugMixin"
+    "ServerPlayerTickDebugMixin",
+    "ServerBlockLogMixin"
   ],
   "injectors": {
     "defaultRequire": 1

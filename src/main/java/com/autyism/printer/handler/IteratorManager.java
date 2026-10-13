@@ -435,6 +435,24 @@ public class IteratorManager {
         return regions;
     }
 
+    /** 这一格会不会被现在的迭代扫到：在迭代框（和区域）里，并且按实时的眼睛位置在工作范围的形状内（和 next() 的判断一样） */
+    public boolean covers(BlockPos pos) {
+        if (box == null || emptyBox || !box.contains(pos)) return false;
+        if (regions != null) {
+            boolean inRegion = false;
+            for (PrinterBox region : regions) {
+                if (region.contains(pos)) {
+                    inRegion = true;
+                    break;
+                }
+            }
+            if (!inRegion) return false;
+        }
+        Vec3 liveEyePos = PrinterBox.client.player != null ? PrinterBox.client.player.getEyePosition() : eyePos;
+        if (shapeType != null) return PlayerUtils.canInteracted(pos, liveEyePos, effectiveRange, shapeType);
+        return PlayerUtils.canInteracted(pos);
+    }
+
     public void reset() {
         cachedIterator = null;
         dirtyIterator = true;

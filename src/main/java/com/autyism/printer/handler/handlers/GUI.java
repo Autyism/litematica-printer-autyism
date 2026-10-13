@@ -24,8 +24,10 @@ public class GUI extends Module {
 
     @Getter
     private final Progress totalProgress = new Progress(Configs.Print.ENABLED);
-    @Getter
+    /** 打印：工作范围内的进度 */
     private final Progress printProgress = new Progress(Configs.Print.ENABLED);
+    /** 打印：整个投影（已加载的区块）的进度 */
+    private final Progress loadedPrintProgress = new Progress(Configs.Print.ENABLED);
     @Getter
     private final Progress fluidProgress = new Progress(Configs.Fluid.ENABLED);
     @Getter
@@ -57,9 +59,43 @@ public class GUI extends Module {
     }
 
     /** 打印模式下错误统计（最近一次完整扫描的结果） */
-    @Getter
     private long wrongState, wrongBlock;
     private long scanWrongState, scanWrongBlock;
+
+    // ---------------- 整个投影的进度（已加载的区块） ----------------
+    @org.jetbrains.annotations.Nullable
+    private com.autyism.printer.printer.LoadedAreaScan loadedScan;
+    private long loadedWrongState, loadedWrongBlock;
+    private long loadedScanWrongState, loadedScanWrongBlock;
+    private static final long LOADED_SCAN_BUDGET_NANOS = SCAN_BUDGET_MS * 1_000_000L;
+
+    /** 进度条统计整个投影（已加载的区块），而不是只算工作范围内 */
+    public static boolean countsLoadedArea() {
+        return Configs.Core.PROGRESS_SCOPE.getOptionListValue() == com.autyism.printer.enums.ProgressScope.LOADED_AREA;
+    }
+
+    /** HUD 上显示的打印进度（按“进度条统计范围”的设置） */
+    public Progress getPrintProgress() {
+        return countsLoadedArea() ? loadedPrintProgress : printProgress;
+    }
+
+    /** 工作范围内的打印进度 */
+    public Progress getRangePrintProgress() {
+        return printProgress;
+    }
+
+    /** 整个投影（已加载的区块）的打印进度 */
+    public Progress getLoadedPrintProgress() {
+        return loadedPrintProgress;
+    }
+
+    public long getWrongState() {
+        return countsLoadedArea() && Configs.Print.ENABLED.getBooleanValue() ? loadedWrongState : wrongState;
+    }
+
+    public long getWrongBlock() {
+        return countsLoadedArea() && Configs.Print.ENABLED.getBooleanValue() ? loadedWrongBlock : wrongBlock;
+    }
 
     @Override
     protected boolean canExecute() {
@@ -85,6 +121,15 @@ public class GUI extends Module {
             resetScanState();
         }
 
+        boolean loaded = Configs.Print.ENABLED.getBooleanValue() && countsLoadedArea();
+        if (loaded) {
+            scanLoadedArea();
+            // 只开着打印时，工作范围内的统计用不上
+            if (!Configs.Fluid.ENABLED.getBooleanValue() && !Configs.Fill.ENABLED.getBooleanValue() && !Configs.Mine.ENABLED.getBooleanValue()) return;
+        } else {
+            loadedScan = null;
+        }
+
         if (!scanning) {
             startScan();
         }
@@ -107,6 +152,9 @@ public class GUI extends Module {
         super.resetScanState();
         scanning = false;
         wrongState = wrongBlock = 0;
+        loadedScan = null;
+        loadedWrongState = loadedWrongBlock = 0;
+        loadedPrintProgress.clearShown();
         totalProgress.clearShown();
         printProgress.clearShown();
         fluidProgress.clearShown();
@@ -134,6 +182,40 @@ public class GUI extends Module {
         fillProgress.calculateProgress();
         mineProgress.calculateProgress();
         totalProgress.calculateProgress();
+    }
+
+    /**
+     * 整个投影的进度：所有启用的投影放置里、已加载的区块中打印机会处理的方块（Litematica 的渲染层、玩家下方 / 上方的选区类型照样算），
+     * 分几个 tick 扫完一遍才更新显示。没加载的区块看不到，不算。
+     */
+    private void scanLoadedArea() {
+        WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
+        if (schematic == null) return;
+        if (loadedScan == null) {
+            loadedScan = new com.autyism.printer.printer.LoadedAreaScan(level, schematic, com.autyism.printer.utils.LitematicaUtils.getSchematicWorkBoxes(), null);
+            loadedPrintProgress.resetCounters();
+            loadedScanWrongState = loadedScanWrongBlock = 0;
+        }
+        if (loadedScan.run(System.nanoTime() + LOADED_SCAN_BUDGET_NANOS, this::countLoadedPosition)) {
+            loadedPrintProgress.calculateProgress();
+            loadedWrongState = loadedScanWrongState;
+            loadedWrongBlock = loadedScanWrongBlock;
+            loadedScan = null;
+        }
+    }
+
+    private void countLoadedPosition(BlockPos pos, net.minecraft.world.level.block.state.BlockState required, net.minecraft.world.level.block.state.BlockState current) {
+        if (!ModuleManager.PRINT.inPrintSelection(pos)) return;
+        BlockMatchingType type = BlockMatchingType.get(required, current);
+        // 投影里这一侧开着、保持不含水的含水方块算完成
+        if (type == BlockMatchingType.ERROR_BLOCK_STATE && com.autyism.printer.printer.WaterlogPlacer.acceptsDry(level,
+                SchematicWorldHandler.getSchematicWorld(), mc.player, pos, required, current)) {
+            type = BlockMatchingType.CORRECT;
+        }
+        if (type == BlockMatchingType.CORRECT) loadedPrintProgress.finished++;
+        else if (type == BlockMatchingType.ERROR_BLOCK_STATE) loadedScanWrongState++;
+        else if (type == BlockMatchingType.ERROR_BLOCK) loadedScanWrongBlock++;
+        loadedPrintProgress.total++;
     }
 
     private void countPosition(BlockPos blockPos) {

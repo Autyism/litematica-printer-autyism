@@ -150,6 +150,11 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 .defaultValue(false)
                 .build();
 
+        // 打印时进度条统计什么：整个投影（已加载的区块）或者只算工作范围内
+        public static final ConfigOptionList PROGRESS_SCOPE = optionList("printProgressScope")
+                .defaultValue(ProgressScope.LOADED_AREA)
+                .build();
+
         // 显示缺失材料HUD
         public static final ConfigBoolean MISSING_MATERIAL_HUD = booleanValue("missingMaterialHud")
                 .defaultValue(true)
@@ -173,6 +178,7 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 ITERATION_TIME_LIMIT,
                 CLASSIFY_BY_BLOCK,
                 RENDER_HUD,
+                PROGRESS_SCOPE,
                 MISSING_MATERIAL_HUD,
                 LAG_CHECK,
                 LAG_CHECK_MAX,
@@ -322,9 +328,19 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 .defaultValue(true)
                 .build();
 
+        // 分层打印：一层什么时候算完成（整层 = 已加载区块里的整层都打完；范围内 = 工作范围内的部分打完）
+        public static final ConfigOptionList LAYER_DONE_SCOPE = optionList("printLayerDoneScope")
+                .defaultValue(LayerDoneScope.WHOLE_LAYER)
+                .build();
+
         // 不显示每完成一层的提示消息
         public static final ConfigBoolean HIDE_LAYER_MESSAGES = booleanValue("printHideLayerMessages")
                 .defaultValue(false)
+                .build();
+
+        // 先调整完再放下一个：放下的方块还要点几下才对（中继器延迟、音符盒音高……）时，先调整好（每点一下都等服务器确认）再放下一个
+        public static final ConfigBoolean ADJUST_FIRST = booleanValue("printAdjustFirst")
+                .defaultValue(true)
                 .build();
 
         // 启用打印
@@ -499,7 +515,9 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
         public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
                 ENABLED,
                 LAYERED_MODE,
+                LAYER_DONE_SCOPE,
                 HIDE_LAYER_MESSAGES,
+                ADJUST_FIRST,
                 PRINT_SELECTION_TYPE,
                 EASY_PLACE_PROTOCOL,
                 PLACE_IN_AIR,

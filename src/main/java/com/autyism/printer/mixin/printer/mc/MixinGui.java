@@ -290,8 +290,10 @@ public abstract class MixinGui {
 
         GUI.Progress shown = Configs.Print.ENABLED.getBooleanValue() ? guiHandler.getPrintProgress() : guiHandler.getTotalProgress();
         double progress = shown.getProgress();
+        // 打印进度：按设置统计整个投影（已加载的区块）或者只算工作范围内
+        com.autyism.printer.I18n progressKey = GUI.countsLoadedArea() ? com.autyism.printer.I18n.HUD_PRINT_PROGRESS_LOADED : com.autyism.printer.I18n.HUD_PRINT_PROGRESS;
         String progressText = Configs.Print.ENABLED.getBooleanValue()
-                ? com.autyism.printer.I18n.HUD_PRINT_PROGRESS.getName((int) Math.floor(progress * 100), shown.getShownFinished(), shown.getShownTotal()).getString()
+                ? progressKey.getName((int) Math.floor(progress * 100), shown.getShownFinished(), shown.getShownTotal()).getString()
                 : (int) Math.floor(progress * 100) + "%";
         RenderUtils.drawString(progressText, centerX, centerY + 22, Color.WHITE, true, true);
         drawProgressBar(centerX, centerY + 36, 80, 6, progress, new Color(0, 0, 0, 150), new Color(0, 255, 0, 255));

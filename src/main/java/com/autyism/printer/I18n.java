@@ -37,6 +37,7 @@ public class I18n {
     public static final I18n LAYER_DONE_ALL = of("layer.done_all");
     public static final I18n LAYER_DONE_ISSUES = of("layer.done_issues");
     public static final I18n HUD_PRINT_PROGRESS = of("hud.print_progress");
+    public static final I18n HUD_PRINT_PROGRESS_LOADED = of("hud.print_progress_loaded");
     public static final I18n HUD_PRINT_ERRORS = of("hud.print_errors");
     public static final I18n HUD_LAYER = of("hud.layer");
 

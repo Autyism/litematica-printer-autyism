@@ -184,6 +184,13 @@ public abstract class Module extends ConfigUtils {
                 if (skipIteration.get() || ActionManager.INSTANCE.needWaitModifyLook) return;
             }
 
+            // 先调整完再放下一个：正在把一个方块点到投影里的状态时，这一 tick 不去碰别的格子
+            if (holdForAdjust(skipIteration)) {
+                layerIdleTicks = 0;
+                return;
+            }
+
+            boolean wholeLayer = layerY != null && isWholeLayerRule();
             while (true) {
                 if (timeLimitExceeded.get()) return;
                 if (skipIteration.get() || ActionManager.INSTANCE.needWaitModifyLook) return;
@@ -200,22 +207,39 @@ public abstract class Module extends ConfigUtils {
                 boolean executed = false;
                 boolean work = needsWork(pos);
                 if (layerY != null && pos.getY() == layerY) onLayerPassPosition(pos);
-                if (layerY != null && !layerPending) {
+                // 整层判定要知道范围内每一格的结论，所以每一格都要判断；只看范围内时找到一格没完成就够了
+                if (layerY != null && (!layerPending || wholeLayer)) {
                     // 分层模式：本层还有没完成的方块（包括刚尝试过、处于冷却中的）就不能进入上一层。
                     // 例外：被实体挡住（例如玩家自己站在那格）或反复尝试仍放不上的格子，不能卡住整层
                     boolean unfinished = work || (isOnCooldown(pos) && LitematicaUtils.isPositionWithinRange(pos) && !isCorrectBlock(pos)
                             && canProcessPos(pos))
                             // 放过、还在等服务端回应的格子也没完成（回应之后要么已经对了，要么被拒绝了再放）
                             || (isAwaitingServer(pos) && LitematicaUtils.isPositionWithinRange(pos) && !isCorrectBlock(pos));
-                    layerPending = unfinished && layerAttempts.getOrDefault(pos.asLong(), 0) < LAYER_MAX_ATTEMPTS
+                    boolean pendingHere = unfinished && layerAttempts.getOrDefault(pos.asLong(), 0) < LAYER_MAX_ATTEMPTS
                             && !isObstructedForLayer(pos) && !layerDeferred.contains(pos.asLong());
-                    if (layerPending) lastPendingPos = pos.immutable();
+                    if (wholeLayer && pos.getY() == layerY) {
+                        long key = pos.asLong();
+                        if (pendingHere) {
+                            layerVerdicts.put(key, true);
+                            if (passPending.size() < MAX_PASS_PENDING) passPending.add(key);
+                        } else if (isCorrectBlock(pos)) {
+                            layerVerdicts.remove(key);
+                        } else {
+                            layerVerdicts.put(key, false);
+                        }
+                    }
+                    if (pendingHere && !layerPending) {
+                        layerPending = true;
+                        lastPendingPos = pos.immutable();
+                    }
                 }
                 if (work) {
                     // 按方块分类：一轮扫描仅处理一种方块类型（可选开关）
                     if (!Configs.Core.CLASSIFY_BY_BLOCK.getBooleanValue() || isCycleItemMatch(pos)) {
                         executeIteration(pos, skipIteration);
                         executed = true;
+                        // 刚放下（或点了）一个还要调整的方块：先把它调整完，这一 tick 不再放别的
+                        if (adjustFocusActive()) return;
                         if (maxExecs > 0 && ++execCount >= maxExecs) return;
                     }
                 }
@@ -273,6 +297,53 @@ public abstract class Module extends ConfigUtils {
         if (layerY != null) layerDeferred.add(pos.asLong());
     }
 
+    // ---------------- 整层判定（一层要在已加载的区块里整层打完才算完成） ----------------
+    /**
+     * 主循环看过的本层格子当时的结论：true = 还没完成、打印机要处理；false = 没打好但现在没什么能做的
+     * （例如门要等旁边的方块、缺材料以外的原因放不了）。打好了的格子不记。换层时清空。
+     * 整层判定扫到工作范围外的格子时，用打印机自己在范围内时得出的结论，而不是只看方块。
+     */
+    private final it.unimi.dsi.fastutil.longs.Long2BooleanOpenHashMap layerVerdicts = new it.unimi.dsi.fastutil.longs.Long2BooleanOpenHashMap();
+    /** 这一轮扫描里范围内还没完成的格子（整层判定时看门狗用） */
+    private final it.unimi.dsi.fastutil.longs.LongArrayList passPending = new it.unimi.dsi.fastutil.longs.LongArrayList();
+    private static final int MAX_PASS_PENDING = 65536;
+
+    /** 一层要整层打完（已加载的部分）才算完成；false = 工作范围内的部分打完就算 */
+    protected boolean isWholeLayerRule() {
+        return false;
+    }
+
+    /**
+     * 整层判定：工作范围内这一轮已经没有没完成的格子了，本层其余部分（已加载的区块）是不是也都完成了。
+     * 子类实现；默认没有范围外的部分。
+     */
+    protected boolean restOfLayerDone(int layer) {
+        return true;
+    }
+
+    /** 见 {@link #layerVerdicts}；null = 主循环在这一层还没看过这一格（或者它已经打好了） */
+    @Nullable
+    protected final Boolean layerVerdict(BlockPos pos) {
+        long key = pos.asLong();
+        return layerVerdicts.containsKey(key) ? layerVerdicts.get(key) : null;
+    }
+
+    /** 这一格现在在主循环的扫描范围内（工作范围 ∩ 投影 ∩ 当前层，按实时的眼睛位置） */
+    protected final boolean coveredByScan(BlockPos pos) {
+        return iteratorManager.covers(pos);
+    }
+
+    // ---------------- 先调整完再放下一个（子类实现） ----------------
+    /** 返回 true：正在把一个方块调整到投影里的状态，这一 tick 不去处理别的格子 */
+    protected boolean holdForAdjust(AtomicReference<Boolean> skipIteration) {
+        return false;
+    }
+
+    /** 刚执行的动作让一个方块进入“先调整完”的状态 */
+    protected boolean adjustFocusActive() {
+        return false;
+    }
+
 
     /** 当前这一轮分层是在多大的可达范围下开始的（范围变大就回到新的最底层） */
     private double layerRange = Double.NaN;
@@ -322,7 +393,12 @@ public abstract class Module extends ConfigUtils {
                 /*+ " reach=" + (player == null || mc.gameMode == null ? null : mc.gameMode.getPickRange()) + " eyeY=" + (player == null ? null : player.getEyeY())
                 *///?} else
                 + " reach=" + (player == null ? null : player.blockInteractionRange()) + " eyeY=" + (player == null ? null : player.getEyeY())
-                + " areaBoxes=" + getWorkAreaBoxes();
+                + " areaBoxes=" + getWorkAreaBoxes() + debugExtra();
+    }
+
+    /** 子类补充的调试信息 */
+    protected String debugExtra() {
+        return "";
     }
 
     private int forcedLayerSkips;
@@ -380,6 +456,8 @@ public abstract class Module extends ConfigUtils {
             layerAttempts.clear();
             layerAttemptRemaining.clear();
             layerDeferred.clear();
+            layerVerdicts.clear();
+            passPending.clear();
 
             layerIdleTicks = 0;
             lastLayerBounds = areaKey;
@@ -442,14 +520,25 @@ public abstract class Module extends ConfigUtils {
         // 注意：曾尝试“投影区块没载入完的层不算完成”，但会让层长时间挂起再被看门狗强制跳层，反而打乱顺序，已撤回
         consumeAreaNotReady();
         if (layerY == null) return;
+        boolean wholeLayer = isWholeLayerRule();
         if (layerPending && layerIdleTicks > LAYER_STALL_TICKS) {
             // 本层剩下的格子一直放不了（缺材料、无处可贴、需要先有别的方块……）：先打上面的层，到顶后会回来复查
-            layerPending = false;
             forcedLayerSkips++;
             lastForcedSkipPos = lastPendingPos;
+            if (wholeLayer) {
+                // 整层判定：范围内这些一直放不了的格子先放弃（这次在这一层时不再等它们），
+                // 本层其余的部分（包括范围外的）还是要打完才往上走
+                for (int i = 0; i < passPending.size(); i++) layerAttempts.put(passPending.getLong(i), LAYER_MAX_ATTEMPTS);
+            }
+            layerPending = false;
         }
-        onLayerPassFinished(layerY, !layerPending);
-        if (!layerPending) {
+        boolean layerDone = !layerPending;
+        // 整层判定：范围内这一轮都完成了，还要本层在已加载区块里的其余部分也都完成
+        if (layerDone && wholeLayer) layerDone = restOfLayerDone(layerY);
+        // 看门狗只数“范围内有没完成的格子、却一直没有放置尝试”的时间：等玩家走到范围外那部分时不算
+        if (!layerPending) layerIdleTicks = 0;
+        onLayerPassFinished(layerY, layerDone);
+        if (layerDone) {
             layerIdleTicks = 0;
             List<PrinterBox> areaBoxes = getWorkAreaBoxes();
             int[] bounds = areaBoxes == null ? null : layerBounds(areaBoxes);
@@ -458,9 +547,11 @@ public abstract class Module extends ConfigUtils {
                 layerAttempts.clear();
                 layerAttemptRemaining.clear();
                 layerDeferred.clear();
+                layerVerdicts.clear();
             }
         }
         layerPending = false;
+        passPending.clear();
     }
 
     /** 可整段跳过的区块段（默认不跳过） */
@@ -551,6 +642,8 @@ public abstract class Module extends ConfigUtils {
         layerAttempts.clear();
         layerAttemptRemaining.clear();
         layerDeferred.clear();
+        layerVerdicts.clear();
+        passPending.clear();
         layerPending = false;
         scanState = ScanState.RUNNING;
         waitingPos = null;

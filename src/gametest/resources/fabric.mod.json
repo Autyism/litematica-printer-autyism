@@ -28,7 +28,10 @@
       "com.autyism.printer.gametest.SwitchesGameTest",
       "com.autyism.printer.gametest.SettingsShotsGameTest",
       "com.autyism.printer.gametest.VisualsGameTest",
-      "com.autyism.printer.gametest.WaterlogGameTest"
+      "com.autyism.printer.gametest.WaterlogGameTest",
+      "com.autyism.printer.gametest.AdjustFirstGameTest",
+      "com.autyism.printer.gametest.ProgressScopeGameTest",
+      "com.autyism.printer.gametest.LayerDoneGameTest"
     ]
   },
   "mixins": [
