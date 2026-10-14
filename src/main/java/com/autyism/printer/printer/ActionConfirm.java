@@ -47,6 +47,7 @@ public final class ActionConfirm {
         if (sequence > lastAcked) lastAcked = sequence;
         PENDING.values().removeIf(e -> e[0] <= lastAcked);
         ITEMS.int2ObjectEntrySet().removeIf(e -> e.getIntKey() <= lastAcked);
+        ServerProtocol.onAck(level, lastAcked);
     }
 
     /** 用这种物品、已经发出但还没被服务端确认的动作数（按序号去重；超时的不算） */

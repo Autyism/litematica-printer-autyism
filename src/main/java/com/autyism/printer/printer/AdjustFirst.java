@@ -22,7 +22,8 @@ import java.util.Map;
  * 拉杆、木门 / 活板门 / 栅栏门开关、蜡烛 / 海泡菜 / 雪层 / 花簇的数量（拿着同样的物品点）、花盆里的花、耕地 / 土径、去皮原木……
  * 以前打印机按扫描顺序往后走：放下这种方块后接着把这一轮剩下的方块都放完，下一轮扫描回到这一格才点一下
  * （刚放下时服务端还没确认、这一格还有冷却，扫到了也要等下一轮），点几下就要几轮 —— 看起来就是“先把方块都放完，再回去一个个调”。
- * 现在打印机停在这一格，每点一下都等服务端确认，调整完再放下一个方块（Print 里的 adjust 相关代码）。
+ * 现在打印机停在这一格，调整完再放下一个方块（Print 里的 adjust 相关代码）。每点一下都等服务端确认；
+ * 音符盒音高、中继器延迟例外：按服务端确认过的状态算出要点几下，每 tick 点一下，点完再等确认、核对（见 cyclicClicks）。
  * <p>
  * 这里只列打印机会在原地点击调整的方块（和 PlacementGuide 里“状态错误 / 方块错误”时点击的分支对应），其他方块不受影响。
  * 在同一格再放一次的（双层台阶的第二块、藤蔓 / 发光地衣多贴一面）不算：它们不影响机器怎么动，双层台阶又很常见，
@@ -78,6 +79,17 @@ public final class AdjustFirst {
             return placed != Blocks.AIR && strippedLogs().get(placed) == b;
         }
         return false;
+    }
+
+    /** 音符盒音高、中继器延迟：从 current 要点几下才到 required（每点一下进一档，到头回到最小）；别的方块返回 0 */
+    public static int cyclicClicks(BlockState required, BlockState current) {
+        Block b = required.getBlock();
+        if (b != current.getBlock()) return 0;
+        if (b instanceof NoteBlock) {
+            return Configs.Print.NOTE_BLOCK_TUNING.getBooleanValue() ? Math.floorMod(required.getValue(NoteBlock.NOTE) - current.getValue(NoteBlock.NOTE), 25) : 0;
+        }
+        if (b instanceof RepeaterBlock) return Math.floorMod(required.getValue(RepeaterBlock.DELAY) - current.getValue(RepeaterBlock.DELAY), 4);
+        return 0;
     }
 
     /**

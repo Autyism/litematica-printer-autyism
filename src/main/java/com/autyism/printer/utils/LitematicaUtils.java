@@ -48,7 +48,8 @@ public class LitematicaUtils {
 
     public static Vec3 usePrecisionPlacement(BlockPos pos, BlockState stateSchematic) {
         if (Configs.Print.EASY_PLACE_PROTOCOL.getBooleanValue()) {
-            EasyPlaceProtocol protocol = PlacementHandler.getEffectiveProtocolVersion();
+            // Litematica 的结论，被服务端拒绝过就不用（见 ServerProtocol）
+            EasyPlaceProtocol protocol = com.autyism.printer.printer.ServerProtocol.effective();
             Vec3 hitPos = Vec3.atLowerCornerOf(pos);
             if (protocol == EasyPlaceProtocol.V3) {
                 //? if >=26.2 {

@@ -2,7 +2,9 @@
 
 ## 1.2.0 — 2026-10-14
 
-- New: **Finish Adjusting First** (on by default). A block that still needs clicks (repeater delay, note pitch, comparator mode, lever, door, candles...) is finished before the next block is placed; each click waits for the server.
+- New: **Finish Adjusting First** (on by default). A block that still needs clicks (repeater delay, note pitch, comparator mode, lever, door, candles...) is finished before the next block is placed; each click waits for the server. Note pitch and repeater delay are faster: the printer works out how many clicks are needed from what the server confirmed, clicks once per tick, then checks the result.
+- Double slabs: the second slab goes in as soon as the server has confirmed the first one, instead of on a later pass (the rest of the build keeps going meanwhile).
+- Easy place protocol: if a server refuses it, the printer goes back to turning the head after a few tries and tells you once. **Tip:** on a server with Servux, turn on Litematica's *Entity Data Sync*. Only then does Litematica recognise Servux and use the protocol, and directional blocks (observers, pistons, dispensers...) go down as fast as plain blocks.
 - New: **Progress Counts** (default *Whole Schematic*). The progress bar counts the whole schematic in loaded chunks; *Within Range* is the old behaviour.
 - New: **Layer Counts as Done** (default *Whole Layer*). Layered printing moves up only when the whole layer in loaded chunks is printed, and the layer messages follow it; *Within Range* is the old behaviour.
 - Lighter on the game: with nothing to do, the printer no longer rescans its range every tick, and the progress bar and the layer check only recount where blocks changed.
@@ -12,7 +14,7 @@ More: open "Details" below.
 <details>
 <summary>Details</summary>
 
-- **Why blocks were adjusted late:** after placing a block the printer scanned on, so the block was only clicked when the next scan came back to it, one click per scan (right after placing it also had to wait for the server and the per-block cooldown). Now it stays on that block: click, wait for the server's answer, click again, then the next block. A block that doesn't change after three confirmed clicks, or needs an item you don't have, is left for later as before. Double slabs (a second slab in the same spot) keep the old order, so big floors don't slow down.
+- **Why blocks were adjusted late:** after placing a block the printer scanned on, so the block was only clicked when the next scan came back to it, one click per scan (right after placing it also had to wait for the server and the per-block cooldown). Now it stays on that block: click, wait for the server's answer, click again, then the next block. A block that doesn't change after three confirmed clicks, or needs an item you don't have, is left for later as before.
 - **Whole layer:** when your range doesn't cover the whole layer, the printer prints what it can reach and waits; walk over to the rest and it carries on. Blocks it couldn't place for a few seconds (for example, missing materials) don't hold the layer. Unloaded chunks can't be checked and don't count.
 - **Whole schematic progress:** every block of all enabled placements in loaded chunks; Litematica's render layers apply.
 - Tested with simulated lag and with NoGhostBlocks: no block was placed while another one was still being adjusted.
@@ -21,7 +23,9 @@ More: open "Details" below.
 
 ### 中文
 
-- 新增 **调整完再放下一个**（默认开）：还要点几下的方块（中继器延迟、音符盒音高、比较器模式、拉杆、门、蜡烛……）先调好再放下一个方块，每点一下都等服务器确认。
+- 新增 **调整完再放下一个**（默认开）：还要点几下的方块（中继器延迟、音符盒音高、比较器模式、拉杆、门、蜡烛……）先调好再放下一个方块，每点一下都等服务器确认。音符盒音高和中继器延迟更快：按服务器确认过的状态算出要点几下，每 tick 点一下，点完再核对。
+- 双层台阶：第一块被服务器确认后马上放第二块，不用等下一轮扫描（等的时候别的方块照常放）。
+- 轻松放置协议：服务器不接受时，试几次就改回转头放置，并提示一次。**提示：** 服务器装了 Servux 的话，打开投影的“实体数据同步”（Entity Data Sync）。只有打开它投影才认得出 Servux、用协议放，有朝向的方块（侦测器、活塞、发射器……）就能和普通方块一样快。
 - 新增 **进度条统计范围**（默认“整个投影”）：进度条统计已加载区块里的整个投影；“工作范围内”是以前的算法。
 - 新增 **分层完成判定**（默认“整层”）：已加载区块里的整层都打完才往上一层，每层完成的提示也按这个；“工作范围内”是以前的做法。
 - 更省性能：没事可做时不再每 tick 重扫工作范围；进度条和分层判定只重算方块有变化的地方。
@@ -31,7 +35,7 @@ More: open "Details" below.
 <details>
 <summary>详细说明</summary>
 
-- **以前为什么调得晚：** 放下方块后打印机接着往后扫，要等下一轮扫回来才点一下，每轮只点一下（刚放下时还要等服务器确认和这一格的冷却）。现在会停在这个方块上：点一下、等服务器回应、再点，调好了才放下一个。点了三次都没变化、或者缺需要的物品的方块，照旧留到以后再处理。双层台阶（同一格再放一块）照旧的顺序，大片地板不会变慢。
+- **以前为什么调得晚：** 放下方块后打印机接着往后扫，要等下一轮扫回来才点一下，每轮只点一下（刚放下时还要等服务器确认和这一格的冷却）。现在会停在这个方块上：点一下、等服务器回应、再点，调好了才放下一个。点了三次都没变化、或者缺需要的物品的方块，照旧留到以后再处理。
 - **整层：** 工作范围盖不住整层时，打印机先打能够到的部分然后等着，你走过去它就接着打。几秒都放不了的方块（例如缺材料）不会卡住这一层。没加载的区块看不到，不算。
 - **整个投影的进度：** 统计所有启用的投影放置在已加载区块里的方块，受 Litematica 渲染层限制。
 - 在模拟卡顿和开着 NoGhostBlocks 的情况下测试过：一个方块还没调好时，不会放别的方块。

@@ -32,6 +32,9 @@ public class ActionManager {
     public Vec3 hitModifier;
     public boolean useShift = false;
     public boolean useProtocol = false;
+    /** 用协议放的方块应该是什么状态（用来核对服务端认不认协议，见 ServerProtocol） */
+    @Nullable
+    public net.minecraft.world.level.block.state.BlockState protocolWanted;
     @Setter
     @Nullable
     public PlayerLook look;
@@ -118,11 +121,18 @@ public class ActionManager {
             clearQueue();
             return this;
         }
+        // 用协议放一个看头部朝向的方块（侦测器、活塞、发射器……水平朝向），而服务端的头还不朝那边：
+        // 放对了只能是服务端按协议放的（原版这时用的是旧的头部朝向），所以这一块能确定服务端认不认协议（见 ServerProtocol）
+        boolean protocolProbe = false;
+        if (useProtocol && protocolWanted != null && look != null && ServerProtocol.headDependent(protocolWanted.getBlock())) {
+            Direction need = BlockUtils.orderedByNearest(look.yaw(), look.pitch())[0];
+            protocolProbe = need.getAxis().isHorizontal() && serverHeadDir != need;
+        }
         if (look != null) {
             PacketUtils.sendLookPacket(player, look);
         }
         if (DEBUG_LOOK) {
-            System.out.println("[printer-look] target=" + target + " side=" + side + " look=" + look + " needWait=" + needWaitModifyLook
+            System.out.println("[printer-look] target=" + target + " protocol=" + useProtocol + " side=" + side + " look=" + look + " needWait=" + needWaitModifyLook
                     + " requiresWait=" + actionRequiresWaitModifyLook + " playerRot=" + player.getYRot() + "/" + player.getXRot()
                     + " clientAt=" + player.level().getBlockState(target) + " clientNext=" + player.level().getBlockState(target.relative(side))
                     + " workPos=" + workPos + " tick=" + player.tickCount);
@@ -179,6 +189,10 @@ public class ActionManager {
             if (Reference.MINECRAFT.level instanceof com.autyism.printer.utils.PacketUtils.SequenceExtension seq) {
                 ActionConfirm.sent(Reference.MINECRAFT.level, target, side, seq.litematica_printer3$currentSequence(), player.tickCount,
                         player.getMainHandItem().getItem());
+                // 用协议放的：确认回来后看服务端是不是照着放了（服务端不认协议就改回转头放置）
+                if (useProtocol && workPos != null && protocolWanted != null) {
+                    ServerProtocol.sent(workPos, seq.litematica_printer3$currentSequence(), player.tickCount, protocolWanted, protocolProbe);
+                }
             }
         }
         if (useShift && !wasSneak) {
@@ -215,6 +229,7 @@ public class ActionManager {
         this.hitModifier = null;
         this.useShift = false;
         this.useProtocol = false;
+        this.protocolWanted = null;
         this.needWaitModifyLook = false;
         this.actionRequiresWaitModifyLook = false;
         this.look = null;

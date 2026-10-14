@@ -21,6 +21,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.SlabType;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
@@ -755,9 +756,12 @@ public class Print extends Module {
         boolean placingNewBlock = ctx.currentState.canBeReplaced() && ctx.currentState.getBlock() != ctx.requiredState.getBlock()
                 && !(action instanceof ClickAction);
         Vec3 hitModifier = placingNewBlock ? LitematicaUtils.usePrecisionPlacement(blockPos, ctx.requiredState) : null;
+        // 服务器上还没确认协议能用、已经有一块在试放：这一块照常转头放（见 ServerProtocol.mayUseNow）
+        if (hitModifier != null && !ServerProtocol.mayUseNow()) hitModifier = null;
         if (hitModifier != null) {
             ActionManager.INSTANCE.hitModifier = hitModifier;
             ActionManager.INSTANCE.useProtocol = true;
+            ActionManager.INSTANCE.protocolWanted = ctx.requiredState;
         }
         ActionManager.INSTANCE.setLook(action.getPlayerLook());
         ActionManager.INSTANCE.setNeedWaitModifyLookFromAction(action.getNeedWaitModifyLook());
@@ -776,6 +780,45 @@ public class Print extends Module {
         boolean protocolSetsState = hitModifier != null && mc.hasSingleplayerServer()
                 && fi.dy.masa.litematica.util.PlacementHandler.getEffectiveProtocolVersion() == fi.dy.masa.litematica.util.EasyPlaceProtocol.V3;
         considerAdjustFocus(blockPos, usedItem, protocolSetsState);
+        if (needsSecondPlacement(ctx.requiredState, ctx.currentState)) {
+            if (followUps.size() >= 256) followUps.removeFirstLong();
+            followUps.add(blockPos.asLong());
+        }
+    }
+
+    // ---------------- 同一格要再放一次的：第一次一被确认就接着放 ----------------
+    /**
+     * 双层台阶的第二块、藤蔓 / 发光地衣多贴的一面。以前要等下一轮扫描回到这一格才补（看起来就是“先放完别的再回来”），
+     * 现在第一块被服务端确认后的那个 tick 就补上。等确认的时候不停下来（这些方块不影响机器怎么动，大建筑里又很多），照常放别的方块。
+     */
+    private final it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet followUps = new it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet();
+    private static final int MAX_FOLLOW_UPS_PER_TICK = 4;
+
+    private static boolean needsSecondPlacement(BlockState required, BlockState current) {
+        Block b = required.getBlock();
+        if (b instanceof SlabBlock) {
+            return required.getValue(SlabBlock.TYPE) == SlabType.DOUBLE
+                    && !(current.getBlock() == b && current.getValue(SlabBlock.TYPE) == SlabType.DOUBLE);
+        }
+        return (b instanceof MultifaceBlock || b instanceof VineBlock) && current != required;
+    }
+
+    @Override
+    protected int revisitFollowUps(AtomicReference<Boolean> skipIteration) {
+        if (followUps.isEmpty() || level == null || player == null) return 0;
+        int done = 0;
+        var it = followUps.iterator();
+        while (it.hasNext() && done < MAX_FOLLOW_UPS_PER_TICK) {
+            BlockPos pos = BlockPos.of(it.nextLong());
+            if (isAwaitingServer(pos)) continue; // 第一块还没被确认：客户端看到的不一定是结果
+            it.remove();
+            if (!LitematicaUtils.isSchematicBlock(pos) || !LitematicaUtils.isPositionWithinRange(pos) || !PlayerUtils.canInteracted(pos)
+                    || isCorrectBlock(pos) || !canProcessPos(pos) || fluidPlan != null) continue;
+            executeIteration(pos, skipIteration);
+            if (lastOutcome == Outcome.QUEUED) done++;
+            if (skipIteration.get() || ActionManager.INSTANCE.needWaitModifyLook || adjustFocusActive()) break;
+        }
+        return done;
     }
 
     // ---------------- 先调整完再放下一个 ----------------
@@ -799,12 +842,15 @@ public class Print extends Module {
     @Nullable
     private BlockState adjustStateBefore;
     private boolean adjustActionSent;
+    /** 音符盒音高 / 中继器延迟：这一轮还要接着点几下（每 tick 一下，点完再等回应核对） */
+    private int adjustClicksLeft;
     /** 连续几个动作被服务端确认了、这一格却没变 */
     private int adjustNoEffect;
     private int adjustLastProgressTick;
     /** 放弃过的格子和当时的状态：状态没变之前不再停下来等它（按旧的顺序处理） */
     private final it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap<BlockState> adjustGaveUp = new it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap<>();
     private static final int ADJUST_MAX_NO_EFFECT = 3;
+    private static final boolean DEBUG_ADJUST = Boolean.getBoolean("ale.debugadjust");
     private static final int ADJUST_MAX_IDLE_TICKS = 200;
 
     /** 调试 / 测试用：正在调整的格子 */
@@ -864,9 +910,35 @@ public class Print extends Module {
             clearAdjust();
             return false;
         }
+        int now = player.tickCount;
+        if (DEBUG_ADJUST && now - adjustLastProgressTick > 0 && (now - adjustLastProgressTick) % 40 == 0) {
+            System.out.println("[printer-adjust] held " + (now - adjustLastProgressTick) + " ticks at " + pos.toShortString()
+                    + " want=" + SchematicWorldHandler.getSchematicWorld().getBlockState(pos) + " have=" + level.getBlockState(pos)
+                    + " awaiting=" + isAwaitingServer(pos) + " cooldown=" + isOnCooldown(pos) + " outcome=" + lastOutcome
+                    + " action=" + (action == null ? null : action.getClass().getSimpleName()) + " noEffect=" + adjustNoEffect);
+        }
+        // 音符盒音高、中继器延迟这一轮算好的次数还没点完：每 tick 接着点一下，不等每一下的回应
+        if (adjustClicksLeft > 0) {
+            boolean canClick;
+            PlacementGuide.pipelinedClick = true;
+            try {
+                canClick = canProcessPos(pos) && fluidPlan == null && action instanceof ClickAction;
+            } finally {
+                PlacementGuide.pipelinedClick = false;
+            }
+            // 客户端已经看到对了（中继器会预测结果）、或者现在点不了：先等回应，回来以后照常核对
+            if (!canClick) {
+                if (DEBUG_ADJUST) System.out.println("[printer-adjust] t" + now + " pipeline stops at " + pos.toShortString() + " left=" + adjustClicksLeft);
+                adjustClicksLeft = 0;
+                return true;
+            }
+            executeIteration(pos, skipIteration);
+            adjustClicksLeft = lastOutcome == Outcome.QUEUED ? adjustClicksLeft - 1 : 0;
+            if (DEBUG_ADJUST) System.out.println("[printer-adjust] t" + now + " pipelined click at " + pos.toShortString() + " outcome=" + lastOutcome + " left=" + adjustClicksLeft);
+            return true;
+        }
         // 上一个动作服务端还没回应：客户端看到的不一定是结果，等着
         if (isAwaitingServer(pos)) return true;
-        int now = player.tickCount;
         BlockState current = level.getBlockState(pos);
         if (adjustActionSent) {
             adjustActionSent = false;
@@ -901,7 +973,15 @@ public class Print extends Module {
             clearAdjust();
             return false;
         }
+        // 音符盒音高、中继器延迟：每点一下只进一档，按服务端确认过的状态就能算出一共要点几下。
+        // 不用每一下都等回应（以前一个音符盒要等十几个来回）：每 tick 点一下，点够了再等回应、核对，没对上就按新的状态重新算
+        int clicks = AdjustFirst.cyclicClicks(schematic.getBlockState(pos), current);
         executeIteration(pos, skipIteration);
+        if (lastOutcome == Outcome.QUEUED && clicks > 1) adjustClicksLeft = clicks - 1;
+        if (DEBUG_ADJUST) {
+            System.out.println("[printer-adjust] t" + now + " click at " + pos.toShortString() + " clicks=" + clicks + " outcome=" + lastOutcome
+                    + " left=" + adjustClicksLeft + " have=" + current);
+        }
         if (lastOutcome == Outcome.QUEUED || lastOutcome == Outcome.WAITING || lastOutcome == Outcome.SWITCH_TIMEOUT) return true;
         // 缺材料、没有能点的面……：先接着放别的，这一格以后照旧处理
         clearAdjust();
@@ -909,6 +989,7 @@ public class Print extends Module {
     }
 
     private void clearAdjust() {
+        adjustClicksLeft = 0;
         adjustPos = null;
         adjustStateBefore = null;
         adjustActionSent = false;

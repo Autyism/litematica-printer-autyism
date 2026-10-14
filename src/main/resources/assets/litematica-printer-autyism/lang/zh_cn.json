@@ -266,6 +266,7 @@
   "litematica-printer-autyism.config.breakToolDurabilityThreshold": "耐久保护阈值",
   "litematica-printer-autyism.config.breakToolDurabilityThreshold.desc": "剩余耐久小于等于该值的工具会被保护、不再使用。",
   "litematica-printer-autyism.message.tool_low_durability": "§e%s 只剩 %s 点耐久，已停止挖掘以免损坏。修理或更换工具后，关闭再打开打印机即可继续。",
+  "litematica-printer-autyism.message.protocol_refused": "§e这个服务器不接受轻松放置协议，打印机改用转头放置（有朝向的方块会慢一些）。",
   "litematica-printer-autyism.config.pauseOnContainer": "使用容器时暂停",
   "litematica-printer-autyism.config.pauseOnContainer.desc": "从右键箱子/潜影盒/容器实体的那一刻起暂停打印机，直到容器关闭后稍等片刻再恢复。避免客户端和服务端对背包状态不一致（这会导致去箱子里拿材料时打印出错误方块）。",
   "litematica-printer-autyism.config.bedrockBackend": "破基岩模组",

@@ -332,7 +332,7 @@ Optional:
 - [Tweakeroo](https://modrinth.com/mod/tweakeroo): use its block-breaking restriction lists for the printer.
 - [Advanced Shulkerboxes](https://modrinth.com/mod/advanced-shulkerboxes) or QuickShulker (mod id `quickshulker`): shulker box restocking. Install it on your client and on the server. Advanced Shulkerboxes has no 26.3 version yet, and no Fabric version for 1.20.1.
 - AxShulkers (server plugin): shulker box restocking on servers that use it.
-- [Servux](https://modrinth.com/mod/servux) on the server: Easy Place protocol in multiplayer.
+- [Servux](https://modrinth.com/mod/servux) on the server: Easy Place protocol in multiplayer. Turn on Litematica's *Entity Data Sync* too: without it Litematica doesn't recognise Servux.
 - A bedrock-breaking mod for bedrock mode: [Fabric-Bedrock-Miner](https://modrinth.com/mod/fabric-bedrock-miner) (LXYan2333), [Bedrock Miner](https://modrinth.com/mod/next-fabric-bedrock-miner) (bunnyi116) or [BlockMiner](https://github.com/z7087/blockminer).
 
 **Side:** client only. The server does not need this mod; only the optional integrations above have server parts.
@@ -752,7 +752,7 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 - [Tweakeroo](https://modrinth.com/mod/tweakeroo)：打印机可以使用它的破坏限制列表。
 - [Advanced Shulkerboxes](https://modrinth.com/mod/advanced-shulkerboxes) 或 QuickShulker（模组 ID `quickshulker`）：潜影盒补货。客户端和服务器都要装。Advanced Shulkerboxes 目前还没有 26.3 版，1.20.1 也没有 Fabric 版。
 - AxShulkers（服务器插件）：在使用它的服务器上补货。
-- 服务器装 [Servux](https://modrinth.com/mod/servux)：多人游戏也能用轻松放置协议。
+- 服务器装 [Servux](https://modrinth.com/mod/servux)：多人游戏也能用轻松放置协议。还要打开投影的“实体数据同步”（Entity Data Sync），不然投影认不出 Servux。
 - 破基岩模式需要一个破基岩模组：[Fabric-Bedrock-Miner](https://modrinth.com/mod/fabric-bedrock-miner)（LXYan2333）、[Bedrock Miner](https://modrinth.com/mod/next-fabric-bedrock-miner)（bunnyi116）或 [BlockMiner](https://github.com/z7087/blockminer)。
 
 **安装端：** 仅客户端。服务器不需要装本模组，只有上面的部分可选联动需要服务器端。

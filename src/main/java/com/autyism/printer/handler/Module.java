@@ -193,6 +193,17 @@ public abstract class Module extends ConfigUtils {
                 return;
             }
 
+            // 双层台阶的第二块之类：第一块一被确认就接着放（不停下来等，等的时候照常放别的方块）
+            int revisited = revisitFollowUps(skipIteration);
+            if (revisited > 0) {
+                layerIdleTicks = 0;
+                passDidWork = true;
+                idle = false;
+                execCount += revisited;
+                if (maxExecs > 0 && execCount >= maxExecs) return;
+            }
+            if (skipIteration.get() || ActionManager.INSTANCE.needWaitModifyLook) return;
+
             // 上一轮从头扫到尾什么都没得做：没有变化就先不重扫（见 idle）
             if (idle && !wakeFromIdle()) return;
 
@@ -414,6 +425,11 @@ public abstract class Module extends ConfigUtils {
     /** 刚执行的动作让一个方块进入“先调整完”的状态 */
     protected boolean adjustFocusActive() {
         return false;
+    }
+
+    /** 每 tick 扫描之前先处理“放了一半、等确认后马上补完”的格子；返回这次做了几个 */
+    protected int revisitFollowUps(AtomicReference<Boolean> skipIteration) {
+        return 0;
     }
 
 

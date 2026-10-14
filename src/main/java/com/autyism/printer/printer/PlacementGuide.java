@@ -49,6 +49,12 @@ public class PlacementGuide {
         this.mc = client;
     }
 
+    /**
+     * 只在 Print 接着点同一个音符盒 / 中继器、点数已经按服务端确认过的状态算好时为 true：
+     * 这时不用等上一下的确认（见 ERROR_BLOCK_STATE 分支）
+     */
+    public static boolean pipelinedClick;
+
     public @Nullable Action getAction(SchematicBlockContext ctx) {
         BlockMatchingType state = BlockMatchingType.get(ctx);
         if (state == BlockMatchingType.CORRECT) return null;
@@ -125,7 +131,8 @@ public class PlacementGuide {
             case ERROR_BLOCK_STATE:
                 // 点一下调整（音符盒、中继器、栅栏门开关……）或再放一次（雪层、蜡烛……）：上一次的点击被服务端确认、
                 // 客户端看到真实结果之后才点下一次，否则有延迟时会按旧状态多点（音符盒点过头、栅栏门来回开关）
-                if (ActionConfirm.pending(ctx.level, ctx.blockPos, Reference.MINECRAFT.player.tickCount)) return null;
+                // 例外：音符盒音高、中继器延迟按确认过的状态算好了一共点几下（Print 里的 adjustClicksLeft），点数不会多
+                if (!pipelinedClick && ActionConfirm.pending(ctx.level, ctx.blockPos, Reference.MINECRAFT.player.tickCount)) return null;
                 action = buildActionErrorBlockState(ctx, requiredType, skip);
                 break;
             default:

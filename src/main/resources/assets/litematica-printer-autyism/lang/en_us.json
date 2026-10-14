@@ -266,6 +266,7 @@
   "litematica-printer-autyism.config.breakToolDurabilityThreshold": "Durability Threshold",
   "litematica-printer-autyism.config.breakToolDurabilityThreshold.desc": "Tools with remaining durability <= this value are protected.",
   "litematica-printer-autyism.message.tool_low_durability": "§e%s has only %s durability left - breaking stopped to protect it. Repair/replace it, then toggle the printer off and on.",
+  "litematica-printer-autyism.message.protocol_refused": "§eThis server does not accept the easy place protocol - the printer turns the head instead (directional blocks are a bit slower).",
   "litematica-printer-autyism.config.pauseOnContainer": "Pause While Using Containers",
   "litematica-printer-autyism.config.pauseOnContainer.desc": "Pause the printer from the moment you right-click a chest/shulker/entity container until shortly after the container is closed. Prevents the client and server from disagreeing about your inventory (which made the printer place wrong blocks while you took materials).",
   "litematica-printer-autyism.config.bedrockBackend": "Bedrock Miner Backend",
