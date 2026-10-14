@@ -758,6 +758,11 @@ public class Print extends Module {
         Vec3 hitModifier = placingNewBlock ? LitematicaUtils.usePrecisionPlacement(blockPos, ctx.requiredState) : null;
         // 服务器上还没确认协议能用、已经有一块在试放：这一块照常转头放（见 ServerProtocol.mayUseNow）
         if (hitModifier != null && !ServerProtocol.mayUseNow()) hitModifier = null;
+        // 铁轨交给 ALE 按投影形状放（服务端也有 ALE 时），不用协议
+        if (placingNewBlock && ctx.requiredState.getBlock() instanceof BaseRailBlock && com.autyism.printer.compat.AleRails.available()) {
+            hitModifier = null;
+            ActionManager.INSTANCE.exactRail = ctx.requiredState;
+        }
         if (hitModifier != null) {
             ActionManager.INSTANCE.hitModifier = hitModifier;
             ActionManager.INSTANCE.useProtocol = true;

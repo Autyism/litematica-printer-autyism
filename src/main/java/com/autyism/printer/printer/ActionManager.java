@@ -32,6 +32,9 @@ public class ActionManager {
     public Vec3 hitModifier;
     public boolean useShift = false;
     public boolean useProtocol = false;
+    /** 用 ALE 按投影形状放的铁轨（服务端也装了 ALE 时，见 AleRails）；别的放置为 null */
+    @Nullable
+    public net.minecraft.world.level.block.state.BlockState exactRail;
     /** 用协议放的方块应该是什么状态（用来核对服务端认不认协议，见 ServerProtocol） */
     @Nullable
     public net.minecraft.world.level.block.state.BlockState protocolWanted;
@@ -184,7 +187,14 @@ public class ActionManager {
                         + " slot=" + player.getInventory().getSelectedSlot() + " stateId=" + player.inventoryMenu.getStateId()
                         + " tick=" + player.tickCount);
             }
-            gameModeExtension.litematica_printer$useItemOn(localPrediction, InteractionHand.MAIN_HAND, blockHitResult);
+            if (exactRail != null && workPos != null) {
+                // 服务端也有 ALE：这节铁轨直接放成投影里的形状（见 AleRails）
+                MultiPlayerGameModeExtension gm = gameModeExtension;
+                com.autyism.printer.compat.AleRails.place(workPos, exactRail,
+                        () -> gm.litematica_printer$useItemOn(localPrediction, InteractionHand.MAIN_HAND, blockHitResult));
+            } else {
+                gameModeExtension.litematica_printer$useItemOn(localPrediction, InteractionHand.MAIN_HAND, blockHitResult);
+            }
             // 记下这次动作的序号：服务端确认之前不再碰这个格子（见 ActionConfirm）
             if (Reference.MINECRAFT.level instanceof com.autyism.printer.utils.PacketUtils.SequenceExtension seq) {
                 ActionConfirm.sent(Reference.MINECRAFT.level, target, side, seq.litematica_printer3$currentSequence(), player.tickCount,
@@ -230,6 +240,7 @@ public class ActionManager {
         this.useShift = false;
         this.useProtocol = false;
         this.protocolWanted = null;
+        this.exactRail = null;
         this.needWaitModifyLook = false;
         this.actionRequiresWaitModifyLook = false;
         this.look = null;

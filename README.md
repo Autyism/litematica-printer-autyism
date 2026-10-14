@@ -54,6 +54,7 @@ Compared with the 1.21.11 printer builds it is based on, this edition adds or re
 
 - **Safe observers.** With *Safe Observer Placement* on (default), an observer is only placed when it will not fire into your machine. Observers that cannot be placed safely are skipped on purpose, and pistons that an observer would fire wait until the block that observer watches is finished.
 - **Safe rails.** Before each rail, the printer simulates vanilla's rail-connection rules. A rail is only placed when it will end up in the schematic's shape, will not bend rails that are already placed, and will not pop off for lack of support. Connected rails get a placement order planned in advance. A rail that vanilla cannot place correctly in any order is left empty; it is never placed wrong and broken again.
+- **Exact rails with ALE.** When [ALE](https://github.com/Autyism/autyism-le) 1.2.0 or newer is installed on your client and on the server (or in single player), every rail goes down directly in the schematic's shape: ramps and curves that vanilla's rules cannot place safely are no longer left empty, and rails that are already placed are never bent. Without ALE on the server the printer uses safe rails as above.
 - **Adjustable blocks, one confirmed click at a time.** Note blocks are tuned, repeaters set to their delay, comparators to their mode, wooden doors, trapdoors and fence gates opened or closed and levers flipped. Each click waits until the server has confirmed the previous one, so lag cannot make it overshoot. With *Finish Adjusting First* (on by default) such a block is finished before the next block is placed.
 - **Stackable blocks.** Candles, sea pickles, snow layers, flower beds and double slabs are built up to the count in the schematic.
 - **Bottom-up order.** With layered printing, machines are built from the ground up, so upper pistons and observers are not placed before the parts beneath them.
@@ -474,6 +475,7 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 
 - **侦测器安全放置。** 开启“侦测器安全放置”（默认开）时，只有不会误触发机器的侦测器才会放；放不了的就故意跳过。会被侦测器触发的活塞，也会等侦测器盯着的那个方块放好再放。
 - **铁轨安全放置。** 每放一节铁轨之前，先按原版铁轨连接规则模拟一遍：只有这节会变成投影里的形状、不会把已经放好的铁轨拉歪、也不会因为没有支撑而掉落时才放。互相连着的一组铁轨会预先规划放置顺序。原版怎么排都放不对的铁轨会留空，绝不会先放错再敲掉。
+- **装了 ALE 时铁轨按投影形状放。** 客户端和服务端都装了 [ALE](https://github.com/Autyism/autyism-le) 1.2.0 以上（或者单人游戏）时，每节铁轨直接放成投影里的形状：原版规则下没法安全放的上坡和弯道不再空着，已经放好的铁轨也不会被拉歪。服务端没有 ALE 时照旧用上面的铁轨安全放置。
 - **可调方块一次点一下，等确认再点。** 音符盒调音、中继器调延迟、比较器切模式、木门 / 活板门 / 栅栏门的开关、拉杆的开关，每点一下都要等服务器确认上一下，延迟再高也不会点过头。开着“调整完再放下一个”（默认开）时，这种方块调好之后才放下一个方块。
 - **可叠加方块。** 蜡烛、海泡菜、雪层、花簇和双层台阶会补到投影里的数量。
 - **从下往上。** 开着分层打印时，机器从底部开始搭，上层的活塞、侦测器不会比下面的部分先放。

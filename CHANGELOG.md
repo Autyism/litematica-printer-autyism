@@ -3,6 +3,7 @@
 ## 1.2.0 — 2026-10-14
 
 - New: **Finish Adjusting First** (on by default). A block that still needs clicks (repeater delay, note pitch, comparator mode, lever, door, candles...) is finished before the next block is placed; each click waits for the server. Note pitch and repeater delay are faster: the printer works out how many clicks are needed from what the server confirmed, clicks once per tick, then checks the result.
+- With ALE 1.2.0 on the client and the server (or in single player), rails go down directly in the schematic's shape; ramps that vanilla's rules can't place safely are no longer left empty.
 - Double slabs: the second slab goes in as soon as the server has confirmed the first one, instead of on a later pass (the rest of the build keeps going meanwhile).
 - Easy place protocol: if a server refuses it, the printer goes back to turning the head after a few tries and tells you once. **Tip:** on a server with Servux, turn on Litematica's *Entity Data Sync*. Only then does Litematica recognise Servux and use the protocol, and directional blocks (observers, pistons, dispensers...) go down as fast as plain blocks.
 - New: **Progress Counts** (default *Whole Schematic*). The progress bar counts the whole schematic in loaded chunks; *Within Range* is the old behaviour.
@@ -24,6 +25,7 @@ More: open "Details" below.
 ### 中文
 
 - 新增 **调整完再放下一个**（默认开）：还要点几下的方块（中继器延迟、音符盒音高、比较器模式、拉杆、门、蜡烛……）先调好再放下一个方块，每点一下都等服务器确认。音符盒音高和中继器延迟更快：按服务器确认过的状态算出要点几下，每 tick 点一下，点完再核对。
+- 客户端和服务端都装了 ALE 1.2.0（或单人游戏）时，铁轨直接放成投影里的形状；原版规则下没法安全放的上坡不再空着。
 - 双层台阶：第一块被服务器确认后马上放第二块，不用等下一轮扫描（等的时候别的方块照常放）。
 - 轻松放置协议：服务器不接受时，试几次就改回转头放置，并提示一次。**提示：** 服务器装了 Servux 的话，打开投影的“实体数据同步”（Entity Data Sync）。只有打开它投影才认得出 Servux、用协议放，有朝向的方块（侦测器、活塞、发射器……）就能和普通方块一样快。
 - 新增 **进度条统计范围**（默认“整个投影”）：进度条统计已加载区块里的整个投影；“工作范围内”是以前的算法。

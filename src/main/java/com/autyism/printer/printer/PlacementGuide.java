@@ -483,6 +483,15 @@ public class PlacementGuide {
                 return new Action().setSides(facing);
             }
             case RAIL -> {
+                // 服务端也装了 ALE（或单人游戏）：直接按投影的形状放，不会自己拐弯、也不会把已经放好的铁轨拉歪（见 AleRails）。
+                // 只要这节现在留得住（下面有支撑，上坡的高处一边有实心方块）；留不住就等别的方块放好再试
+                if (com.autyism.printer.compat.AleRails.available()) {
+                    if (!com.autyism.printer.compat.AleRails.canStay(ctx.level, ctx.blockPos, ctx.requiredState)) {
+                        ModuleManager.PRINT.deferToUpperLayer(ctx.blockPos);
+                        return null;
+                    }
+                    return new Action().setRequiresSupport();
+                }
                 RailShape shape;
                 if (ctx.requiredState.getBlock() instanceof RailBlock)
                     shape = ctx.requiredState.getValue(RailBlock.SHAPE);
