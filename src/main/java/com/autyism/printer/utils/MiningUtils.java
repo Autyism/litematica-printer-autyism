@@ -3,8 +3,6 @@ package com.autyism.printer.utils;
 import com.autyism.printer.config.Configs;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.Holder;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
@@ -18,7 +16,7 @@ import net.minecraft.world.level.block.state.BlockState;
  *     <li>一 tick 的挖掘进度 >= 秒破阈值 就算能秒破。</li>
  *     <li>秒破阈值 = 100%；开启“同 tick 即时破坏”时为“挖掘进度阈值”配置（70%~100%，原版服务端在 70% 就认可破坏，
  *     与 SpeedMine 一类“挖到一定进度就直接破坏”的思路一致）。</li>
- *     <li>进度按背包里最合适的工具计算（会自动换上），包含效率附魔、急迫、挖掘疲劳、是否在地面/水下。</li>
+ *     <li>进度按背包里最合适的工具计算（会自动换上），包含效率附魔、急迫、挖掘疲劳（只算服务器给的效果，见 ServerEffects）、是否在地面/水下。</li>
  * </ul>
  */
 public final class MiningUtils {
@@ -49,13 +47,9 @@ public final class MiningUtils {
         return bestProgress(player, state) >= instantThreshold();
     }
 
-    /** 是否具备秒破配置：背包里有效率 V（及以上）的工具，并且有急迫 II（及以上） */
+    /** 是否具备秒破配置：背包里有效率 V（及以上）的工具，并且服务器给了急迫 II（及以上；客户端模组自己加的不算） */
     public static boolean hasInstantMiningSetup(LocalPlayer player) {
-        //? if <1.21.5 {
-        /*MobEffectInstance haste = player.getEffect(MobEffects.DIG_SPEED);
-        *///?} else
-        MobEffectInstance haste = player.getEffect(MobEffects.HASTE);
-        if (haste == null || haste.getAmplifier() < 1) return false;
+        if (ServerEffects.digSpeed() < 1) return false;
         Inventory inv = player.getInventory();
         for (int slot = 0; slot < 36; slot++) {
             ItemStack stack = inv.getItem(slot);

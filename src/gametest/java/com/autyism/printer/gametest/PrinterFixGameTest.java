@@ -17,6 +17,8 @@ import com.autyism.printer.enums.MiningFilterType;
 import com.autyism.printer.enums.RadiusShapeType;
 import com.autyism.printer.enums.SelectionType;
 import com.autyism.printer.handler.ModuleManager;
+import com.autyism.printer.utils.MiningUtils;
+import com.autyism.printer.utils.ServerEffects;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
@@ -69,6 +71,7 @@ public final class PrinterFixGameTest implements FabricClientGameTest {
 
             testLayerOutOfReach(context, sp);
             testLayerWhileJumping(context, sp);
+            testClientOnlyHaste(context, sp);
             testInstantMining(context, sp);
         } finally {
             context.runOnClient(client -> disableAll());
@@ -263,6 +266,56 @@ public final class PrinterFixGameTest implements FabricClientGameTest {
             case 1 -> Blocks.DIRT;
             default -> Blocks.STONE;
         };
+    }
+
+    /**
+     * 只在客户端的急迫（Meteor SpeedMine 的「急迫」模式就是这样，服务器不知道）不能让石头算成秒破：
+     * 效率 V 下界合金镐挖石头，急迫 II 时一 tick 进度 1.09（秒破），没有急迫是 0.78（服务器不认秒破）。
+     * 服务器真的给了急迫 II 以后才算秒破。
+     */
+    private static void testClientOnlyHaste(ClientGameTestContext context, TestSingleplayerContext sp) {
+        sp.getServer().runOnServer(server -> {
+            ServerLevel level = server.overworld();
+            for (int x = 21; x <= 26; x++) {
+                for (int z = -4; z <= 1; z++) {
+                    level.setBlockAndUpdate(new BlockPos(x, 63, z), Blocks.BEDROCK.defaultBlockState());
+                    for (int y = 64; y <= 66; y++) level.setBlockAndUpdate(new BlockPos(x, y, z), Blocks.AIR.defaultBlockState());
+                }
+            }
+        });
+        sp.getServer().runCommand("effect clear @a");
+        sp.getServer().runCommand("tp @a 23.5 64 -1.5");
+        //? if <1.20.5 {
+        /*sp.getServer().runCommand("item replace entity @a hotbar.1 with minecraft:netherite_pickaxe{Enchantments:[{id:\"minecraft:efficiency\",lvl:5s}]}");
+        *///?} else
+        sp.getServer().runCommand("item replace entity @a hotbar.1 with minecraft:netherite_pickaxe[minecraft:enchantments={\"minecraft:efficiency\":5}]");
+        context.waitFor(client -> client.player != null && client.player.onGround()
+                && client.player.getInventory().getItem(1).is(Items.NETHERITE_PICKAXE)
+                && Math.abs(client.player.getZ() + 1.5) < 0.01, 200);
+        context.waitTicks(5);
+        context.runOnClient(client -> {
+            Configs.Break.BREAK_INSTANT_MINE.setBooleanValue(false);
+            // 和 Meteor 一样，只加在客户端的玩家身上
+            //? if <1.21.5 {
+            /*client.player.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.DIG_SPEED, -1, 1, false, false, false));
+            *///?} else
+            client.player.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.HASTE, -1, 1, false, false, false));
+        });
+        context.waitTicks(2);
+        boolean fakeInstant = context.computeOnClient(client -> MiningUtils.canInstantBreak(client.player, Blocks.STONE.defaultBlockState()));
+        boolean fakeSetup = context.computeOnClient(client -> MiningUtils.hasInstantMiningSetup(client.player));
+        if (fakeInstant || fakeSetup) {
+            throw new AssertionError("[haste] a client-only Haste II counted for instant mining: instant=" + fakeInstant + " setup=" + fakeSetup);
+        }
+        sp.getServer().runCommand("effect give @a minecraft:haste infinite 1 true");
+        context.waitFor(client -> ServerEffects.digSpeed() >= 1, 100);
+        boolean realInstant = context.computeOnClient(client -> MiningUtils.canInstantBreak(client.player, Blocks.STONE.defaultBlockState()));
+        if (!realInstant) {
+            throw new AssertionError("[haste] Haste II from the server did not make stone instant");
+        }
+        sp.getServer().runCommand("effect clear @a");
+        context.waitFor(client -> ServerEffects.digSpeed() == -1, 100);
+        System.out.println("[PrinterFixGameTest] client-only haste: not instant; server haste: instant (OK)");
     }
 
     private static void testInstantMining(ClientGameTestContext context, TestSingleplayerContext sp) {

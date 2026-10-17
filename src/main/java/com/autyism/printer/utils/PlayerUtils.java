@@ -10,8 +10,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.FluidTags;
-import net.minecraft.world.effect.MobEffectUtil;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Abilities;
@@ -24,7 +22,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Objects;
 import java.util.Optional;
 
 @SuppressWarnings("EnhancedSwitchMigration")
@@ -202,18 +199,15 @@ public class PlayerUtils {
             }
             //?}
         }
-        if (MobEffectUtil.hasDigSpeed(player)) {
-            f *= 1.0F + (float) (MobEffectUtil.getDigSpeedAmplification(player) + 1) * 0.2F;
+        // 只算服务器给的急迫和挖掘疲劳：客户端模组自己加的（比如 Meteor 的急迫）服务器不认，按它算会挖不掉
+        int digSpeed = ServerEffects.digSpeed();
+        if (digSpeed >= 0) {
+            f *= 1.0F + (float) (digSpeed + 1) * 0.2F;
         }
-        //? if <1.21.5 {
-        /*if (player.hasEffect(MobEffects.DIG_SLOWDOWN)) {
-        *///?} else
-        if (player.hasEffect(MobEffects.MINING_FATIGUE)) {
+        int fatigue = ServerEffects.miningFatigue();
+        if (fatigue >= 0) {
             float g;
-            //? if <1.21.5 {
-            /*switch (Objects.requireNonNull(player.getEffect(MobEffects.DIG_SLOWDOWN)).getAmplifier()) {
-            *///?} else
-            switch (Objects.requireNonNull(player.getEffect(MobEffects.MINING_FATIGUE)).getAmplifier()) {
+            switch (fatigue) {
                 case 0:
                     g = 0.3F;
                     break;
