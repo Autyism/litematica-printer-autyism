@@ -307,6 +307,58 @@ public final class PrinterFixGameTest implements FabricClientGameTest {
         if (fakeInstant || fakeSetup) {
             throw new AssertionError("[haste] a client-only Haste II counted for instant mining: instant=" + fakeInstant + " setup=" + fakeSetup);
         }
+
+        // 真的挖一排石头：假急迫下不能有挖了又回来的（服务器挖掉，客户端和服务器一样）
+        List<BlockPos> stones = List.of(new BlockPos(22, 64, 0), new BlockPos(23, 64, 0), new BlockPos(24, 64, 0), new BlockPos(25, 64, 0));
+        sp.getServer().runOnServer(server -> {
+            for (BlockPos pos : stones) server.overworld().setBlockAndUpdate(pos, Blocks.STONE.defaultBlockState());
+        });
+        context.waitFor(client -> stones.stream().allMatch(pos -> client.level.getBlockState(pos).is(Blocks.STONE)), 100);
+        context.runOnClient(client -> {
+            TestSchematicRegion.clear();
+            DataManager.getRenderLayerRange().setLayerMode(LayerMode.ALL);
+            var selectionManager = DataManager.getSelectionManager();
+            if (selectionManager.getSelectionMode() != SelectionMode.SIMPLE) {
+                selectionManager.switchSelectionMode();
+            }
+            AreaSelection selection = DataManager.getSimpleArea();
+            Box box = selection.getSubRegionBox(selection.getName());
+            if (box == null) box = selection.getSelectedSubRegionBox();
+            if (box == null) throw new AssertionError("Litematica simple selection has no box");
+            box.setPos1(stones.getFirst());
+            box.setPos2(stones.getLast());
+            Configs.Break.AUTO_TOOL_SWITCH.setBooleanValue(true);
+            Configs.Break.BREAK_BLOCKS_PER_TICK.setIntegerValue(0);
+            Configs.Break.BREAK_INTERVAL.setIntegerValue(0);
+            Configs.Break.BREAK_COOLDOWN.setIntegerValue(3);
+            Configs.Break.BREAK_LIMITER.setOptionListValue(MiningFilterType.CUSTOM);
+            Configs.Break.BREAK_LIMIT.setOptionListValue(UsageRestriction.ListType.NONE);
+            Configs.Mine.EXCAVATE_LIMITER.setOptionListValue(MiningFilterType.CUSTOM);
+            Configs.Mine.EXCAVATE_LIMIT.setOptionListValue(UsageRestriction.ListType.NONE);
+            Configs.Mine.MINE_SELECTION_TYPE.setOptionListValue(SelectionType.LITEMATICA_SELECTION);
+            Configs.Mine.ENABLED.setBooleanValue(true);
+            ModuleManager.MINE.resetScanState();
+            Configs.Core.WORK_SWITCH.setBooleanValue(true);
+        });
+        int mined = waitServer(context, () -> sp.getServer().computeOnServer(server -> {
+            int left = 0;
+            for (BlockPos pos : stones) if (server.overworld().getBlockState(pos).is(Blocks.STONE)) left++;
+            return left;
+        }) == 0, 200, "[haste] stone was not mined with a client-only haste (broken and put back?)");
+        context.waitTicks(10);
+        context.runOnClient(client -> {
+            Configs.Core.WORK_SWITCH.setBooleanValue(false);
+            Configs.Mine.ENABLED.setBooleanValue(false);
+        });
+        List<String> ghosts = context.computeOnClient(client -> {
+            List<String> result = new ArrayList<>();
+            for (BlockPos pos : stones) if (!client.level.getBlockState(pos).isAir()) result.add(pos.toShortString());
+            return result;
+        });
+        if (!ghosts.isEmpty()) {
+            throw new AssertionError("[haste] stone came back on the client: " + ghosts);
+        }
+        System.out.println("[PrinterFixGameTest] client-only haste: 4 stone mined in " + mined + " ticks, none came back");
         sp.getServer().runCommand("effect give @a minecraft:haste infinite 1 true");
         context.waitFor(client -> ServerEffects.digSpeed() >= 1, 100);
         boolean realInstant = context.computeOnClient(client -> MiningUtils.canInstantBreak(client.player, Blocks.STONE.defaultBlockState()));

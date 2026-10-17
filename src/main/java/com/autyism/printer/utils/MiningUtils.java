@@ -2,12 +2,17 @@ package com.autyism.printer.utils;
 
 import com.autyism.printer.config.Configs;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffectUtil;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.state.BlockState;
 
 /**
@@ -21,6 +26,41 @@ import net.minecraft.world.level.block.state.BlockState;
  */
 public final class MiningUtils {
     private MiningUtils() {
+    }
+
+    /**
+     * 服务器会算的这一 tick 的挖掘进度：游戏自己的算法，只是急迫和挖掘疲劳换成服务器给的
+     * （客户端模组自己加的效果服务器不认，按它算挖得太快，服务器会把方块放回来）。
+     */
+    public static float serverDestroyProgress(LocalPlayer player, BlockState state, BlockGetter level, BlockPos pos) {
+        float progress = state.getDestroyProgress(player, level, pos);
+        float client = effectFactor(MobEffectUtil.hasDigSpeed(player) ? MobEffectUtil.getDigSpeedAmplification(player) : -1, clientFatigue(player));
+        float server = effectFactor(ServerEffects.digSpeed(), ServerEffects.miningFatigue());
+        if (client == server) return progress;
+        // 换算有一点浮点误差：稍微往少了算，刚好够得着的多挖一 tick，不会被服务器放回来
+        return progress / client * server * 0.9999F;
+    }
+
+    /** 急迫（-1 = 没有）和挖掘疲劳（-1 = 没有）让挖掘速度乘的倍数 */
+    private static float effectFactor(int digSpeed, int fatigue) {
+        float f = digSpeed >= 0 ? 1.0F + (float) (digSpeed + 1) * 0.2F : 1.0F;
+        if (fatigue >= 0) {
+            f *= switch (fatigue) {
+                case 0 -> 0.3F;
+                case 1 -> 0.09F;
+                case 2 -> 0.0027F;
+                default -> 8.1E-4F;
+            };
+        }
+        return f;
+    }
+
+    private static int clientFatigue(LocalPlayer player) {
+        //? if <1.21.5 {
+        /*MobEffectInstance fatigue = player.getEffect(MobEffects.DIG_SLOWDOWN);
+        *///?} else
+        MobEffectInstance fatigue = player.getEffect(MobEffects.MINING_FATIGUE);
+        return fatigue == null ? -1 : fatigue.getAmplifier();
     }
 
     /** 能被判定为“秒破”的单 tick 进度下限 */

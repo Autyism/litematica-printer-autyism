@@ -159,7 +159,8 @@ public abstract class MixinMultiPlayerGameMode implements MultiPlayerGameModeExt
             return BlockBreakResult.FAILED;
         }
         
-        float destroyProgress = blockState.getDestroyProgress(player, level, blockPos);
+        // 服务器那边的进度（客户端模组自己加的急迫不算），按这个发包服务器才认
+        float destroyProgress = MiningUtils.serverDestroyProgress(player, blockState, level, blockPos);
 
         // 原版秒破：START 时服务端算出进度 >= 1 直接破坏，与原版客户端一致只发 START
         if (destroyProgress >= 1.0F) {
@@ -233,7 +234,7 @@ public abstract class MixinMultiPlayerGameMode implements MultiPlayerGameModeExt
                 return BlockBreakResult.COMPLETED;
             }
 
-            this.destroyProgress += blockState.getDestroyProgress(player, level, blockPos);
+            this.destroyProgress += MiningUtils.serverDestroyProgress(player, blockState, level, blockPos);
             boolean completed = this.destroyProgress >= litematica_printer$GetBreakingProgressMax();
 
             if (completed) {
