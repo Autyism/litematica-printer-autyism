@@ -1,5 +1,6 @@
 {
   "litematica-printer-autyism.auto_disable_notice": "印機自閉",
+  "litematica-printer-autyism.placement_moved_notice": "投影既移，印機已閉",
   "litematica-printer-autyism.bedrock.creative_mode": "創世之際，不可破基岩！",
   "litematica-printer-autyism.bedrock.mod_missing": "未安装受支持的破基岩模组（bedrockminer / bedrock-miner / blockminer），无法破基岩！",
   "litematica-printer-autyism.block.mismatch": "方塊 %s 下不合，置而弗為",
@@ -196,6 +197,8 @@
   "litematica-printer-autyism.config.printSkipWaterlogged.desc": "印時跳含水方塊。",
   "litematica-printer-autyism.config.printerAutoDisable": "自關印機",
   "litematica-printer-autyism.config.printerAutoDisable.desc": "身死或斷連則閉印機，復生或再入不自作。",
+  "litematica-printer-autyism.config.printerStopOnPlacementMove": "投影移則閉印機",
+  "litematica-printer-autyism.config.printerStopOnPlacementMove.desc": "投影或其分區，一移、一轉、一鏡、一復，即閉印機，免依舊處置塊。位既定，乃復啟之。",
   "litematica-printer-autyism.config.printerIteratorMode": "遍序",
   "litematica-printer-autyism.config.printerIteratorMode.desc": "印時遍方之序：\n§dXYZ§r：先 X，後 Y，末 Z\n§dXZY§r：先 X，後 Z，末 Y\n§dYXZ§r：先 Y，後 X，末 Z\n§dYZX§r：先 Y，後 Z，末 X\n§dZXY§r：先 Z，後 X，末 Y\n§dZYX§r：先 Z，後 Y，末 X",
   "litematica-printer-autyism.config.printerIteratorShape": "工作形",

@@ -9,5 +9,6 @@ public class LitematicaPrinterMod implements ClientModInitializer {
     public void onInitializeClient() {
         RemoteContainerUtils.init();
         InitializationHandler.getInstance().registerInitializationHandler(new InitHandler());
+        com.autyism.printer.printer.PlacementMoveGuard.register();
     }
 }

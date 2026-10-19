@@ -53,6 +53,8 @@ public class ModuleManager {
         if (com.autyism.printer.printer.ReachHelper.isRaising()) return;
         // 需求 1：玩家打开/正在打开容器时暂停打印机，避免和服务端的背包状态不同步
         if (ContainerGuard.isPaused()) return;
+        // 快速移动投影还没把投影数据挪到新位置（见 FastMoveCompat）
+        if (com.autyism.printer.compat.FastMoveCompat.moveSettling()) return;
         boolean printerEnabled = ConfigUtils.isPrinterEnable();
         // 打印机从停着到开始干活（打开总开关，或者总开关开着时打开了第一个模式）：清掉上次留下的状态
         boolean running = ConfigUtils.isAnyModeRunning();

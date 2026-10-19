@@ -18,6 +18,8 @@ public class I18n {
 
     public static final I18n AUTO_DISABLE_NOTICE = of("auto_disable_notice");
 
+    public static final I18n PLACEMENT_MOVED_NOTICE = of("placement_moved_notice");
+
     public static final I18n BEDROCK_CREATIVE_MODE = of("bedrock.creative_mode");
     public static final I18n BEDROCK_MOD_MISSING = of("bedrock.mod_missing");
     public static final I18n BEDROCK_NOT_SUPPORT = of("bedrock.not_support");

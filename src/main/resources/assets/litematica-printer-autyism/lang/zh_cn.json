@@ -1,5 +1,6 @@
 {
   "litematica-printer-autyism.auto_disable_notice": "打印机已自动关闭",
+  "litematica-printer-autyism.placement_moved_notice": "投影移动了，打印机已关闭",
   "litematica-printer-autyism.bedrock.creative_mode": "创造模式无法使用破基岩模式！",
   "litematica-printer-autyism.bedrock.mod_missing": "未安装受支持的破基岩模组（bedrockminer / bedrock-miner / blockminer），无法破基岩！",
   "litematica-printer-autyism.block.mismatch": "方块 %s 下方方块不相符，跳过放置",
@@ -196,6 +197,8 @@
   "litematica-printer-autyism.config.printSkipWaterlogged.desc": "打印时跳过含水方块。",
   "litematica-printer-autyism.config.printerAutoDisable": "自动关闭打印机",
   "litematica-printer-autyism.config.printerAutoDisable.desc": "死亡或断开连接时关闭打印机，重生或重新进入后不会自己开始工作。",
+  "litematica-printer-autyism.config.printerStopOnPlacementMove": "投影移动时关闭打印机",
+  "litematica-printer-autyism.config.printerStopOnPlacementMove.desc": "投影（或其中的子区域）一被移动、旋转、镜像或重置，就立刻关掉打印机，免得按旧位置放方块。投影摆好后再打开打印机。",
   "litematica-printer-autyism.config.printerIteratorMode": "遍历顺序",
   "litematica-printer-autyism.config.printerIteratorMode.desc": "打印时遍历方块的顺序：\n§dXYZ§r：先X轴，后Y轴，最后Z轴\n§dXZY§r：先X轴，后Z轴，最后Y轴\n§dYXZ§r：先Y轴，后X轴，最后Z轴\n§dYZX§r：先Y轴，后Z轴，最后X轴\n§dZXY§r：先Z轴，后X轴，最后Y轴\n§dZYX§r：先Z轴，后Y轴，最后X轴",
   "litematica-printer-autyism.config.printerIteratorShape": "工作范围形状",

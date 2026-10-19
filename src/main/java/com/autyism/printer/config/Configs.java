@@ -165,6 +165,11 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 .defaultValue(true)
                 .build();
 
+        // 安全：投影移动、旋转、镜像、重置时关掉打印机，见 PlacementMoveGuard
+        public static final ConfigBoolean STOP_ON_PLACEMENT_MOVE = booleanValue("printerStopOnPlacementMove")
+                .defaultValue(true)
+                .build();
+
         // 调试输出
         public static final ConfigBoolean DEBUG_OUTPUT = booleanValue("debugOutput")
                 .defaultValue(false)
@@ -188,6 +193,7 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 Y_REVERSE,
                 Z_REVERSE,
                 AUTO_DISABLE_PRINTER,
+                STOP_ON_PLACEMENT_MOVE,
                 DEBUG_OUTPUT
         );
     }

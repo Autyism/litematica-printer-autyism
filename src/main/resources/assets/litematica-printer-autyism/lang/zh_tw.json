@@ -1,5 +1,6 @@
 {
   "litematica-printer-autyism.auto_disable_notice": "印表機已自動關閉",
+  "litematica-printer-autyism.placement_moved_notice": "投影移動了，印表機已關閉",
   "litematica-printer-autyism.bedrock.creative_mode": "創造模式無法使用破基岩模式！",
   "litematica-printer-autyism.bedrock.mod_missing": "未安装受支持的破基岩模组（bedrockminer / bedrock-miner / blockminer），无法破基岩！",
   "litematica-printer-autyism.ice.creative_mode": "創造模式破壞冰不會產生水！",
@@ -169,6 +170,8 @@
   "litematica-printer-autyism.config.printSkipWaterlogged.desc": "列印時跳過含水方塊。",
   "litematica-printer-autyism.config.printerAutoDisable": "自動關閉印表機",
   "litematica-printer-autyism.config.printerAutoDisable.desc": "死亡或中斷連線時關閉印表機，重生或重新進入後不會自己開始工作。",
+  "litematica-printer-autyism.config.printerStopOnPlacementMove": "投影移動時關閉印表機",
+  "litematica-printer-autyism.config.printerStopOnPlacementMove.desc": "投影（或其中的子區域）一被移動、旋轉、鏡像或重置，就立刻關掉印表機，免得按舊位置放方塊。投影擺好後再打開印表機。",
   "litematica-printer-autyism.config.printerIteratorMode": "遍歷順序",
   "litematica-printer-autyism.config.printerIteratorMode.desc": "列印時遍歷方塊的順序：\n§dXYZ§r：先X軸，後Y軸，最後Z軸\n§dXZY§r：先X軸，後Z軸，最後Y軸\n§dYXZ§r：先Y軸，後X軸，最後Z軸\n§dYZX§r：先Y軸，後Z軸，最後X軸\n§dZXY§r：先Z軸，後X軸，最後Y軸\n§dZYX§r：先Z軸，後Y軸，最後X軸",
   "litematica-printer-autyism.config.printerIteratorShape": "工作範圍形狀",

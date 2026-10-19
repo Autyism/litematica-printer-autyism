@@ -9,6 +9,9 @@
 - New: **Progress Counts** (default *Whole Schematic*). The progress bar counts the whole schematic in loaded chunks; *Within Range* is the old behaviour.
 - New: **Layer Counts as Done** (default *Whole Layer*). Layered printing moves up only when the whole layer in loaded chunks is printed, and the layer messages follow it; *Within Range* is the old behaviour.
 - Lighter on the game: with nothing to do, the printer no longer rescans its range every tick, and the progress bar and the layer check only recount where blocks changed.
+- New: **Stop When a Placement Moves** (on by default). Moving, rotating, mirroring or resetting a placement (or one of its sub-regions) turns the printer off at once, so it never places blocks for the old position.
+- A client-side haste (Meteor's SpeedMine, for example) no longer counts for mining: blocks are broken at the speed the server accepts instead of flashing back.
+- With Litefastica (fast schematic moving), the printer waits until a moved placement has really moved in Litematica's data, about 1.5 seconds after the last move.
 
 More: open "Details" below.
 
@@ -31,6 +34,9 @@ More: open "Details" below.
 - 新增 **进度条统计范围**（默认“整个投影”）：进度条统计已加载区块里的整个投影；“工作范围内”是以前的算法。
 - 新增 **分层完成判定**（默认“整层”）：已加载区块里的整层都打完才往上一层，每层完成的提示也按这个；“工作范围内”是以前的做法。
 - 更省性能：没事可做时不再每 tick 重扫工作范围；进度条和分层判定只重算方块有变化的地方。
+- 新增 **投影移动时关闭打印机**（默认开）：投影（或它的子区域）一被移动、旋转、镜像或重置，打印机立刻关掉，不会按旧位置放方块。
+- 客户端自己加的急迫（比如 Meteor 的 SpeedMine）不再算进挖掘速度：按服务器认的速度挖，方块不会再闪一下又回来。
+- 装了 Litefastica（快速移动投影）时，打印机等投影数据真正挪到新位置（停手后约 1.5 秒）再继续。
 
 更多：点开下面的“详细说明”。
 
