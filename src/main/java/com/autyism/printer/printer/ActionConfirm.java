@@ -26,6 +26,10 @@ public final class ActionConfirm {
     /** 序号 → 这次动作手里拿的物品（用来算某种物品还有几次放置没被确认） */
     private static final it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<net.minecraft.world.item.Item> ITEMS = new it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<>();
     private static int lastAcked = -1;
+    /** 挖掘：位置 → {这一格最后一个破坏包的序号, 发出时的游戏时间}（同一格的开始、结束只算一格） */
+    private static final Long2ObjectOpenHashMap<long[]> BREAKS = new Long2ObjectOpenHashMap<>();
+    /** 收不到确认的挖掘（掉线、没有序号的老版本服务器）最多算这么久，免得耐久保护一直卡着 */
+    private static final long BREAK_TIMEOUT_TICKS = 100;
     private static ClientLevel trackedLevel;
 
     private ActionConfirm() {
@@ -47,7 +51,29 @@ public final class ActionConfirm {
         if (sequence > lastAcked) lastAcked = sequence;
         PENDING.values().removeIf(e -> e[0] <= lastAcked);
         ITEMS.int2ObjectEntrySet().removeIf(e -> e.getIntKey() <= lastAcked);
+        if (!BREAKS.isEmpty()) BREAKS.values().removeIf(e -> e[0] <= lastAcked);
         ServerProtocol.onAck(level, lastAcked);
+    }
+
+    /** 发出了一个破坏包（开始或结束挖掘） */
+    public static void breakSent(ClientLevel level, BlockPos pos, int sequence) {
+        if (level == null) return;
+        sync(level);
+        BREAKS.put(pos.asLong(), new long[]{sequence, level.getGameTime()});
+    }
+
+    /**
+     * 已经发出、服务端还没确认的挖掘格数。服务端处理挖掘时就扣了工具耐久，确认回来之前客户端的工具还是旧耐久，
+     * 最坏情况下每格扣 1 点（耐久附魔只会更少）。确认时一起清掉，所以这里只是数一下，不额外计算。
+     */
+    public static int breaksInFlight(ClientLevel level) {
+        if (level == null) return 0;
+        sync(level);
+        if (!BREAKS.isEmpty()) {
+            long now = level.getGameTime();
+            BREAKS.values().removeIf(e -> now - e[1] > BREAK_TIMEOUT_TICKS || now < e[1]);
+        }
+        return BREAKS.size();
     }
 
     /** 用这种物品、已经发出但还没被服务端确认的动作数（按序号去重；超时的不算） */
@@ -132,6 +158,7 @@ public final class ActionConfirm {
             trackedLevel = level;
             PENDING.clear();
             ITEMS.clear();
+            BREAKS.clear();
             lastAcked = -1;
             inventoryClickSeq = Integer.MIN_VALUE;
         }

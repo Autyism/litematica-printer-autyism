@@ -113,6 +113,10 @@ public abstract class MixinMultiPlayerGameMode implements MultiPlayerGameModeExt
 
     @Unique
     private ServerboundPlayerActionPacket litematica_printer$GetServerboundPlayerActionPacket(ServerboundPlayerActionPacket.Action action, BlockPos blockPos, Direction direction, int sequence) {
+        // 耐久保护要知道还有几格的挖掘服务端没确认（那几次磨损客户端还看不到），见 ToolSwitchUtils
+        if (action == ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK || action == ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK) {
+            com.autyism.printer.printer.ActionConfirm.breakSent(minecraft.level, blockPos, sequence);
+        }
         return new ServerboundPlayerActionPacket(action, blockPos, direction, sequence);
     }
 

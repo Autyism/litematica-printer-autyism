@@ -71,6 +71,10 @@ public final class ToolSwitchGameTest implements FabricClientGameTest {
             context.runOnClient(client -> Configs.Core.WORK_SWITCH.setBooleanValue(true));
             GT.waitServer(context, () -> remaining(sp) == 0, 400, "[tool] mining did not resume after repairing");
             GT.log("[tool] resume OK: after repair + printer toggle, mining finished");
+
+            // 场景 3：急迫 II + 效率 V 大范围秒挖（网络延迟用 -Plag），镐只剩 60 点：服务端还没确认的挖掘也算进去，在用坏之前停下
+            //? if >=1.21.11
+            testInstantAreaWear(context, sp);
         } finally {
             context.runOnClient(client -> GT.disableAll());
         }
@@ -138,6 +142,99 @@ public final class ToolSwitchGameTest implements FabricClientGameTest {
         });
         return damage;
     }
+
+    //? if >=1.21.11 {
+    // 和玩家的设置一样（同一 tick 内秒挖、工作半径大）：人站在上方的玻璃上，同一 tick 里够得着一大片
+    private static final BlockPos WEAR_MIN = new BlockPos(54, 64, -3);
+    private static final BlockPos WEAR_MAX = new BlockPos(68, 66, 11);
+    private static final int WEAR_LEFT = 60;
+
+    private static void testInstantAreaWear(ClientGameTestContext context, TestSingleplayerContext sp) {
+        context.runOnClient(client -> GT.disableAll());
+        GT.clearArena(sp, 50, -7, 72, 15, 74);
+        sp.getServer().runOnServer(server -> {
+            var level = server.overworld();
+            for (BlockPos pos : BlockPos.betweenClosed(WEAR_MIN, WEAR_MAX)) level.setBlockAndUpdate(pos, Blocks.STONE.defaultBlockState());
+            var player = server.getPlayerList().getPlayers().getFirst();
+            player.getInventory().clearContent();
+            level.setBlockAndUpdate(new BlockPos(61, 70, 4), Blocks.GLASS.defaultBlockState());
+            player.getInventory().setItem(7, new ItemStack(Items.DIRT, 16));
+            player.getInventory().setSelectedSlot(0);
+            player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetHeldSlotPacket(0));
+            player.inventoryMenu.sendAllDataToRemote();
+        });
+        int damage = new ItemStack(Items.NETHERITE_PICKAXE).getMaxDamage() - WEAR_LEFT;
+        sp.getServer().runCommand("item replace entity @a hotbar.0 with minecraft:netherite_pickaxe[minecraft:enchantments={\"minecraft:efficiency\":5},minecraft:damage=" + damage + "]");
+        sp.getServer().runCommand("effect give @a minecraft:haste infinite 1 true");
+        sp.getServer().runCommand("tp @a 61.5 71 4.5 0 90");
+        context.waitFor(client -> client.player != null && client.level.getBlockState(WEAR_MIN).is(Blocks.STONE)
+                && client.player.getInventory().getItem(0).is(Items.NETHERITE_PICKAXE)
+                && client.player.hasEffect(net.minecraft.world.effect.MobEffects.HASTE)
+                && Math.abs(client.player.getZ() - 4.5) < 0.01 && client.player.onGround(), 300);
+        context.waitFor(client -> com.autyism.printer.utils.ServerEffects.digSpeed() >= 1, 100);
+        int stoneBefore = wearStone(sp);
+        context.runOnClient(client -> {
+            ToolSwitchUtils.resetHalt();
+            DataManager.getRenderLayerRange().setLayerMode(LayerMode.ALL);
+            var selectionManager = DataManager.getSelectionManager();
+            if (selectionManager.getSelectionMode() != SelectionMode.SIMPLE) selectionManager.switchSelectionMode();
+            AreaSelection selection = DataManager.getSimpleArea();
+            Box box = selection.getSubRegionBox(selection.getName());
+            if (box == null) box = selection.getSelectedSubRegionBox();
+            box.setPos1(WEAR_MIN);
+            box.setPos2(WEAR_MAX);
+            Configs.Break.AUTO_TOOL_SWITCH.setBooleanValue(true);
+            Configs.Break.TOOL_DURABILITY_PROTECT.setBooleanValue(true);
+            Configs.Break.TOOL_DURABILITY_THRESHOLD.setIntegerValue(10);
+            Configs.Break.BREAK_INSTANT_MINE.setBooleanValue(true);
+            Configs.Core.WORK_RANGE.setDoubleValue(16);
+            Configs.Core.AUTO_RAISE_REACH.setBooleanValue(true);
+            Configs.Break.BREAK_BLOCKS_PER_TICK.setIntegerValue(0);
+            Configs.Break.BREAK_INTERVAL.setIntegerValue(0);
+            Configs.Break.BREAK_LIMITER.setOptionListValue(MiningFilterType.CUSTOM);
+            Configs.Break.BREAK_LIMIT.setOptionListValue(UsageRestriction.ListType.NONE);
+            Configs.Mine.EXCAVATE_LIMITER.setOptionListValue(MiningFilterType.CUSTOM);
+            Configs.Mine.EXCAVATE_LIMIT.setOptionListValue(UsageRestriction.ListType.NONE);
+            Configs.Mine.MINE_SELECTION_TYPE.setOptionListValue(SelectionType.LITEMATICA_SELECTION);
+            Configs.Mine.ENABLED.setBooleanValue(true);
+            ModuleManager.MINE.resetScanState();
+            Configs.Core.WORK_SWITCH.setBooleanValue(true);
+        });
+        int[] maxInFlight = {0};
+        for (int tick = 0; tick < 400 && !ToolSwitchUtils.isHalted(); tick++) {
+            int inFlight = context.computeOnClient(client -> com.autyism.printer.printer.ActionConfirm.breaksInFlight(client.level));
+            maxInFlight[0] = Math.max(maxInFlight[0], inFlight);
+            context.waitTick();
+        }
+        context.waitTicks(40);
+        context.runOnClient(client -> GT.disableAll());
+        int mined = stoneBefore - wearStone(sp);
+        int left = sp.getServer().computeOnServer(server -> {
+            var inv = server.getPlayerList().getPlayers().getFirst().getInventory();
+            for (int i = 0; i < inv.getContainerSize(); i++) {
+                ItemStack st = inv.getItem(i);
+                if (st.is(Items.NETHERITE_PICKAXE)) return st.getMaxDamage() - st.getDamageValue();
+            }
+            return -1;
+        });
+        GT.log("[tool] instant area: mined " + mined + " stone, pickaxe left " + left + " (started at " + WEAR_LEFT
+                + ", threshold 10), most breaks waiting for the server at once: " + maxInFlight[0] + ", halted " + ToolSwitchUtils.isHalted());
+        if (left < 0) throw new AssertionError("[tool] the pickaxe broke while instant mining an area");
+        if (left < 10) throw new AssertionError("[tool] the pickaxe went below the threshold: " + left);
+        if (mined < 30) throw new AssertionError("[tool] only " + mined + " stone mined: the test did not mine fast enough to mean anything");
+        if (!ToolSwitchUtils.isHalted()) throw new AssertionError("[tool] mining did not stop at the threshold");
+        sp.getServer().runCommand("effect clear @a");
+        GT.log("[tool] instant area OK: stopped before the pickaxe broke");
+    }
+
+    private static int wearStone(TestSingleplayerContext sp) {
+        return sp.getServer().computeOnServer(server -> {
+            int n = 0;
+            for (BlockPos pos : BlockPos.betweenClosed(WEAR_MIN, WEAR_MAX)) if (server.overworld().getBlockState(pos).is(Blocks.STONE)) n++;
+            return n;
+        });
+    }
+    //?}
 
     private static int remaining(TestSingleplayerContext sp) {
         return sp.getServer().computeOnServer(server -> {

@@ -36,9 +36,22 @@ public final class ToolSwitchUtils {
 
     /** 物品是否是“快坏了”的可损坏物品（剩余耐久 <= 阈值）。 */
     public static boolean isNearlyBroken(ItemStack stack) {
+        return isNearlyBroken(stack, 0);
+    }
+
+    /**
+     * 同上，再减去还没被服务端确认的磨损：急迫信标下大范围秒挖时，一次往返里可能已经挖了几十格，
+     * 客户端看到的耐久比服务端多出这么多，只按客户端的数字判断会把工具用坏。
+     */
+    private static boolean isNearlyBroken(ItemStack stack, int unconfirmedWear) {
         if (stack.isEmpty() || !stack.isDamageableItem()) return false;
-        int remaining = stack.getMaxDamage() - stack.getDamageValue();
+        int remaining = stack.getMaxDamage() - stack.getDamageValue() - unconfirmedWear;
         return remaining <= Configs.Break.TOOL_DURABILITY_THRESHOLD.getIntegerValue();
+    }
+
+    /** 手上这把工具还没被确认的磨损（只算手上的：换上来的工具没挖过这些格子） */
+    private static int heldWear(ClientLevel level) {
+        return com.autyism.printer.printer.ActionConfirm.breaksInFlight(level);
     }
 
     private static boolean protectEnabled() {
@@ -76,7 +89,7 @@ public final class ToolSwitchUtils {
         if (Configs.Break.AUTO_TOOL_SWITCH.getBooleanValue()) {
             int best = findBestSlot(player, state);
             tool = best == -1 ? player.getMainHandItem() : player.getInventory().getItem(best);
-            if (protectEnabled() && isNearlyBroken(tool)) {
+            if (protectEnabled() && isNearlyBroken(tool, best == -1 ? heldWear(level) : 0)) {
                 halt(player, tool);
                 return false;
             }
@@ -88,7 +101,7 @@ public final class ToolSwitchUtils {
             }
         } else {
             tool = player.getMainHandItem();
-            if (protectEnabled() && isNearlyBroken(tool)) {
+            if (protectEnabled() && isNearlyBroken(tool, heldWear(level))) {
                 halt(player, tool);
                 return false;
             }

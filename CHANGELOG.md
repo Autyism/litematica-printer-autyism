@@ -11,6 +11,7 @@
 - Lighter on the game: with nothing to do, the printer no longer rescans its range every tick, and the progress bar and the layer check only recount where blocks changed.
 - New: **Stop When a Placement Moves** (on by default). Moving, rotating, mirroring or resetting a placement (or one of its sub-regions) turns the printer off at once, so it never places blocks for the old position.
 - A client-side haste (Meteor's SpeedMine, for example) no longer counts for mining: blocks are broken at the speed the server accepts instead of flashing back.
+- Fix: tool durability protection now counts the breaks the server hasn't confirmed yet. With a haste beacon and same-tick instant mining over a big area, dozens of blocks were broken before the client saw the tool wear, and a tool could break; now mining stops at the threshold.
 - With Litefastica (fast schematic moving), the printer waits until a moved placement has really moved in Litematica's data, about 1.5 seconds after the last move.
 
 More: open "Details" below.
@@ -36,6 +37,7 @@ More: open "Details" below.
 - 更省性能：没事可做时不再每 tick 重扫工作范围；进度条和分层判定只重算方块有变化的地方。
 - 新增 **投影移动时关闭打印机**（默认开）：投影（或它的子区域）一被移动、旋转、镜像或重置，打印机立刻关掉，不会按旧位置放方块。
 - 客户端自己加的急迫（比如 Meteor 的 SpeedMine）不再算进挖掘速度：按服务器认的速度挖，方块不会再闪一下又回来。
+- 修复：工具耐久保护把服务器还没确认的挖掘也算进去。开着急迫信标、同一 tick 大范围秒挖时，客户端看到耐久变化之前已经挖了几十格，工具可能被用坏；现在到阈值就停。
 - 装了 Litefastica（快速移动投影）时，打印机等投影数据真正挪到新位置（停手后约 1.5 秒）再继续。
 
 更多：点开下面的“详细说明”。

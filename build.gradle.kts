@@ -57,6 +57,8 @@ dependencies {
             modLocalRuntime("maven.modrinth:fabric-bedrock-miner:3h4YNmtb")
             modLocalRuntime("net.fabricmc:fabric-language-kotlin:1.14.1+kotlin.2.4.20")
         }
+        // -Pquiet=<jar>: an extra local mod for the test client only (e.g. one that keeps the window off screen)
+        providers.gradleProperty("quiet").orNull?.let { modLocalRuntime(files(it)) }
     }
 
     compileOnly("org.projectlombok:lombok:${prop("deps.lombok")}")
