@@ -84,7 +84,10 @@ public final class MiningUtils {
     }
 
     public static boolean canInstantBreak(LocalPlayer player, BlockState state) {
-        return bestProgress(player, state) >= instantThreshold();
+        float best = bestProgress(player, state);
+        // 服务器上的 ALE 能替打印机一下挖掉的方块（默认深板岩）也算
+        return best >= instantThreshold()
+                || (Configs.Break.BREAK_INSTANT_MINE.getBooleanValue() && com.autyism.printer.compat.AleFastBreak.canBreakNow(state, best));
     }
 
     /** 是否具备秒破配置：背包里有效率 V（及以上）的工具，并且服务器给了急迫 II（及以上；客户端模组自己加的不算） */

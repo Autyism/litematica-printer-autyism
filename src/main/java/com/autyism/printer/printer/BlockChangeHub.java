@@ -1,8 +1,10 @@
 package com.autyism.printer.printer;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
@@ -11,6 +13,7 @@ import java.util.function.Consumer;
  */
 public final class BlockChangeHub {
     private static final CopyOnWriteArrayList<Consumer<BlockPos>> LISTENERS = new CopyOnWriteArrayList<>();
+    private static final CopyOnWriteArrayList<BiConsumer<BlockPos, BlockState>> STATE_LISTENERS = new CopyOnWriteArrayList<>();
 
     private BlockChangeHub() {
     }
@@ -19,7 +22,13 @@ public final class BlockChangeHub {
         LISTENERS.add(listener);
     }
 
-    public static void changed(BlockPos pos) {
+    /** 还要知道变成了什么方块的（通知时世界里还是旧方块） */
+    public static void registerWithState(BiConsumer<BlockPos, BlockState> listener) {
+        STATE_LISTENERS.add(listener);
+    }
+
+    public static void changed(BlockPos pos, BlockState newState) {
         for (Consumer<BlockPos> listener : LISTENERS) listener.accept(pos);
+        for (BiConsumer<BlockPos, BlockState> listener : STATE_LISTENERS) listener.accept(pos, newState);
     }
 }

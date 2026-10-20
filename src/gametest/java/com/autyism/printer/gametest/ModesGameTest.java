@@ -47,6 +47,7 @@ public final class ModesGameTest implements FabricClientGameTest {
             });
             fill(context, sp);
             fluid(context, sp);
+            fluidSourcesOnly(context, sp);
         } finally {
             context.runOnClient(c -> GT.disableAll());
         }
@@ -123,7 +124,7 @@ public final class ModesGameTest implements FabricClientGameTest {
         context.runOnClient(c -> {
             GT.disableAll();
             Configs.Fluid.FLUID_SELECTION_TYPE.setOptionListValue(SelectionType.LITEMATICA_SELECTION);
-            Configs.Fluid.FILL_FLOWING_FLUID.setBooleanValue(true);
+            Configs.Fluid.SOURCES_ONLY.setBooleanValue(false);
             Configs.Fluid.FLUID_REPLACE_BLOCK_LIST.setStrings(List.of("minecraft:cobblestone"));
             Configs.Fluid.FLUID_LIST.setStrings(List.of("minecraft:water", "minecraft:lava"));
             Configs.Fluid.ENABLED.setBooleanValue(true);
@@ -133,6 +134,56 @@ public final class ModesGameTest implements FabricClientGameTest {
         int ticks = GT.waitServer(context, () -> countFluids(sp) == 0, 1200, "[modes] fluid removal did not finish");
         context.runOnClient(c -> GT.disableAll());
         GT.log("[modes] fluid removal OK: " + fluidsBefore + " fluid blocks (water, flowing water, lava) removed in " + ticks + " ticks");
+    }
+
+    /**
+     * 只填源头（默认）：一格水源流满半个池子、另一半一格岩浆源（中间隔一道墙，水和岩浆碰不到一起生成圆石），
+     * 只往两个源头里放方块（用泥土，和别的方块分得开），流动的液体自己消失
+     */
+    private static void fluidSourcesOnly(ClientGameTestContext context, TestSingleplayerContext sp) {
+        sp.getServer().runOnServer(s -> {
+            ServerLevel level = s.overworld();
+            for (BlockPos p : BlockPos.betweenClosed(SEL_MIN, SEL_MAX)) level.setBlockAndUpdate(p, Blocks.STONE.defaultBlockState());
+            for (BlockPos p : BlockPos.betweenClosed(SEL_MIN.offset(1, 1, 1), SEL_MAX.offset(-1, 0, -1))) {
+                level.setBlockAndUpdate(p, p.getZ() == SEL_MIN.getZ() + 3 ? Blocks.STONE.defaultBlockState() : Blocks.AIR.defaultBlockState());
+            }
+            level.setBlockAndUpdate(SEL_MIN.offset(1, 1, 1), Blocks.WATER.defaultBlockState());
+            level.setBlockAndUpdate(SEL_MIN.offset(5, 1, 5), Blocks.LAVA.defaultBlockState());
+        });
+        giveAndPrepare(sp, Items.DIRT, 4);
+        // 等水流开（岩浆在主世界流得慢，流出一两格就够）
+        context.waitTicks(60);
+        int[] before = sp.getServer().computeOnServer(s -> {
+            int sources = 0, flowing = 0;
+            for (BlockPos p : BlockPos.betweenClosed(SEL_MIN, SEL_MAX)) {
+                var fluid = s.overworld().getFluidState(p);
+                if (fluid.isEmpty()) continue;
+                if (fluid.isSource()) sources++;
+                else flowing++;
+            }
+            return new int[]{sources, flowing};
+        });
+        if (before[0] != 2 || before[1] < 8) throw new AssertionError("[modes] sources only: setup has " + before[0] + " sources, " + before[1] + " flowing");
+        context.runOnClient(c -> {
+            GT.disableAll();
+            Configs.Fluid.FLUID_SELECTION_TYPE.setOptionListValue(SelectionType.LITEMATICA_SELECTION);
+            Configs.Fluid.SOURCES_ONLY.setBooleanValue(Configs.Fluid.SOURCES_ONLY.getDefaultBooleanValue());
+            Configs.Fluid.FLUID_REPLACE_BLOCK_LIST.setStrings(List.of("minecraft:dirt"));
+            Configs.Fluid.FLUID_LIST.setStrings(List.of("minecraft:water", "minecraft:lava"));
+            Configs.Fluid.ENABLED.setBooleanValue(true);
+            ModuleManager.FLUID_REMOVAL.resetScanState();
+            Configs.Core.WORK_SWITCH.setBooleanValue(true);
+        });
+        int ticks = GT.waitServer(context, () -> countFluids(sp) == 0, 1200, "[modes] sources only: the fluids did not go away");
+        context.waitTicks(40);
+        context.runOnClient(c -> GT.disableAll());
+        int placed = sp.getServer().computeOnServer(s -> {
+            int n = 0;
+            for (BlockPos p : BlockPos.betweenClosed(SEL_MIN, SEL_MAX)) if (s.overworld().getBlockState(p).is(Blocks.DIRT)) n++;
+            return n;
+        });
+        GT.log("[modes] sources only: " + before[0] + " sources + " + before[1] + " flowing gone in " + ticks + " ticks, dirt placed=" + placed);
+        if (placed != 2) throw new AssertionError("[modes] sources only: placed " + placed + " blocks, expected only the 2 sources");
     }
 
     private static int countFluids(TestSingleplayerContext sp) {

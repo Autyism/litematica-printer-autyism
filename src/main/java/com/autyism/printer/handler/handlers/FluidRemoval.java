@@ -74,10 +74,14 @@ public class FluidRemoval extends Module {
         return !fillItems.isEmpty() && !fluidBlocks.isEmpty();
     }
 
+    /** 要填的格子：名单里的流体；只填源头时流动的不算（不占每 tick 的放置次数，分层时也不挡着进下一层） */
+    private boolean isTarget(FluidState fluidState) {
+        return fluids.contains(fluidState.getType()) && (fluidState.isSource() || !Configs.Fluid.SOURCES_ONLY.getBooleanValue());
+    }
+
     @Override
     public boolean canProcessPos(BlockPos pos) {
-        FluidState fluidState = level.getBlockState(pos).getFluidState();
-        return fluids.contains(fluidState.getType());
+        return isTarget(level.getBlockState(pos).getFluidState());
     }
 
     @Override
@@ -87,17 +91,13 @@ public class FluidRemoval extends Module {
 
     @Override
     public boolean isCorrectBlock(BlockPos pos) {
-        FluidState fluidState = level.getBlockState(pos).getFluidState();
-        return !fluids.contains(fluidState.getType());
+        return !isTarget(level.getBlockState(pos).getFluidState());
     }
 
     @Override
     protected void executeIteration(BlockPos blockPos, AtomicReference<Boolean> skipIteration) {
         FluidState fluidState = level.getBlockState(blockPos).getFluidState();
-        if (fluids.contains(fluidState.getType())) {
-            if (!Configs.Fluid.FILL_FLOWING_FLUID.getBooleanValue() && !fluidState.isSource()) {
-                return;
-            }
+        if (isTarget(fluidState)) {
             if (!InventoryUtils.switchToItems(player, fillItems.toArray(new Item[0]))) {
                 if (!fillItems.isEmpty() && fillItems.get(0) != null) {
                     MissingMaterialTracker.getInstance().recordMissing(this, fillItems.get(0),

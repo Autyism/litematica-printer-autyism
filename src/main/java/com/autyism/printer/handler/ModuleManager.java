@@ -42,6 +42,7 @@ public class ModuleManager {
         // If TakeItOut is waiting for a server-side shulker extraction, skip
         // all processing so the printer does not interfere.
         if (TakeItOutCompat.isAwaitingItem()) return;
+        com.autyism.printer.utils.ToolSwitchUtils.tick();
 
         QuickShulkerUtils.tick();
         if (ModUtils.isRemoteInventoryNextLoaded()) {

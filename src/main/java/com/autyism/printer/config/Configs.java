@@ -660,8 +660,8 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 .defaultValue(SelectionType.LITEMATICA_SELECTION)
                 .build();
 
-        // 填充流动液体
-        public static final ConfigBoolean FILL_FLOWING_FLUID = booleanValue("fluidModeFillFlowing")
+        // 只填流体源头：源头填上以后流动的液体自己会消失（玩家要求默认开；新的设置名，旧的“包含流动液体”不再读取）
+        public static final ConfigBoolean SOURCES_ONLY = booleanValue("fluidModeSourcesOnly")
                 .defaultValue(true)
                 .build();
 
@@ -678,7 +678,7 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
         public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
                 ENABLED,
                 FLUID_SELECTION_TYPE,
-                FILL_FLOWING_FLUID,
+                SOURCES_ONLY,
                 FLUID_REPLACE_BLOCK_LIST,
                 FLUID_LIST
         );

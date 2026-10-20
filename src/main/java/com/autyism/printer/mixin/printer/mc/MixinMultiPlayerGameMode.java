@@ -113,10 +113,6 @@ public abstract class MixinMultiPlayerGameMode implements MultiPlayerGameModeExt
 
     @Unique
     private ServerboundPlayerActionPacket litematica_printer$GetServerboundPlayerActionPacket(ServerboundPlayerActionPacket.Action action, BlockPos blockPos, Direction direction, int sequence) {
-        // 耐久保护要知道还有几格的挖掘服务端没确认（那几次磨损客户端还看不到），见 ToolSwitchUtils
-        if (action == ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK || action == ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK) {
-            com.autyism.printer.printer.ActionConfirm.breakSent(minecraft.level, blockPos, sequence);
-        }
         return new ServerboundPlayerActionPacket(action, blockPos, direction, sequence);
     }
 
@@ -172,6 +168,15 @@ public abstract class MixinMultiPlayerGameMode implements MultiPlayerGameModeExt
                 destroyBlock(blockPos);
             }
             PacketUtils.sendPacket(sequence -> litematica_printer$GetServerboundPlayerActionPacket(ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK, blockPos, direction, sequence));
+            return BlockBreakResult.COMPLETED;
+        }
+        // 服务器上的 ALE 替打印机一下挖掉的方块（默认深板岩，一 tick 进度至少 50%，见 AleFastBreak）：带着请求只发 START
+        if (Configs.Break.BREAK_INSTANT_MINE.getBooleanValue() && com.autyism.printer.compat.AleFastBreak.canBreakNow(blockState, destroyProgress)) {
+            if (localPrediction) {
+                destroyBlock(blockPos);
+            }
+            com.autyism.printer.compat.AleFastBreak.breakNow(blockPos, () ->
+                    PacketUtils.sendPacket(sequence -> litematica_printer$GetServerboundPlayerActionPacket(ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK, blockPos, direction, sequence)));
             return BlockBreakResult.COMPLETED;
         }
         // 同 tick 快速破坏：服务端在 STOP 时按 进度 x (已过tick+1) >= 0.7 判定，同 tick 内即 进度 >= 0.7。

@@ -6,6 +6,8 @@ import com.autyism.printer.utils.ModUtils;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Method;
@@ -34,6 +36,11 @@ public class BedrockCompat {
     @Nullable private static Method setFeatureEnableMethod;
     @Nullable private static Method enableMethod;
     @Nullable private static Method disableMethod;
+    /** 破基岩模组手上还有没有活：lxyan2333 的进行中任务；bunnyi116 的待办和进行中任务 */
+    @Nullable private static Method activeTasksMethod;
+    @Nullable private static Method pendingTasksMethod;
+    /** bunnyi116 不在聊天栏提示的清空任务（removeAll(false)） */
+    @Nullable private static Method quietClearMethod;
 
     /** 由打印机开启（而非玩家自己开启）的破基岩模组，打印机关闭破基岩模式时再关掉 */
     private static boolean enabledByPrinter;
@@ -111,6 +118,9 @@ public class BedrockCompat {
             setRunningMethod = tmClass.getDeclaredMethod("setRunning", boolean.class, boolean.class);
             isFeatureEnableMethod = tmClass.getDeclaredMethod("isBedrockMinerFeatureEnable");
             setFeatureEnableMethod = tmClass.getDeclaredMethod("setBedrockMinerFeatureEnable", boolean.class);
+            activeTasksMethod = findOptional(tmClass, "getActiveBlockTasks");
+            pendingTasksMethod = findOptional(tmClass, "getPendingBlockTasks");
+            quietClearMethod = findOptional(tmClass, "removeAll", boolean.class);
             return true;
         } catch (Throwable ignored) {
             clear();
@@ -127,6 +137,7 @@ public class BedrockCompat {
             isRunningMethod = c.getMethod("getEnabled");
             enableMethod = c.getMethod("enable");
             disableMethod = c.getMethod("disable");
+            activeTasksMethod = findOptional(c, "getActiveFlows");
             return true;
         } catch (Throwable ignored) {
             clear();
@@ -134,7 +145,19 @@ public class BedrockCompat {
         }
     }
 
+    @Nullable
+    private static Method findOptional(Class<?> type, String name, Class<?>... parameters) {
+        try {
+            return type.getMethod(name, parameters);
+        } catch (Throwable e) {
+            return null;
+        }
+    }
+
     private static void clear() {
+        activeTasksMethod = null;
+        pendingTasksMethod = null;
+        quietClearMethod = null;
         minerInstance = null;
         addBlockTaskMethod = null;
         clearTaskMethod = null;
@@ -238,22 +261,150 @@ public class BedrockCompat {
         };
     }
 
-    public static void addToBreakList(BlockPos pos, ClientLevel world) {
+    /** 交给破基岩模组一个方块，返回它是否接下了（lxyan2333 的会拒绝不允许或正被占用的位置） */
+    public static boolean addToBreakList(BlockPos pos, ClientLevel world) {
         Impl impl = impl();
-        if (impl == Impl.NONE || addBlockTaskMethod == null) return;
+        if (impl == Impl.NONE || addBlockTaskMethod == null) return false;
         try {
-            switch (impl) {
+            Object result = switch (impl) {
                 case BUNNYI -> addBlockTaskMethod.invoke(minerInstance, world, pos, world.getBlockState(pos).getBlock());
                 default -> addBlockTaskMethod.invoke(minerInstance, pos);
+            };
+            return !(result instanceof net.minecraft.world.InteractionResult r) || r != net.minecraft.world.InteractionResult.PASS;
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    /** 调试：破基岩模组手上的任务（位置、状态） */
+    public static String debugTasks() {
+        StringBuilder sb = new StringBuilder();
+        try {
+            for (Method m : new Method[]{activeTasksMethod, pendingTasksMethod}) {
+                if (m == null) continue;
+                sb.append(m.getName()).append('=');
+                if (m.invoke(minerInstance) instanceof java.util.Collection<?> c) {
+                    for (Object t : c) {
+                        String state = "";
+                        Object pos = null;
+                        try {
+                            state = String.valueOf(t.getClass().getMethod("getCurrentState").invoke(t));
+                        } catch (Throwable ignored) {
+                        }
+                        try {
+                            pos = t.getClass().getField("pos").get(t);
+                        } catch (Throwable ignored) {
+                        }
+                        sb.append('[').append(pos != null ? pos : t).append(' ').append(state).append(']');
+                    }
+                }
+                sb.append(' ');
+            }
+        } catch (Throwable e) {
+            sb.append(e);
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 破基岩模组手上还有这一格的活（还没做完，或者还在拆活塞、火把）。别的格子的活不算（例如人走远时 bunnyi116 挂起的那一格）；
+     * 读不出任务的位置时，手上有活就算。
+     */
+    public static boolean isBusyWith(BlockPos pos) {
+        if (impl() == Impl.NONE) return false;
+        try {
+            for (Method m : new Method[]{activeTasksMethod, pendingTasksMethod}) {
+                if (m == null || !(m.invoke(minerInstance) instanceof java.util.Collection<?> tasks)) continue;
+                for (Object task : tasks) {
+                    BlockPos taskPos = taskPos(task);
+                    if (taskPos == null || taskPos.equals(pos)) return true;
+                }
             }
         } catch (Throwable ignored) {
         }
+        return false;
+    }
+
+    /**
+     * 破基岩模组破一格时会放下的方块：活塞（推出时的活塞头、移动中的活塞）、红石火把、粘液块，
+     * 以及 lxyan2333 设置里的垫块（它放在火把下面）。
+     */
+    public static boolean isMinerBlock(BlockState state) {
+        if (state.is(Blocks.PISTON) || state.is(Blocks.STICKY_PISTON) || state.is(Blocks.PISTON_HEAD) || state.is(Blocks.MOVING_PISTON)
+                || state.is(Blocks.REDSTONE_TORCH) || state.is(Blocks.REDSTONE_WALL_TORCH) || state.is(Blocks.SLIME_BLOCK)) return true;
+        Block support = lxyanSupportBlock();
+        return support != null && support != Blocks.AIR && state.is(support);
+    }
+
+    @Nullable
+    private static Block lxyanSupportBlock() {
+        if (impl() != Impl.LXYAN) return null;
+        try {
+            Class<?> generic = Class.forName("com.github.lxyan2333.bedrockminer.client.config.Configs$Generic");
+            return (Block) generic.getMethod("getSupportBlock").invoke(generic.getField("INSTANCE").get(null));
+        } catch (Throwable e) {
+            return null;
+        }
+    }
+
+    /**
+     * 破基岩模组手上一个够得着的任务的位置（例如人走开时挂起、回来以后它会接着做的那一格，或者玩家自己点的）；没有就是 null。
+     * 读不出位置的任务不算。
+     */
+    @Nullable
+    public static BlockPos reachableTask(net.minecraft.client.player.LocalPlayer player) {
+        if (impl() == Impl.NONE) return null;
+        try {
+            for (Method m : new Method[]{activeTasksMethod, pendingTasksMethod}) {
+                if (m == null || !(m.invoke(minerInstance) instanceof java.util.Collection<?> tasks)) continue;
+                for (Object task : tasks) {
+                    BlockPos taskPos = taskPos(task);
+                    if (taskPos != null && com.autyism.printer.utils.PlayerUtils.isWithinBlockInteractionRange(player, taskPos, 0)) {
+                        return taskPos.immutable();
+                    }
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+        return null;
+    }
+
+    /** 任务的目标位置：lxyan2333 的 BreakingFlow.getTargetPos()，bunnyi116 的 Task.pos */
+    @Nullable
+    private static BlockPos taskPos(Object task) {
+        try {
+            if (impl() == Impl.LXYAN) return (BlockPos) task.getClass().getMethod("getTargetPos").invoke(task);
+            return (BlockPos) task.getClass().getField("pos").get(task);
+        } catch (Throwable e) {
+            return null;
+        }
+    }
+
+    /** 读得到破基岩模组的任务列表（lxyan2333、bunnyi116 的能；z7087 的 blockminer 不能） */
+    public static boolean tracksTasks() {
+        return impl() != Impl.NONE && activeTasksMethod != null;
+    }
+
+    /**
+     * 破基岩模组手上没有活了（上一个方块连同收尾的活塞、火把都处理完）。读不到它的任务列表时（z7087 的 blockminer）
+     * 当作空闲，靠方块消失和服务端确认来判断。
+     */
+    public static boolean isIdle() {
+        if (impl() == Impl.NONE) return true;
+        try {
+            if (activeTasksMethod != null && activeTasksMethod.invoke(minerInstance) instanceof java.util.Collection<?> c && !c.isEmpty()) return false;
+            if (pendingTasksMethod != null && pendingTasksMethod.invoke(minerInstance) instanceof java.util.Collection<?> c && !c.isEmpty()) return false;
+        } catch (Throwable ignored) {
+        }
+        return true;
     }
 
     public static void clearTasks() {
         if (impl() == Impl.NONE || clearTaskMethod == null) return;
         try {
-            clearTaskMethod.invoke(minerInstance);
+            // bunnyi116 的 clearTask 每次都在聊天栏说一句“已清除任务”：有不说话的版本就用它
+            if (quietClearMethod != null) quietClearMethod.invoke(minerInstance, false);
+            else clearTaskMethod.invoke(minerInstance);
         } catch (Throwable ignored) {
         }
     }

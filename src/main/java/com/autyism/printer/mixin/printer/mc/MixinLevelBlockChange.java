@@ -14,6 +14,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class MixinLevelBlockChange {
     @Inject(method = "setBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;II)Z", at = @At("HEAD"))
     private void litematica_printer$noteBlockChange(BlockPos pos, BlockState state, int flags, int recursionLeft, CallbackInfoReturnable<Boolean> cir) {
-        if (((Level) (Object) this).isClientSide()) BlockChangeHub.changed(pos);
+        if (((Level) (Object) this).isClientSide()) BlockChangeHub.changed(pos, state);
     }
 }

@@ -30,6 +30,8 @@ public final class ToolSwitchUtils {
     private static boolean halted;
     private static String haltedToolName = "";
     private static int haltedRemaining;
+    /** 挖掘包被拦下了，停下破基岩的其余动作留到打印机下一 tick 做（拦包时还在破基岩模组自己的循环里） */
+    private static boolean bedrockHaltPending;
 
     private ToolSwitchUtils() {
     }
@@ -49,6 +51,97 @@ public final class ToolSwitchUtils {
         return remaining <= Configs.Break.TOOL_DURABILITY_THRESHOLD.getIntegerValue();
     }
 
+    /** 破基岩一格最多磨损几次镐（拆活塞，可能再拆一个支撑方块，留点余量） */
+    private static final int BEDROCK_WEAR_PER_TARGET = 3;
+
+    /**
+     * 破基岩模式交下一格之前：按破基岩模组的选法找出它挖活塞会用的镐（手上的能秒破活塞就用手上的，
+     * 否则背包里第一把能秒破的），快坏了就停下，不交这一格。
+     *
+     * @return true 表示可以继续
+     */
+    public static boolean checkBedrockTool(LocalPlayer player) {
+        if (player == null || player.getAbilities().instabuild || !protectEnabled()) return true;
+        if (halted) {
+            warnHalted();
+            return false;
+        }
+        BlockState piston = net.minecraft.world.level.block.Blocks.PISTON.defaultBlockState();
+        ItemStack tool = player.getMainHandItem();
+        int wear = heldWear(mc.level);
+        if (PlayerUtils.getDestroyProgressWithStack(player, piston, tool) < 1.0F) {
+            // 背包里第一把能秒破活塞的；一把都没有时（破基岩模组可以设成跳过秒破检查）按最快的算
+            ItemStack best = ItemStack.EMPTY;
+            float bestProgress = 0;
+            tool = ItemStack.EMPTY;
+            wear = 0;
+            Inventory inventory = player.getInventory();
+            for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+                ItemStack stack = inventory.getItem(slot);
+                if (stack.isEmpty()) continue;
+                float progress = PlayerUtils.getDestroyProgressWithStack(player, piston, stack);
+                if (progress >= 1.0F) {
+                    tool = stack;
+                    break;
+                }
+                if (progress > bestProgress) {
+                    bestProgress = progress;
+                    best = stack;
+                }
+            }
+            if (tool.isEmpty()) tool = best;
+        }
+        if (isNearlyBroken(tool, wear + BEDROCK_WEAR_PER_TARGET)) {
+            haltBedrock(player, tool);
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * 每个挖掘包发出之前（打印机的、破基岩模组的都走这里）：记下来给耐久保护算没确认的磨损；
+     * 打印机的破基岩模式开着时，手上的工具快坏了就拦下这个包并停下（破基岩模组自己选镐，不看耐久）。
+     *
+     * @return true 表示拦下这个包
+     */
+    public static boolean guardBreakPacket(net.minecraft.network.protocol.game.ServerboundPlayerActionPacket packet) {
+        var action = packet.getAction();
+        if (action != net.minecraft.network.protocol.game.ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK
+                && action != net.minecraft.network.protocol.game.ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK) return false;
+        LocalPlayer player = mc.player;
+        ClientLevel level = mc.level;
+        if (player == null || level == null) return false;
+        if (!player.getAbilities().instabuild && protectEnabled() && Configs.Core.WORK_SWITCH.getBooleanValue()
+                && Configs.Bedrock.ENABLED.getBooleanValue()) {
+            ItemStack hand = player.getMainHandItem();
+            // 破基岩模组闲着时这是玩家自己在挖，不管
+            if (hand.isDamageableItem() && isNearlyBroken(hand, heldWear(level))
+                    && !com.autyism.printer.compat.BedrockCompat.isIdle()) {
+                if (!halted) markHalted(hand);
+                bedrockHaltPending = true;
+                return true;
+            }
+        }
+        com.autyism.printer.printer.ActionConfirm.breakSent(level, packet.getPos(), packet.getSequence());
+        return false;
+    }
+
+    /** 停下破基岩：清掉破基岩模组手上的活，打印机的挖掘也停（和平时的耐久保护一样，重开打印机才恢复） */
+    private static void haltBedrock(LocalPlayer player, ItemStack tool) {
+        com.autyism.printer.compat.BedrockCompat.clearTasks();
+        halt(player, tool);
+    }
+
+    /** 打印机每 tick 开头调用：做完拦包时留下的停止动作 */
+    public static void tick() {
+        if (!bedrockHaltPending) return;
+        bedrockHaltPending = false;
+        LocalPlayer player = mc.player;
+        if (player == null || !halted) return;
+        com.autyism.printer.compat.BedrockCompat.clearTasks();
+        stopAndSecure(player);
+    }
+
     /** 手上这把工具还没被确认的磨损（只算手上的：换上来的工具没挖过这些格子） */
     private static int heldWear(ClientLevel level) {
         return com.autyism.printer.printer.ActionConfirm.breaksInFlight(level);
@@ -65,6 +158,7 @@ public final class ToolSwitchUtils {
     /** 打印机重新开启时调用：解除停止状态 */
     public static void resetHalt() {
         halted = false;
+        bedrockHaltPending = false;
     }
 
     /**
@@ -110,10 +204,18 @@ public final class ToolSwitchUtils {
     }
 
     private static void halt(LocalPlayer player, ItemStack tool) {
+        markHalted(tool);
+        stopAndSecure(player);
+    }
+
+    private static void markHalted(ItemStack tool) {
         halted = true;
         haltedToolName = tool.getHoverName().getString();
         haltedRemaining = tool.getMaxDamage() - tool.getDamageValue();
         lastWarnTime = 0;
+    }
+
+    private static void stopAndSecure(LocalPlayer player) {
         // 停止当前正在进行的挖掘
         if (mc.gameMode != null) mc.gameMode.stopDestroyBlock();
         ensureSafeItemInHand(player);

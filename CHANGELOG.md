@@ -13,6 +13,10 @@
 - A client-side haste (Meteor's SpeedMine, for example) no longer counts for mining: blocks are broken at the speed the server accepts instead of flashing back.
 - Fix: tool durability protection now counts the breaks the server hasn't confirmed yet. With a haste beacon and same-tick instant mining over a big area, dozens of blocks were broken before the client saw the tool wear, and a tool could break; now mining stops at the threshold.
 - With Litefastica (fast schematic moving), the printer waits until a moved placement has really moved in Litematica's data, about 1.5 seconds after the last move.
+- Fix: bedrock mode over an area put pistons and torches around many blocks at once and broke none of them. Now the bedrock miner gets one block at a time; the next one goes only after the server has broken it and the miner has cleaned up. Pistons and torches the miner leaves behind (for example when you walk away while it works) are broken by the printer once you are back in reach.
+- Tool durability protection also covers bedrock mode: the pickaxe the bedrock miner will use is checked before every block, and while bedrock mode runs, a break with a nearly broken tool in hand is stopped before it reaches the server.
+- Fluid removal: new **Sources Only** (on by default). Only source blocks are filled; the flowing liquid then drains away by itself. It replaces *Include Flowing Liquids*.
+- With ALE 1.2.0 on the client and the server (or in single player), deepslate is mined over an area like an instant block (*Instant Mining* on, netherite pickaxe with Efficiency V, Haste II). Mining by hand is not affected.
 
 More: open "Details" below.
 
@@ -39,6 +43,10 @@ More: open "Details" below.
 - 客户端自己加的急迫（比如 Meteor 的 SpeedMine）不再算进挖掘速度：按服务器认的速度挖，方块不会再闪一下又回来。
 - 修复：工具耐久保护把服务器还没确认的挖掘也算进去。开着急迫信标、同一 tick 大范围秒挖时，客户端看到耐久变化之前已经挖了几十格，工具可能被用坏；现在到阈值就停。
 - 装了 Litefastica（快速移动投影）时，打印机等投影数据真正挪到新位置（停手后约 1.5 秒）再继续。
+- 修复：破基岩模式框一片范围时，会在很多格旁边同时放活塞和火把，结果哪一格都破不掉。现在一次只交给破基岩模组一格，服务器确认破掉、破基岩模组收拾完以后才交下一格。破基岩模组留下的活塞和火把（比如它干到一半你走开了），你回来以后打印机会拆掉。
+- 工具耐久保护也管破基岩模式：每交一格之前检查破基岩模组要用的镐；破基岩模式开着时，手上的工具快坏了，挖掘直接拦下，不发给服务器。
+- 排流体新增 **只填流体源头**（默认开）：只往源头里填方块，流动的液体随后自己消失。取代原来的“包含流动液体”。
+- 客户端和服务端都装了 ALE 1.2.0（或单人游戏）时，深板岩可以像能秒破的方块一样大范围秒挖（要开“即时挖掘”，下界合金镐效率 V、急迫 II）。自己手动挖不受影响。
 
 更多：点开下面的“详细说明”。
 

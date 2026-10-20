@@ -75,12 +75,12 @@ Compared with the 1.21.11 printer builds it is based on, this edition adds or re
 ### Breaking, filling and bedrock
 
 - **Built-in tool switching.** Before the printer breaks a block, it picks the fastest suitable tool from your whole inventory, preferring tools that make the block drop. Tweakeroo is not needed, and your own mining is not affected.
-- **Tool durability protection.** If the tool it would use has 10 durability or less left, all breaking stops instead of falling back to a worse tool, a non-breakable item goes into your hand and a warning appears. Repair or replace the tool, then turn the printer off and on.
+- **Tool durability protection.** If the tool it would use has 10 durability or less left, all breaking stops instead of falling back to a worse tool, a non-breakable item goes into your hand and a warning appears. Repair or replace the tool, then turn the printer off and on. In bedrock mode it also checks the pickaxe the bedrock mod will use.
 - **Instant-first mining.** Mining mode breaks everything it can break instantly first and leaves slow blocks for last; walking on brings new instant blocks to the front. By default this only happens when you have an Efficiency V tool and Haste II.
 - **Filling.** Fills air, fluids and overwritable blocks inside your Litematica area selection with a block from a list (default: cobblestone) or the block in your hand. You can choose a facing, for example to place top slabs.
-- **Fluid removal.** Places blocks (default: sand) into water and lava inside the area selection, including flowing fluid.
+- **Fluid removal.** Places blocks (default: sand) into water and lava sources inside the area selection; the flowing fluid then drains away by itself. Turn off *Sources Only* to fill flowing fluid too.
 - **Mining.** Breaks every non-liquid block inside the area selection, with an optional whitelist or blacklist, or Tweakeroo's block-breaking restriction lists.
-- **Bedrock breaking.** Hands every bedrock block in your area selection to a bedrock-breaking mod: Fabric-Bedrock-Miner (LXYan2333), Bedrock Miner (bunnyi116) or BlockMiner. *Auto* prefers LXYan2333's. Add other blocks such as end portal frames or reinforced deepslate to the block list; with Fabric-Bedrock-Miner or Bedrock Miner they are also added to that mod's own allow list automatically. By default it ignores Litematica's render layers and works on the whole selection.
+- **Bedrock breaking.** Hands every bedrock block in your area selection to a bedrock-breaking mod: Fabric-Bedrock-Miner (LXYan2333), Bedrock Miner (bunnyi116) or BlockMiner. *Auto* prefers LXYan2333's. Add other blocks such as end portal frames or reinforced deepslate to the block list; with Fabric-Bedrock-Miner or Bedrock Miner they are also added to that mod's own allow list automatically. By default it ignores Litematica's render layers and works on the whole selection. It hands over one block at a time and waits until the server has broken it and the bedrock mod has cleaned up, and it breaks pistons and torches the bedrock mod left behind (for example after you walked away), so they never pile up.
 
 ### Fluids
 
@@ -273,7 +273,7 @@ The Printing tab ends with the placing settings, which Filling and Fluid Removal
 | Tool Durability Protection / Durability Threshold | on / 10 | Stops breaking instead of using a tool at or below this durability. |
 | Check Block Hardness | on | Skips unbreakable blocks. |
 | Mining Progress Threshold | 100 % | Counts a block as broken at this progress (70–100 %). The vanilla server accepts 70 %, but anti-cheat may not. |
-| Instant Mining | off | Breaks a block in one tick when one tick of progress reaches the threshold above; only matters below 100 %. |
+| Instant Mining | off | Breaks a block in one tick when one tick of progress reaches the threshold above; only matters below 100 %. With ALE 1.2.0 on the server too (or in single player), deepslate also breaks in one tick from 50 % (Efficiency V netherite pickaxe and Haste II). |
 | Breaking Interval Time / Blocks to Break Per Tick / Mining Cooldown Time | 1 tick / 1 / 3 ticks | Breaking speed limits. |
 | Breaking Restriction Source / Mode / Whitelist / Blacklist | Custom / No Limit | Which blocks the printer may break at all (Mining mode, and wrong or extra blocks while printing), or Tweakeroo's lists. |
 
@@ -288,7 +288,7 @@ The Printing tab ends with the placing settings, which Filling and Fluid Removal
 | Fill Block Mode / Block List | Block List / cobblestone | Fill with blocks from the list, or with the block in your hand (*Held Item*). |
 | Fill Block Facing | None | Facing for filled blocks, for example top or bottom slabs. |
 | Enable Fluid Removal | off | Replaces fluids in the area selection. |
-| Include Flowing Liquids | on | Also fills flowing water and lava. |
+| Sources Only | on | Fills only water and lava sources; the flowing fluid drains away by itself. |
 | Fluid Filling Block List / Fluid List | sand / water, lava | Blocks used, and fluids removed. |
 
 ### Bedrock
@@ -496,12 +496,12 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 ### 挖掘、填充和破基岩
 
 - **内置自动换工具。** 打印机要破坏方块前，会从整个背包里挑最快、并且能让方块掉落的工具。不需要 Tweakeroo，也不影响你自己手动挖。
-- **工具耐久保护。** 要用的工具耐久只剩 10 点或更少时，打印机不会换个差的工具凑合，而是停止所有破坏，把手上换成不会损坏的物品并提示你。修好或换掉工具后，关一下再开打印机即可继续。
+- **工具耐久保护。** 要用的工具耐久只剩 10 点或更少时，打印机不会换个差的工具凑合，而是停止所有破坏，把手上换成不会损坏的物品并提示你。修好或换掉工具后，关一下再开打印机即可继续。破基岩模式下也会检查破基岩模组要用的镐。
 - **秒破优先。** 挖掘模式先挖所有能秒破的方块，挖不动的留到最后；走动后范围里又出现能秒破的，会重新优先。默认只在你有效率 V 工具并且有急迫 II 时启用。
 - **填充。** 在 Litematica 选区内，把空气、流体和可覆盖的方块填成列表里的方块（默认圆石）或手上拿的方块。可以设置朝向，例如放上半砖。
-- **排流体。** 在选区内往水和岩浆里放方块（默认沙子），默认包括流动的液体。
+- **排流体。** 在选区内往水源和岩浆源里放方块（默认沙子），流动的液体随后自己消失。关掉“只填流体源头”就连流动的一起填。
 - **挖掘。** 挖掉选区内所有非液体方块，可以用白名单 / 黑名单，或者 Tweakeroo 的破坏限制列表。
-- **破基岩。** 把选区内的基岩交给破基岩模组处理：Fabric-Bedrock-Miner（LXYan2333）、Bedrock Miner（bunnyi116）或 BlockMiner。“自动”会优先用 LXYan2333 的。末地传送门框架、强化深板岩等方块可以加进方块列表；使用 Fabric-Bedrock-Miner 或 Bedrock Miner 时，这些方块还会自动同步到该模组自己的允许列表。默认忽略 Litematica 的渲染层，处理整个选区。
+- **破基岩。** 把选区内的基岩交给破基岩模组处理：Fabric-Bedrock-Miner（LXYan2333）、Bedrock Miner（bunnyi116）或 BlockMiner。“自动”会优先用 LXYan2333 的。末地传送门框架、强化深板岩等方块可以加进方块列表；使用 Fabric-Bedrock-Miner 或 Bedrock Miner 时，这些方块还会自动同步到该模组自己的允许列表。默认忽略 Litematica 的渲染层，处理整个选区。一次只交一格，等服务器确认破掉、破基岩模组收拾完再交下一格；破基岩模组留下的活塞和火把（比如你中途走开了）也会拆掉，不会到处都是。
 
 ### 流体
 
@@ -694,7 +694,7 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 | 工具耐久保护 / 耐久保护阈值 | 开 / 10 | 工具耐久不高于该值时停止破坏，而不是继续用它。 |
 | 检查方块硬度 | 开 | 跳过无法破坏的方块。 |
 | 挖掘进度阈值 | 100% | 挖到这个进度（70%~100%）就算挖完。原版服务器在 70% 就认可，但反作弊不一定。 |
-| 即时挖掘 | 关 | 一 tick 的挖掘进度达到上面的阈值时直接破坏；阈值低于 100% 时才有作用。 |
+| 即时挖掘 | 关 | 一 tick 的挖掘进度达到上面的阈值时直接破坏；阈值低于 100% 时才有作用。服务端也装了 ALE 1.2.0（或单人游戏）时，深板岩到 50% 就能一 tick 挖掉（效率 V 下界合金镐加急迫 II）。 |
 | 破坏间隔时间 / 每刻破坏方块数 / 挖掘冷却时间 | 1 tick / 1 / 3 tick | 破坏速度限制。 |
 | 破坏限制规则来源 / 模式 / 白名单 / 黑名单 | 自定义 / 无限制 | 打印机到底能破坏哪些方块（挖掘模式，以及打印时破坏错误或多余的方块），或使用 Tweakeroo 的列表。 |
 
@@ -709,7 +709,7 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 | 填充方块模式 / 方块列表 | 方块列表 / 圆石 | 用列表里的方块填充，或用手上拿的方块（“手持物品”）。 |
 | 填充方块朝向 | 无 | 填充方块的朝向，例如上半砖或下半砖。 |
 | 启用排流体 | 关 | 替换选区内的流体。 |
-| 包含流动液体 | 开 | 流动的水和岩浆也会被填掉。 |
+| 只填流体源头 | 开 | 只填水源和岩浆源，流动的液体会自己消失。 |
 | 流体填充方块列表 / 流体列表 | 沙子 / 水、岩浆 | 用来填的方块，以及要排掉的流体。 |
 
 ### 破基岩

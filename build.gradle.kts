@@ -59,6 +59,8 @@ dependencies {
         }
         // -Pquiet=<jar>: an extra local mod for the test client only (e.g. one that keeps the window off screen)
         providers.gradleProperty("quiet").orNull?.let { modLocalRuntime(files(it)) }
+        // -PwithAle=<jar>: ALE in the test client (its server part runs in single player), for the deepslate test
+        providers.gradleProperty("withAle").orNull?.let { modLocalRuntime(files(it)) }
     }
 
     compileOnly("org.projectlombok:lombok:${prop("deps.lombok")}")
@@ -139,7 +141,7 @@ if (providers.gradleProperty("aleGameTest").isPresent) {
     }
     tasks.matching { it.name == "runClientGameTest" }.configureEach {
         (this as JavaExec).systemProperty("ale.gt", (project.findProperty("gt") ?: "").toString())
-        for (key in listOf("range", "layered", "bpt", "ticks", "debuglook", "list", "debugrails", "lag", "protocol", "bigmats", "lagspike", "lagcheck", "noghost", "dumpmissing", "debugfluid", "backends", "slotdedupe", "startindex", "servuxrefuse", "debugadjust")) {
+        for (key in listOf("range", "layered", "bpt", "ticks", "debuglook", "list", "debugrails", "lag", "protocol", "bigmats", "lagspike", "lagcheck", "noghost", "dumpmissing", "debugfluid", "backends", "slotdedupe", "startindex", "servuxrefuse", "debugadjust", "bedrockonly", "debugbedrock")) {
             project.findProperty(key)?.let { (this as JavaExec).systemProperty("ale.$key", it.toString()) }
         }
         // 打印机本来就会直接发包（转头、潜行、容器操作），测试框架的网络同步检查会偶发误报：统一关掉

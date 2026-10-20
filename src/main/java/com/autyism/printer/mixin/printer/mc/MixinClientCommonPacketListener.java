@@ -41,4 +41,13 @@ public class MixinClientCommonPacketListener {
     private Packet<?> modifySendPacket(Packet<?> packet) {
         return PacketUtils.getFixedPacket(packet);
     }
+
+    // 挖掘包（打印机的、破基岩模组的）：记下来给耐久保护算没确认的磨损；破基岩模式下手上的工具快坏了就拦下（见 ToolSwitchUtils）
+    @org.spongepowered.asm.mixin.injection.Inject(method = "send(Lnet/minecraft/network/protocol/Packet;)V", at = @At("HEAD"), cancellable = true)
+    private void litematica_printer$guardBreak(Packet<?> packet, org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
+        if (packet instanceof net.minecraft.network.protocol.game.ServerboundPlayerActionPacket action
+                && com.autyism.printer.utils.ToolSwitchUtils.guardBreakPacket(action)) {
+            ci.cancel();
+        }
+    }
 }
