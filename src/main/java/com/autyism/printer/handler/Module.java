@@ -167,6 +167,9 @@ public abstract class Module extends ConfigUtils {
     private BlockPos guiPos;
     private boolean guiExecuted;
 
+    /** 调试用：这一次 executeIteration 是从哪里来的（wait = 等换物品的那一格，scan = 扫描，子类还有 follow / adjust） */
+    protected String execPath = "scan";
+
     private void iterateBlocks(int maxExecs) {
         int execCount = 0;
         layerIdleTicks++;
@@ -190,6 +193,7 @@ public abstract class Module extends ConfigUtils {
                 waitingPos = null;
                 scanState = ScanState.RUNNING;
                 if (pos != null && needsWork(pos)) {
+                    execPath = "wait";
                     executeIteration(pos, skipIteration);
                     passDidWork = true;
                     execCount++;
@@ -276,6 +280,7 @@ public abstract class Module extends ConfigUtils {
                 if (work) {
                     // 按方块分类：一轮扫描仅处理一种方块类型（可选开关）
                     if (!Configs.Core.CLASSIFY_BY_BLOCK.getBooleanValue() || isCycleItemMatch(pos)) {
+                        execPath = "scan";
                         executeIteration(pos, skipIteration);
                         passDidWork = true;
                         executed = true;

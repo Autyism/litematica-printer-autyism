@@ -175,7 +175,10 @@ public final class AdjustFirstGameTest implements FabricClientGameTest {
         try {
             int[] t = {0};
             ticks = GT.waitServer(context, () -> {
-                if (++t[0] % 20 == 0) GT.keepSchematic(context, min, max, p -> schematic.getOrDefault(p, Blocks.AIR.defaultBlockState()));
+                // 每 tick 都看：前一个测试世界删掉投影放置之后，Litematica 会在后台清掉直接写进投影世界的方块，
+                // 清掉的那几 tick 里打印机看到的是“这里要空气”（会放下调整、歇一会儿），测出来的是测试环境的问题。这一块只有 98 格
+                ++t[0];
+                GT.keepSchematic(context, min, max, p -> schematic.getOrDefault(p, Blocks.AIR.defaultBlockState()));
                 if (t[0] % 100 == 0) {
                     GT.log("[adjust] t" + t[0] + " wrong=" + wrong(sp).size() + " " + context.computeOnClient(c -> ModuleManager.PRINT.debugState()));
                 }

@@ -679,6 +679,10 @@ public class Print extends Module {
 
     @Override
     protected void executeIteration(BlockPos blockPos, AtomicReference<Boolean> skipIteration) {
+        if (DEBUG_ADJUST && player != null && level != null) {
+            System.out.println("[printer-exec] t" + player.tickCount + " path=" + execPath + " pos=" + blockPos.toShortString()
+                    + " adjustPos=" + (adjustPos == null ? null : adjustPos.toShortString()) + " have=" + level.getBlockState(blockPos));
+        }
         placingIceForWater = false;
         lastOutcome = Outcome.NOT_POSSIBLE;
         if (fluidPlan != null && fluidPlan.target().equals(blockPos)) {
@@ -930,6 +934,7 @@ public class Print extends Module {
             it.remove();
             if (!LitematicaUtils.isSchematicBlock(pos) || !LitematicaUtils.isPositionWithinRange(pos) || !PlayerUtils.canInteracted(pos)
                     || isCorrectBlock(pos) || !canProcessPos(pos) || fluidPlan != null) continue;
+            execPath = "follow";
             executeIteration(pos, skipIteration);
             if (lastOutcome == Outcome.QUEUED) done++;
             if (skipIteration.get() || ActionManager.INSTANCE.needWaitModifyLook || adjustFocusActive()) break;
@@ -1044,10 +1049,13 @@ public class Print extends Module {
             }
             // 客户端已经看到对了（中继器会预测结果）、或者现在点不了：先等回应，回来以后照常核对
             if (!canClick) {
-                if (DEBUG_ADJUST) System.out.println("[printer-adjust] t" + now + " pipeline stops at " + pos.toShortString() + " left=" + adjustClicksLeft);
+                if (DEBUG_ADJUST) System.out.println("[printer-adjust] t" + now + " pipeline stops at " + pos.toShortString() + " left=" + adjustClicksLeft
+                        + " action=" + (action == null ? null : action.getClass().getSimpleName()) + " fluidPlan=" + fluidPlan
+                        + " have=" + level.getBlockState(pos) + " want=" + schematic.getBlockState(pos));
                 adjustClicksLeft = 0;
                 return true;
             }
+            execPath = "adjust";
             executeIteration(pos, skipIteration);
             adjustClicksLeft = lastOutcome == Outcome.QUEUED ? adjustClicksLeft - 1 : 0;
             if (DEBUG_ADJUST) System.out.println("[printer-adjust] t" + now + " pipelined click at " + pos.toShortString() + " outcome=" + lastOutcome + " left=" + adjustClicksLeft);
@@ -1086,12 +1094,21 @@ public class Print extends Module {
         }
         // 没有能在原地点的了（例如只剩红石运行时的属性不同）、要用桶倒水（含水方块有自己的规则）、要在同一格再放一块：交回正常顺序
         if (!canProcessPos(pos) || fluidPlan != null || !(action instanceof ClickAction)) {
+            if (DEBUG_ADJUST) {
+                boolean can = canProcessPos(pos);
+                System.out.println("[printer-adjust] t" + now + " cannot click " + pos.toShortString() + " canProcess=" + can + " action="
+                        + (action == null ? null : action.getClass().getSimpleName()) + " fluidPlan=" + fluidPlan + " pending=" + ownActionUnconfirmed(pos)
+                        + " cooldown=" + isOnCooldown(pos) + " have=" + current + " want=" + schematic.getBlockState(pos)
+                        + " ctxLevel=" + (ctx == null ? null : System.identityHashCode(ctx.level)) + " level=" + System.identityHashCode(level)
+                        + " mcLevel=" + System.identityHashCode(net.minecraft.client.Minecraft.getInstance().level));
+            }
             clearAdjust();
             return false;
         }
         // 音符盒音高、中继器延迟：每点一下只进一档，按服务端确认过的状态就能算出一共要点几下。
         // 不用每一下都等回应（以前一个音符盒要等十几个来回）：每 tick 点一下，点够了再等回应、核对，没对上就按新的状态重新算
         int clicks = AdjustFirst.cyclicClicks(schematic.getBlockState(pos), current);
+        execPath = "adjust";
         executeIteration(pos, skipIteration);
         if (lastOutcome == Outcome.QUEUED && clicks > 1) adjustClicksLeft = clicks - 1;
         if (DEBUG_ADJUST) {
@@ -1105,6 +1122,11 @@ public class Print extends Module {
     }
 
     private void clearAdjust() {
+        if (DEBUG_ADJUST && adjustPos != null) {
+            StackTraceElement caller = new Throwable().getStackTrace()[1];
+            System.out.println("[printer-adjust] t" + (player == null ? -1 : player.tickCount) + " release " + adjustPos.toShortString()
+                    + " from line " + caller.getLineNumber() + " have=" + (level == null ? null : level.getBlockState(adjustPos)));
+        }
         adjustClicksLeft = 0;
         adjustPos = null;
         adjustStateBefore = null;
