@@ -9,6 +9,8 @@
 - New: **Progress Counts** (default *Whole Schematic*). The progress bar counts the whole schematic in loaded chunks; *Within Range* is the old behaviour.
 - New: **Layer Counts as Done** (default *Whole Layer*). Layered printing moves up only when the whole layer in loaded chunks is printed, and the layer messages follow it; *Within Range* is the old behaviour.
 - Lighter on the game: with nothing to do, the printer no longer rescans its range every tick, and the progress bar and the layer check only recount where blocks changed.
+- Layered printing gets to the next unfinished layer much sooner. Turning the printer on above many finished layers used to take several seconds to half a minute before anything was placed; finished layers are now checked from the progress bar's counts (kept up to date while the printer is off) and several per tick. A layer still only counts as done when every block in it is correct and the server has confirmed the printer's last placements.
+- Faster scanning: blocks that are already correct are no longer worked out for placement on every pass.
 - New: **Stop When a Placement Moves** (on by default). Moving, rotating, mirroring or resetting a placement (or one of its sub-regions) turns the printer off at once, so it never places blocks for the old position.
 - A client-side haste (Meteor's SpeedMine, for example) no longer counts for mining: blocks are broken at the speed the server accepts instead of flashing back.
 - Fix: tool durability protection now counts the breaks the server hasn't confirmed yet. With a haste beacon and same-tick instant mining over a big area, dozens of blocks were broken before the client saw the tool wear, and a tool could break; now mining stops at the threshold.
@@ -39,6 +41,8 @@ More: open "Details" below.
 - 新增 **进度条统计范围**（默认“整个投影”）：进度条统计已加载区块里的整个投影；“工作范围内”是以前的算法。
 - 新增 **分层完成判定**（默认“整层”）：已加载区块里的整层都打完才往上一层，每层完成的提示也按这个；“工作范围内”是以前的做法。
 - 更省性能：没事可做时不再每 tick 重扫工作范围；进度条和分层判定只重算方块有变化的地方。
+- 分层打印更快开始打下一层：以前在很多打完的层上面开打印机，要等几秒到半分钟才开始放；现在打完的层直接用进度条的统计判断（打印机关着时也一直在更新），一 tick 能过好几层。一层还是要每一格都对、并且打印机放的方块都被服务器确认了才算完成。
+- 扫描更快：已经对了的方块不再每一轮都去算怎么放。
 - 新增 **投影移动时关闭打印机**（默认开）：投影（或它的子区域）一被移动、旋转、镜像或重置，打印机立刻关掉，不会按旧位置放方块。
 - 客户端自己加的急迫（比如 Meteor 的 SpeedMine）不再算进挖掘速度：按服务器认的速度挖，方块不会再闪一下又回来。
 - 修复：工具耐久保护把服务器还没确认的挖掘也算进去。开着急迫信标、同一 tick 大范围秒挖时，客户端看到耐久变化之前已经挖了几十格，工具可能被用坏；现在到阈值就停。

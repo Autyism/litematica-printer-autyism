@@ -207,6 +207,78 @@ public class Print extends Module {
     // ---------------- 整层判定（分层打印：已加载区块里的整层都打完才算这一层完成） ----------------
     /** 每 tick 最多用在整层统计上的时间 */
     private static final long LAYER_INDEX_BUDGET_NANOS = 1_000_000L;
+    /** 在等整层判定（统计还没算完）时每 tick 最多用的时间（不超过打印机自己每 tick 时间限制的一半） */
+    private static final long LAYER_WAIT_BUDGET_NANOS = 8_000_000L;
+
+    /**
+     * 整个投影（已加载的区块）按区块段的统计，进度条（GUI）和分层判定共用这一份。
+     * 段里每一层都记着总数和对的数：一层每一格都对时，整层判定不用再逐格重算，
+     * 所以开打印机、到顶回到底层复查时，打完的层一下就过去。
+     * 打印机开关时不清空：方块变化一直在记（BlockChangeHub），区块重新加载会被发现，下次开机还能直接用。
+     */
+    private final ProgressIndex loadedIndex = new ProgressIndex(new ProgressIndex.Rules() {
+        @Override
+        public boolean counts(BlockPos pos) {
+            return inPrintSelection(pos);
+        }
+
+        @Override
+        public BlockMatchingType matching(BlockPos pos, BlockState required, BlockState current) {
+            BlockMatchingType type = BlockMatchingType.get(required, current);
+            // 投影里这一侧开着、保持不含水的含水方块算对（和范围内的判断一样）。
+            // 用当前的世界和玩家：打印机关着时进度条也会算
+            if (type == BlockMatchingType.ERROR_BLOCK_STATE) {
+                var mc = net.minecraft.client.Minecraft.getInstance();
+                if (mc.level != null && WaterlogPlacer.acceptsDry(mc.level, SchematicWorldHandler.getSchematicWorld(), mc.player, pos, required, current)) {
+                    return BlockMatchingType.CORRECT;
+                }
+            }
+            return type;
+        }
+
+        @Override
+        public boolean countsWholeSection(int sectionX, int sectionY, int sectionZ) {
+            return countsEverywhere();
+        }
+    });
+
+    /** 进度条和分层判定共用的统计 */
+    public ProgressIndex loadedProgressIndex() {
+        return loadedIndex;
+    }
+
+    /** 每一格都算（渲染层是“全部”，选区类型不按玩家的高度）：统计时不用逐格判断（和 inPrintSelection 一样） */
+    private static boolean countsEverywhere() {
+        if (fi.dy.masa.litematica.data.DataManager.getRenderLayerRange().getLayerMode() != fi.dy.masa.malilib.util.LayerMode.ALL) return false;
+        Object selection = Configs.Print.PRINT_SELECTION_TYPE.getOptionListValue();
+        return selection != com.autyism.printer.enums.SelectionType.LITEMATICA_SELECTION_BELOW_PLAYER
+                && selection != com.autyism.printer.enums.SelectionType.LITEMATICA_SELECTION_ABOVE_PLAYER;
+    }
+
+    /** 让共用的统计走一 tick（进度条和打印机都会调用；同一 tick 里只有第一次去找区块，之后的调用只多算一会儿） */
+    public void tickLoadedIndex(long budgetNanos) {
+        var mc = net.minecraft.client.Minecraft.getInstance();
+        WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
+        if (schematic == null || mc.level == null || mc.player == null) return;
+        net.minecraft.world.level.ChunkPos center = mc.player.chunkPosition();
+        loadedIndex.tick(mc.level, schematic, LitematicaUtils.getSchematicWorkBoxes(), selectionSignature(), center.x, center.z,
+                mc.options.getEffectiveRenderDistance() + 1, budgetNanos, mc.player.tickCount);
+    }
+
+    /** 等整层判定时每 tick 用的时间：打印机自己每 tick 时间限制的一半，在 1~8 毫秒之间 */
+    private static long waitBudget() {
+        int limitMs = Configs.Core.ITERATION_TIME_LIMIT.getIntegerValue();
+        long nanos = limitMs > 0 ? limitMs * 1_000_000L / 2 : LAYER_WAIT_BUDGET_NANOS;
+        return Math.max(LAYER_INDEX_BUDGET_NANOS, Math.min(LAYER_WAIT_BUDGET_NANOS, nanos));
+    }
+
+    /** 整层判定还没有结论（统计在算、或者自己的动作在等服务端确认）：主循环不歇 10 tick，下一 tick 再看，这期间统计多算一会儿 */
+    private boolean layerVerdictWaiting;
+
+    @Override
+    protected boolean layerVerdictPending() {
+        return layerVerdictWaiting;
+    }
 
     /**
      * 当前层的增量统计（只重算有变化的区块列，见 LayerIndex）。
@@ -280,6 +352,8 @@ public class Print extends Module {
     /** 客户端世界里的方块变了（BlockChangeHub） */
     public void onClientBlockChanged(BlockPos pos) {
         layerIndex.blockChanged(pos);
+        // 打印机关着也记：下次开机时统计还是对的
+        loadedIndex.blockChanged(pos);
         noteClientBlockChange(pos);
     }
 
@@ -296,25 +370,62 @@ public class Print extends Module {
         if (layer == null || !isWholeLayerRule() || schematic == null || level == null || player == null) {
             layerIndex.clear();
             wholeLayerStats = null;
+            layerVerdictWaiting = false;
             return;
         }
+        // 共用的统计这里只走一般的 1 毫秒；等整层判定时要的那一排在 restOfLayerDone 里优先多算（processRow）
+        tickLoadedIndex(LAYER_INDEX_BUDGET_NANOS);
+        long budget = layerVerdictWaiting ? waitBudget() : LAYER_INDEX_BUDGET_NANOS;
+        long[] counts = loadedIndex.layerCounts(layer);
+        // 这一层（已加载的部分）每一格都对：不用逐格的整层统计（restOfLayerDone 直接用按区块段的统计）
+        if (counts != null && counts[0] == counts[1]) return;
         net.minecraft.world.level.ChunkPos center = player.chunkPosition();
         layerIndex.tick(level, schematic, layer, LitematicaUtils.getSchematicWorkBoxes(), selectionSignature(), center.x, center.z,
-                mc.options.getEffectiveRenderDistance() + 1, LAYER_INDEX_BUDGET_NANOS);
+                mc.options.getEffectiveRenderDistance() + 1, budget);
     }
 
     @Override
     protected boolean restOfLayerDone(int layer) {
         WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
         if (schematic == null || level == null) return true;
-        if (layerIndex.layer() != layer) return false;
-        // 还没算完的部分当场算一会儿（小的层当场就算完）；算不完就当作还没完成
-        return layerIndex.done(schematic, level, LAYER_INDEX_BUDGET_NANOS);
+        layerVerdictWaiting = false;
+        long budget = waitBudget();
+        long[] counts = loadedIndex.layerCounts(layer);
+        if (counts == null) {
+            // 这一层所在的那一排区块段还没算完：先算这一排（开机时从最底层往上，要哪一排就先算哪一排）
+            loadedIndex.processRow(layer >> 4, budget);
+            counts = loadedIndex.layerCounts(layer);
+        }
+        boolean done;
+        if (counts != null && counts[0] == counts[1]) {
+            // 整层（已加载的部分）每一格都对（和打印机判断“打好了”的规则一样）
+            done = true;
+        } else if (counts == null || layerIndex.layer() != layer) {
+            // 统计还没算好，或者逐格的整层统计还没换到这一层（下一 tick 换）：先不算完成
+            layerVerdictWaiting = true;
+            return false;
+        } else {
+            // 有没打好的格子：逐格判断（打印机在范围内看过的用它的结论，范围外的看能不能放、能不能原地调对）
+            done = layerIndex.done(schematic, level, budget);
+            if (!done && !layerIndex.ready()) {
+                layerVerdictWaiting = true;
+                return false;
+            }
+        }
+        // 自己放的方块还没被服务端确认：客户端看到的可能只是预测（被撤回的话这一层还没完），确认了才往上
+        if (done && ActionConfirm.anyPending(level, player == null ? 0 : player.tickCount)) {
+            layerVerdictWaiting = true;
+            return false;
+        }
+        return done;
     }
 
     /** 整层统计（HUD 和完成提示用）；fresh = 当场重新数（完成提示），否则最多每 10 tick 数一次 */
     @Nullable
     private LayerStats wholeLayerStats(int layer, boolean fresh) {
+        long[] counts = loadedIndex.layerCounts(layer);
+        // 每一格都对：按区块段的统计就是整层统计（这时逐格的整层统计不一定在这一层上）
+        if (counts != null && counts[0] == counts[1]) return new LayerStats(layer, (int) counts[0], (int) counts[0], 0, 0, 0, 0);
         if (layerIndex.layer() != layer) return null;
         int now = player == null ? 0 : player.tickCount;
         if (fresh || wholeLayerStats == null || wholeLayerStats.layer() != layer || now - wholeLayerStatsTick >= 10 || now < wholeLayerStatsTick) {
@@ -1021,6 +1132,8 @@ public class Print extends Module {
         adjustGaveUp.clear();
         layerIndex.clear();
         wholeLayerStats = null;
+        layerVerdictWaiting = false;
+        // 按区块段的统计（loadedIndex）不清空：方块变化一直在记，下次开机直接用
     }
 
     private void ensureIceBreakQueued(BlockPos pos) {

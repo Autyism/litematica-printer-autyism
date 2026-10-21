@@ -15,7 +15,6 @@ import com.autyism.printer.printer.WaterlogPlacer;
 import com.autyism.printer.utils.LitematicaUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.LiquidBlock;
-import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
@@ -87,23 +86,11 @@ public class GUI extends Module {
     private int rangeScanDoneTick;
 
     // ---------------- 整个投影的进度（已加载的区块，增量统计） ----------------
-    private final ProgressIndex loadedIndex = new ProgressIndex(new ProgressIndex.Rules() {
-        @Override
-        public boolean counts(BlockPos pos) {
-            return ModuleManager.PRINT.inPrintSelection(pos);
-        }
+    /** 和分层判定共用的统计（打印模块里，规则和这里以前的一样：渲染层 / 选区类型，含水方块按投影的那一侧算） */
+    private static ProgressIndex loadedIndex() {
+        return ModuleManager.PRINT.loadedProgressIndex();
+    }
 
-        @Override
-        public BlockMatchingType matching(BlockPos pos, BlockState required, BlockState current) {
-            BlockMatchingType type = BlockMatchingType.get(required, current);
-            // 投影里这一侧开着、保持不含水的含水方块算完成
-            if (type == BlockMatchingType.ERROR_BLOCK_STATE
-                    && WaterlogPlacer.acceptsDry(level, SchematicWorldHandler.getSchematicWorld(), mc.player, pos, required, current)) {
-                return BlockMatchingType.CORRECT;
-            }
-            return type;
-        }
-    });
     private boolean loadedActive;
 
     /** 进度条统计整个投影（已加载的区块），而不是只算工作范围内 */
@@ -127,16 +114,15 @@ public class GUI extends Module {
     }
 
     public long getWrongState() {
-        return countsLoadedArea() && Configs.Print.ENABLED.getBooleanValue() ? loadedIndex.shownWrongState() : wrongState;
+        return countsLoadedArea() && Configs.Print.ENABLED.getBooleanValue() ? loadedIndex().shownWrongState() : wrongState;
     }
 
     public long getWrongBlock() {
-        return countsLoadedArea() && Configs.Print.ENABLED.getBooleanValue() ? loadedIndex.shownWrongBlock() : wrongBlock;
+        return countsLoadedArea() && Configs.Print.ENABLED.getBooleanValue() ? loadedIndex().shownWrongBlock() : wrongBlock;
     }
 
-    /** 客户端世界里的方块变了（BlockChangeHub）：只做标记 */
+    /** 客户端世界里的方块变了（BlockChangeHub）：只做标记（共用的统计由打印模块记） */
     public void onClientBlockChanged(BlockPos pos) {
-        if (loadedActive) loadedIndex.blockChanged(pos);
         PrinterBox current = box == null ? null : box.get();
         if (current != null && current.contains(pos)) rangeDirty = true;
     }
@@ -171,8 +157,8 @@ public class GUI extends Module {
             // 只开着打印时，工作范围内的统计用不上
             if (!Configs.Fluid.ENABLED.getBooleanValue() && !Configs.Fill.ENABLED.getBooleanValue() && !Configs.Mine.ENABLED.getBooleanValue()) return;
         } else if (loadedActive) {
+            // 不清空共用的统计：分层判定可能还在用，方块变化也一直在记
             loadedActive = false;
-            loadedIndex.clear();
         }
 
         PrinterBox current = box.get();
@@ -207,10 +193,9 @@ public class GUI extends Module {
         WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
         if (schematic == null || player == null) return;
         loadedActive = true;
-        net.minecraft.world.level.ChunkPos center = player.chunkPosition();
-        loadedIndex.tick(level, schematic, LitematicaUtils.getSchematicWorkBoxes(), ModuleManager.PRINT.selectionSignature(),
-                center.x, center.z, mc.options.getEffectiveRenderDistance() + 1, LOADED_BUDGET_NANOS);
-        if (loadedIndex.hasShown()) loadedPrintProgress.setShown(loadedIndex.shownCorrect(), loadedIndex.shownTotal());
+        ModuleManager.PRINT.tickLoadedIndex(LOADED_BUDGET_NANOS);
+        ProgressIndex index = loadedIndex();
+        if (index.hasShown()) loadedPrintProgress.setShown(index.shownCorrect(), index.shownTotal());
     }
 
     @Nullable
@@ -225,7 +210,7 @@ public class GUI extends Module {
         lastModes = null;
         wrongState = wrongBlock = 0;
         loadedActive = false;
-        loadedIndex.clear();
+        // 共用的统计不在这里清空（换了世界时它自己会清空）
         loadedPrintProgress.clearShown();
         totalProgress.clearShown();
         printProgress.clearShown();

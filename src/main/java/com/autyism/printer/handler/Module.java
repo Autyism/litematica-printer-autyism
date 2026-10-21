@@ -125,18 +125,7 @@ public abstract class Module extends ConfigUtils {
         }
 
         if (box == null) return;
-        List<PrinterBox> areaBoxes = needsAreaCheck() ? getWorkAreaBoxes() : null;
-        iteratorManager.setSectionFilter(getSectionFilter());
-        Integer layerClamp = updateLayerClamp(areaBoxes);
-        if (iteratorManager.tryBuildBox(player, selectionType != null ? selectionType.getOptionListValue() : null, respectsRenderLayer(),
-                areaBoxes, layerClamp)) {
-            box.set(iteratorManager.getBox());
-            dbgRebuilds++;
-            scanState = ScanState.RUNNING;
-            waitingPos = null;
-            currentCycleItem = null;
-            iteratorManager.reset();
-        }
+        rebuildIteration();
 
         preprocess();
 
@@ -153,6 +142,30 @@ public abstract class Module extends ConfigUtils {
 
         iterateBlocks(remainingExecs);
     }
+
+    /** 按玩家的位置和设置重建遍历框（分层时只有当前这一层） */
+    private void rebuildIteration() {
+        List<PrinterBox> areaBoxes = needsAreaCheck() ? getWorkAreaBoxes() : null;
+        iteratorManager.setSectionFilter(getSectionFilter());
+        Integer layerClamp = updateLayerClamp(areaBoxes);
+        if (iteratorManager.tryBuildBox(player, selectionType != null ? selectionType.getOptionListValue() : null, respectsRenderLayer(),
+                areaBoxes, layerClamp)) {
+            box.set(iteratorManager.getBox());
+            dbgRebuilds++;
+            scanState = ScanState.RUNNING;
+            waitingPos = null;
+            currentCycleItem = null;
+            iteratorManager.reset();
+        }
+    }
+
+    /** 分层：一 tick 里最多接着扫几层（每一层都照常从头扫到尾、照常判定，只是不用等到下一 tick） */
+    private static final int MAX_LAYER_STEPS_PER_TICK = 64;
+
+    /** 这一 tick 最后看的一格（调试面板用，见 iterateBlocks 的 finally） */
+    @Nullable
+    private BlockPos guiPos;
+    private boolean guiExecuted;
 
     private void iterateBlocks(int maxExecs) {
         int execCount = 0;
@@ -208,6 +221,7 @@ public abstract class Module extends ConfigUtils {
             if (idle && !wakeFromIdle()) return;
 
             boolean wholeLayer = layerY != null && isWholeLayerRule();
+            int layerSteps = 0;
             while (true) {
                 if (timeLimitExceeded.get()) return;
                 if (skipIteration.get() || ActionManager.INSTANCE.needWaitModifyLook) return;
@@ -215,7 +229,15 @@ public abstract class Module extends ConfigUtils {
                 BlockPos pos = iteratorManager.next();
                 if (pos == null) {
                     currentCycleItem = null; // 一轮扫描耗尽，重置方块分类
+                    Integer passLayer = layerY;
                     onPassFinished();
+                    // 分层：这一层判定完成、往上换了一层，这一 tick 还有时间就接着扫新的一层。
+                    // 以前每 tick 最多过一层：开打印机、到顶回到底层时，几十层打完了的层要一层一层地等
+                    if (passLayer != null && layerY != null && layerY > passLayer && !idle && ++layerSteps < MAX_LAYER_STEPS_PER_TICK) {
+                        rebuildIteration();
+                        wholeLayer = layerY != null && isWholeLayerRule();
+                        continue;
+                    }
                     return;
                 }
 
@@ -263,14 +285,18 @@ public abstract class Module extends ConfigUtils {
                     }
                 }
 
-                currentGuiInfo = new GuiBlockInfo(pos,
-                        level.getBlockState(pos), LitematicaUtils.getBlockState(pos),
-                        PlayerUtils.canInteracted(pos), executed,
-                        isPosInWorkspace(pos) && PlayerUtils.canInteracted(pos));
+                guiPos = pos;
+                guiExecuted = executed;
             }
         } finally {
             if (timeoutTask != null) timeoutTask.cancel(false);
             timeLimitExceeded.set(false);
+            // 调试面板只显示这一 tick 最后看的一格：只在最后算一次（以前每一格都新建一次，还要查两遍可交互）
+            if (guiPos != null && level != null) {
+                currentGuiInfo = new GuiBlockInfo(guiPos.immutable(), level.getBlockState(guiPos), LitematicaUtils.getBlockState(guiPos),
+                        PlayerUtils.canInteracted(guiPos), guiExecuted, isPosInWorkspace(guiPos) && PlayerUtils.canInteracted(guiPos));
+                guiPos = null;
+            }
         }
     }
 
@@ -338,6 +364,11 @@ public abstract class Module extends ConfigUtils {
      */
     protected boolean restOfLayerDone(int layer) {
         return true;
+    }
+
+    /** 上一次 restOfLayerDone 还没有结论（统计还没算完、在等服务端确认），不是真的“还没完成”：下一 tick 就再判断 */
+    protected boolean layerVerdictPending() {
+        return false;
     }
 
     /** 见 {@link #layerVerdicts}；null = 主循环在这一层还没看过这一格（或者它已经打好了） */
@@ -640,8 +671,9 @@ public abstract class Module extends ConfigUtils {
         onLayerPassFinished(layerY, layerDone);
         boolean nothingPending = !layerPending;
         if (!layerDone && nothingPending && !didWork && throttleWhenIdle()) {
-            // 整层判定：范围内的都做完了，在等范围外的部分（玩家走过去）
-            enterIdle(IDLE_RECHECK_TICKS);
+            // 整层判定：范围内的都做完了，在等范围外的部分（玩家走过去）。
+            // 判定还没有结论（统计还在算、在等服务端确认）时只歇 1 tick：以前也歇 10 tick，大投影每一层都要白等半秒
+            enterIdle(layerVerdictPending() ? 1 : IDLE_RECHECK_TICKS);
         }
         if (layerDone) {
             layerIdleTicks = 0;
@@ -715,7 +747,9 @@ public abstract class Module extends ConfigUtils {
     private boolean needsWork(BlockPos pos) {
         // 逐方块复核渲染层：盒子裁剪之外的兜底，覆盖等待重试的坐标和层范围在两次重建之间变化的情况
         if (respectsRenderLayer() && !LitematicaUtils.isPositionWithinRange(pos)) return false;
-        return !isOnCooldown(pos) && !isAwaitingServer(pos) && canProcessPos(pos) && !isCorrectBlock(pos);
+        // 先看是不是已经对了（只比两个方块状态）：打印的 canProcessPos 要算放置方式（PlacementGuide），
+        // 以前范围里每一格打好了的方块每一轮都要算一遍，范围大、层数多时一层要扫好几 tick
+        return !isOnCooldown(pos) && !isAwaitingServer(pos) && !isCorrectBlock(pos) && canProcessPos(pos);
     }
 
     /**
