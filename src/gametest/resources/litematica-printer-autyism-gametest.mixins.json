@@ -11,7 +11,10 @@
     "ClientUseRecordMixin",
     "GameModeCarriedAccessor",
     "ClientHeldSlotDebugMixin",
-    "SlotDedupeMixin"
+    "SlotDedupeMixin",
+    "ProfileMixin",
+    "ProfilePlaceMixin",
+    "ProfileSendMixin"
   ],
   "mixins": [
     "ServerUseItemOnDebugMixin",

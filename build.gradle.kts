@@ -61,6 +61,8 @@ dependencies {
         providers.gradleProperty("quiet").orNull?.let { modLocalRuntime(files(it)) }
         // -PwithAle=<jar>: ALE in the test client (its server part runs in single player), for the deepslate test
         providers.gradleProperty("withAle").orNull?.let { modLocalRuntime(files(it)) }
+        // -PwithCarpet=<jar>: Carpet in the test client (it receives the test server's rules, e.g. antiCheatDisabled), for the machine test
+        providers.gradleProperty("withCarpet").orNull?.let { modLocalRuntime(files(it)) }
     }
 
     compileOnly("org.projectlombok:lombok:${prop("deps.lombok")}")
@@ -141,10 +143,12 @@ if (providers.gradleProperty("aleGameTest").isPresent) {
     }
     tasks.matching { it.name == "runClientGameTest" }.configureEach {
         (this as JavaExec).systemProperty("ale.gt", (project.findProperty("gt") ?: "").toString())
-        for (key in listOf("range", "layered", "bpt", "ticks", "debuglook", "list", "debugrails", "lag", "protocol", "bigmats", "lagspike", "lagcheck", "noghost", "dumpmissing", "debugfluid", "backends", "slotdedupe", "startindex", "servuxrefuse", "debugadjust", "bedrockonly", "debugbedrock", "layerstartsize")) {
+        for (key in listOf("range", "layered", "bpt", "ticks", "debuglook", "list", "debugrails", "lag", "protocol", "bigmats", "lagspike", "lagcheck", "noghost", "dumpmissing", "debugfluid", "backends", "slotdedupe", "startindex", "servuxrefuse", "debugadjust", "bedrockonly", "debugbedrock", "layerstartsize", "debugstall", "machine", "machinemode", "machinekeep", "machinetrace", "debugmissing", "debugobserver", "machineprofile", "machinedump")) {
             project.findProperty(key)?.let { (this as JavaExec).systemProperty("ale.$key", it.toString()) }
         }
         // 打印机本来就会直接发包（转头、潜行、容器操作），测试框架的网络同步检查会偶发误报：统一关掉
         (this as JavaExec).systemProperty("fabric.client.gametest.disableNetworkSynchronizer", "true")
+        // -Pjfr=<文件>：录一份 Java Flight Recorder（找打印机每 tick 的时间花在哪）
+        project.findProperty("jfr")?.let { (this as JavaExec).jvmArgs("-XX:StartFlightRecording=filename=$it,settings=profile") }
     }
 }

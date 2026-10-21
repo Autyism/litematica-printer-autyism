@@ -151,6 +151,7 @@ public class ActionManager {
                     headWaitStart = tickNow();
                 }
                 if (tickNow() - headWaitStart <= HEAD_WAIT_TIMEOUT_TICKS && tickNow() >= headWaitStart) {
+                    if (TickTrace.ENABLED) TickTrace.detail("head-wait " + lookDirection + " for " + (tickNow() - headWaitStart) + " ticks at " + target.toShortString());
                     needWaitModifyLook = true;
                     return this;
                 }
@@ -187,6 +188,13 @@ public class ActionManager {
                         + " slot=" + player.getInventory().getSelectedSlot() + " stateId=" + player.inventoryMenu.getStateId()
                         + " tick=" + player.tickCount);
             }
+            // 手上的物品和数量（用完最后一个以后手上是空的，所以先记下来）：看客户端这次有没有自己扣掉一个
+            net.minecraft.world.item.ItemStack handBefore = player.getMainHandItem();
+            net.minecraft.world.item.Item usedItem = handBefore.getItem();
+            int countBefore = handBefore.getCount();
+            // 手上那一组是同一个对象，放完最后一个以后它自己就成了空的：先记下放之前是不是空手
+            boolean hadItem = !handBefore.isEmpty();
+            long sendStart = TickTrace.ENABLED ? System.nanoTime() : 0;
             if (exactRail != null && workPos != null) {
                 // 服务端也有 ALE：这节铁轨直接放成投影里的形状（见 AleRails）
                 MultiPlayerGameModeExtension gm = gameModeExtension;
@@ -195,10 +203,17 @@ public class ActionManager {
             } else {
                 gameModeExtension.litematica_printer$useItemOn(localPrediction, InteractionHand.MAIN_HAND, blockHitResult);
             }
+            if (TickTrace.ENABLED) {
+                TickTrace.sendNanos += System.nanoTime() - sendStart;
+                TickTrace.action();
+            }
+            net.minecraft.world.item.ItemStack handAfter = player.getMainHandItem();
+            boolean consumedLocally = hadItem
+                    && (handAfter.isEmpty() ? countBefore == 1 : handAfter.is(usedItem) && handAfter.getCount() < countBefore);
             // 记下这次动作的序号：服务端确认之前不再碰这个格子（见 ActionConfirm）
             if (Reference.MINECRAFT.level instanceof com.autyism.printer.utils.PacketUtils.SequenceExtension seq) {
                 ActionConfirm.sent(Reference.MINECRAFT.level, target, side, seq.litematica_printer3$currentSequence(), player.tickCount,
-                        player.getMainHandItem().getItem());
+                        usedItem, consumedLocally);
                 // 用协议放的：确认回来后看服务端是不是照着放了（服务端不认协议就改回转头放置）
                 if (useProtocol && workPos != null && protocolWanted != null) {
                     ServerProtocol.sent(workPos, seq.litematica_printer3$currentSequence(), player.tickCount, protocolWanted, protocolProbe);

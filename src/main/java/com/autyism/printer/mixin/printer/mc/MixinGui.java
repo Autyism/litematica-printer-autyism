@@ -310,6 +310,14 @@ public abstract class MixinGui {
                     centerX, extraY, Color.CYAN, true, true);
             extraY += 10;
         }
+        // 范围内的都打完了，这一层剩下的在够不着的地方：打印机在等玩家走过去（不是卡住了）
+        net.minecraft.core.BlockPos far = ModuleManager.PRINT.getWaitingFarPos();
+        if (far != null && layer != null && far.getY() == layer && Minecraft.getInstance().player != null) {
+            int distance = (int) Math.round(Math.sqrt(Minecraft.getInstance().player.getEyePosition().distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(far))));
+            RenderUtils.drawString(com.autyism.printer.I18n.HUD_LAYER_WAIT_FAR.getName(far.getX(), far.getY(), far.getZ(), distance).getString(),
+                    centerX, extraY, Color.YELLOW, true, true);
+            extraY += 10;
+        }
 
         int infoY = Math.max(centerY + 52, extraY + 2);
 

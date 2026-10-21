@@ -19,6 +19,18 @@
 - Tool durability protection also covers bedrock mode: the pickaxe the bedrock miner will use is checked before every block, and while bedrock mode runs, a break with a nearly broken tool in hand is stopped before it reaches the server.
 - Fluid removal: new **Sources Only** (on by default). Only source blocks are filled; the flowing liquid then drains away by itself. It replaces *Include Flowing Liquids*.
 - With ALE 1.2.0 on the client and the server (or in single player), deepslate is mined over an area like an instant block (*Instant Mining* on, netherite pickaxe with Efficiency V, Haste II). Mining by hand is not affected.
+- Much faster in survival. A full stack used to stop at 32, then 16, 8, 4... to wait for the server, so plain blocks went down row by row; now the printer only holds back the placements the server hasn't counted yet.
+- Fix: clicking with an empty hand (turning a redstone cross into a dot) waited 10 seconds every time in survival, and the rest of the layer waited with it.
+- About twice as many blocks per tick: printed blocks no longer each play a placement sound (one per tick is kept). Dozens of sounds per tick took time on every block.
+- Fewer item swaps: each pass first places what is already in the hotbar and swaps afterwards, one item at a time, instead of swapping every few blocks.
+- With Servux, repeater delay, note pitch, comparator mode and open doors or trapdoors come out right straight away. Once the first one is confirmed, the printer no longer stops after each of these blocks to wait for the server.
+- On a Carpet server with *antiCheatDisabled* (Carpet on the client too), the work range is kept to the 32 blocks the server accepts. Blocks further away used to be tried again and again for nothing.
+- Blocks the printer can't place (end portal, piston heads) and blocks with nothing to stand on yet no longer hold up a layer.
+- Missing materials: the first time an item runs out, the printer still waits a few seconds at that layer. After that the item no longer holds up every layer, and when nothing else is left the printer rests instead of going round and round. It is placed as soon as you have it.
+- When the rest of a layer is out of reach, the HUD says where it is, so the printer no longer looks stuck.
+- A shulker box that never opens is given up after 3 seconds instead of holding the printer.
+- New: **Observer Before Its Supported Block** (on by default). When the block in front of an observer can only stand on that observer (a repeater or rail on top of it), neither could be placed before. Now the observer goes first, but only if placing it, and its pulse when that block is added, move or power nothing nearby: no piston pushed, no wire or part switched, no BUD piston, dropper, dispenser or crafter set off, no other observer triggered.
+- New: **Observer Impact Check** (on by default). Every observer is checked like this before it is placed, and so is a block placed or clicked in front of an observer (that makes it fire). Pistons and droppers powered through quasi-connectivity, doors, hoppers, rails, lamps, repeaters and comparators are judged the way the game does it. If anything would react, it is left out like other unsafe observers.
 
 More: open "Details" below.
 
@@ -51,6 +63,18 @@ More: open "Details" below.
 - 工具耐久保护也管破基岩模式：每交一格之前检查破基岩模组要用的镐；破基岩模式开着时，手上的工具快坏了，挖掘直接拦下，不发给服务器。
 - 排流体新增 **只填流体源头**（默认开）：只往源头里填方块，流动的液体随后自己消失。取代原来的“包含流动液体”。
 - 客户端和服务端都装了 ALE 1.2.0（或单人游戏）时，深板岩可以像能秒破的方块一样大范围秒挖（要开“即时挖掘”，下界合金镐效率 V、急迫 II）。自己手动挖不受影响。
+- 生存模式快很多：以前一组方块放到 32 个就停下来等服务器，然后 16、8、4……普通方块也是一排一排地放；现在只等服务器还没算进数量里的那几次。
+- 修复：生存模式空手点（把十字红石点成点）每次都要卡 10 秒，这一层后面的方块都跟着等。
+- 每 tick 能放的方块多了约一倍：打印的方块不再每块都播一次放置声（每 tick 留一次）。以前一 tick 几十个声音，每一块都要花时间。
+- 少换物品：每一轮先放快捷栏里有的，放完再换，一次换一种，不再隔几块就换一次。
+- 有 Servux 的服务器上，中继器延迟、音符盒音高、比较器模式、开着的门和活板门一放下就是对的；确认过一次以后，不再每放一个都停下来等服务器。
+- 开着 *antiCheatDisabled* 的地毯服务器（客户端也装了地毯）：工作范围按服务器认的 32 格算。以前更远的方块一直在白放。
+- 放不了的方块（末地传送门、活塞头）、还没有东西可以贴的方块，不再挡住一层。
+- 缺材料：某种材料第一次用完时，还是在这一层等几秒；之后它就不再挡每一层，别的都打完了打印机会歇着，不再一圈一圈地转。材料一有就照常放。
+- 一层剩下的部分够不着时，HUD 会显示在哪里，不再看起来像卡住了。
+- 打开潜影盒一直打不开时，3 秒后放弃这一次，不再让打印机一直等。
+- 新增 **侦测器先于依附它的方块**（默认开）：侦测器面前那一格的方块要靠这个侦测器才放得下（例如它上面的中继器、铁轨），以前两边都放不了。现在先放侦测器，但前提是放下侦测器、以及那个方块放上去时它亮的那一下，都不会动到周围：不推活塞、不让线路或元件变化、不触发 BUD 状态的活塞 / 投掷器 / 发射器 / 合成器、不触发别的侦测器。
+- 新增 **侦测器放置影响检测**（默认开）：每个侦测器放之前都这样检查一遍；在侦测器面前放方块、点方块（会让它亮一下）之前也检查。准连接的活塞和投掷器、门、漏斗、铁轨、灯、中继器、比较器都按游戏本身的规则判断。周围有东西会被带动就先不放，和其他不安全的侦测器一样跳过。
 
 更多：点开下面的“详细说明”。
 

@@ -51,6 +51,34 @@ public final class ServerProtocol {
     private static boolean refused;
     private static int accepted;
     private static int failures;
+    /**
+     * 这个服务器上已经亲眼看到“用协议放下来就是投影里的值”的属性（中继器延迟、比较器模式、音符盒音高……，见 AdjustFirst.protocolProperty）。
+     * 原版放下只会是默认值，所以放下后不用点就对了，只能是服务端按协议放的。
+     */
+    private static final java.util.Set<Property<?>> STATE_CONFIRMED = new java.util.HashSet<>();
+
+    /**
+     * 用协议放这一块时，服务端会不会直接放成投影里的状态（不用再在原地点）。
+     * 单人游戏的 V3 一定会；服务器上（Servux 的 V3）这个属性要先亲眼确认过一次，没确认之前照旧放下后停在这一格等确认、调整。
+     */
+    public static boolean setsState(BlockState required) {
+        if (PlacementHandler.getEffectiveProtocolVersion() != EasyPlaceProtocol.V3) return false;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.hasSingleplayerServer()) return true;
+        sync(mc);
+        if (refused) return false;
+        Property<?> property = AdjustFirst.protocolProperty(required);
+        return property != null && STATE_CONFIRMED.contains(property);
+    }
+
+    /** 用协议放下的一块被服务端确认后、没点过就已经是投影里的状态（required 里要调的属性不是默认值） */
+    public static void stateConfirmed(BlockState required) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.hasSingleplayerServer()) return;
+        sync(mc);
+        Property<?> property = AdjustFirst.protocolProperty(required);
+        if (property != null) STATE_CONFIRMED.add(property);
+    }
 
     private ServerProtocol() {
     }
@@ -138,11 +166,12 @@ public final class ServerProtocol {
             accepted = 0;
             failures = 0;
             SENT.clear();
+            STATE_CONFIRMED.clear();
         }
     }
 
     /** 调试 / 测试用 */
     public static String describe() {
-        return "refused=" + refused + " accepted=" + accepted + " failures=" + failures;
+        return "refused=" + refused + " accepted=" + accepted + " failures=" + failures + " states=" + STATE_CONFIRMED.size();
     }
 }

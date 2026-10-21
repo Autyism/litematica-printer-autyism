@@ -103,12 +103,20 @@ public abstract class Module extends ConfigUtils {
 
     private int dbgTicks, dbgIters, dbgPasses, dbgRebuilds;
 
+    /** 调试：这个模块的停止点记进 TickTrace（只有打印模块记） */
+    protected boolean traced;
+
+    private void trace(String where) {
+        if (traced) TickTrace.stop(where);
+    }
+
     public void tick() {
         dbgTicks++;
         int tickInterval = getTickInterval();
         if (tickInterval > 0) {
             long currentTickTime = ModuleManager.getCurrentHandlerTime();
             if (lastTickTime != -1L && currentTickTime - lastTickTime < tickInterval) {
+                trace("interval");
                 return;
             }
             lastTickTime = currentTickTime;
@@ -131,14 +139,20 @@ public abstract class Module extends ConfigUtils {
 
         skipIteration.set(false);
         int remainingExecs = Math.max(getMaxExecutions(), 0);
-        if (!canExecute() || !canIterate()) return;
+        if (!canExecute() || !canIterate()) {
+            trace("cannot-execute");
+            return;
+        }
 
         // 高亮渐隐
         long cutoff = System.currentTimeMillis() - Configs.Highlight.HIGHLIGHT_FADE_DURATION.getIntegerValue() * 100L;
         pendingHighlights.removeIf(ph -> ph.time() < cutoff);
 
         // 远离工作区时提前退出，避免空跑卡顿
-        if (needsAreaCheck() && !isPlayerRangeInWorkArea()) return;
+        if (needsAreaCheck() && !isPlayerRangeInWorkArea()) {
+            trace("away");
+            return;
+        }
 
         iterateBlocks(remainingExecs);
     }
@@ -155,6 +169,7 @@ public abstract class Module extends ConfigUtils {
             scanState = ScanState.RUNNING;
             waitingPos = null;
             currentCycleItem = null;
+            swapDeferred.clear();
             iteratorManager.reset();
         }
     }
@@ -171,6 +186,8 @@ public abstract class Module extends ConfigUtils {
     protected String execPath = "scan";
 
     private void iterateBlocks(int maxExecs) {
+        long traceStart = traced ? System.nanoTime() : 0;
+        if (traced) TickTrace.inScan = true;
         int execCount = 0;
         layerIdleTicks++;
         dbgIters++;
@@ -197,13 +214,20 @@ public abstract class Module extends ConfigUtils {
                     executeIteration(pos, skipIteration);
                     passDidWork = true;
                     execCount++;
-                    if (maxExecs > 0 && execCount >= maxExecs) return;
+                    if (maxExecs > 0 && execCount >= maxExecs) {
+                        trace("max-execs");
+                        return;
+                    }
                 }
-                if (skipIteration.get() || ActionManager.INSTANCE.needWaitModifyLook) return;
+                if (skipIteration.get() || ActionManager.INSTANCE.needWaitModifyLook) {
+                    trace("waiting-pos");
+                    return;
+                }
             }
 
             // 先调整完再放下一个：正在把一个方块点到投影里的状态时，这一 tick 不去碰别的格子
             if (holdForAdjust(skipIteration)) {
+                trace("adjust-hold");
                 layerIdleTicks = 0;
                 passDidWork = true;
                 idle = false;
@@ -217,22 +241,59 @@ public abstract class Module extends ConfigUtils {
                 passDidWork = true;
                 idle = false;
                 execCount += revisited;
-                if (maxExecs > 0 && execCount >= maxExecs) return;
+                if (maxExecs > 0 && execCount >= maxExecs) {
+                    trace("max-execs");
+                    return;
+                }
             }
-            if (skipIteration.get() || ActionManager.INSTANCE.needWaitModifyLook) return;
+            if (skipIteration.get() || ActionManager.INSTANCE.needWaitModifyLook) {
+                trace("follow-ups");
+                return;
+            }
 
             // 上一轮从头扫到尾什么都没得做：没有变化就先不重扫（见 idle）
-            if (idle && !wakeFromIdle()) return;
+            if (idle && !wakeFromIdle()) {
+                trace("idle");
+                return;
+            }
 
             boolean wholeLayer = layerY != null && isWholeLayerRule();
             int layerSteps = 0;
             while (true) {
-                if (timeLimitExceeded.get()) return;
-                if (skipIteration.get() || ActionManager.INSTANCE.needWaitModifyLook) return;
+                if (timeLimitExceeded.get()) {
+                    trace("time-limit");
+                    return;
+                }
+                if (skipIteration.get() || ActionManager.INSTANCE.needWaitModifyLook) {
+                    trace("scan-stopped");
+                    return;
+                }
 
                 BlockPos pos = iteratorManager.next();
                 if (pos == null) {
                     currentCycleItem = null; // 一轮扫描耗尽，重置方块分类
+                    // 这一轮手边能放的都放完了：现在才按扫描顺序处理先跳过的格子。一开始换物品就停（换好以后下一轮
+                    // 把这种方块一起放掉）；别的原因放不了的（下面还没有支撑……）照常算一次尝试，和没跳过时一样
+                    boolean focused = false;
+                    for (int i = 0; i < swapDeferred.size(); i++) {
+                        if (timeLimitExceeded.get() || skipIteration.get() || ActionManager.INSTANCE.needWaitModifyLook) break;
+                        BlockPos deferred = BlockPos.of(swapDeferred.getLong(i));
+                        if (!needsWork(deferred)) continue;
+                        execPath = "swap";
+                        executeIteration(deferred, skipIteration);
+                        passDidWork = true;
+                        if (adjustFocusActive()) {
+                            focused = true;
+                            break;
+                        }
+                        if (maxExecs > 0 && ++execCount >= maxExecs) break;
+                    }
+                    swapDeferred.clear();
+                    if (focused) {
+                        onPassFinished();
+                        trace("adjust-start");
+                        return;
+                    }
                     Integer passLayer = layerY;
                     onPassFinished();
                     // 分层：这一层判定完成、往上换了一层，这一 tick 还有时间就接着扫新的一层。
@@ -242,6 +303,7 @@ public abstract class Module extends ConfigUtils {
                         wholeLayer = layerY != null && isWholeLayerRule();
                         continue;
                     }
+                    trace(idle ? "pass-end-rest" : "pass-end");
                     return;
                 }
 
@@ -280,13 +342,26 @@ public abstract class Module extends ConfigUtils {
                 if (work) {
                     // 按方块分类：一轮扫描仅处理一种方块类型（可选开关）
                     if (!Configs.Core.CLASSIFY_BY_BLOCK.getBooleanValue() || isCycleItemMatch(pos)) {
+                        // 要从背包换物品的先跳过，这一轮把快捷栏里有的放完再换（见 deferForSwap）
+                        if (swapDeferred.size() < MAX_SWAP_DEFERRED && deferForSwap(pos)) {
+                            swapDeferred.add(pos.asLong());
+                            guiPos = pos;
+                            guiExecuted = false;
+                            continue;
+                        }
                         execPath = "scan";
                         executeIteration(pos, skipIteration);
                         passDidWork = true;
                         executed = true;
                         // 刚放下（或点了）一个还要调整的方块：先把它调整完，这一 tick 不再放别的
-                        if (adjustFocusActive()) return;
-                        if (maxExecs > 0 && ++execCount >= maxExecs) return;
+                        if (adjustFocusActive()) {
+                            trace("adjust-start");
+                            return;
+                        }
+                        if (maxExecs > 0 && ++execCount >= maxExecs) {
+                            trace("max-execs");
+                            return;
+                        }
                     }
                 }
 
@@ -296,6 +371,10 @@ public abstract class Module extends ConfigUtils {
         } finally {
             if (timeoutTask != null) timeoutTask.cancel(false);
             timeLimitExceeded.set(false);
+            if (traced) {
+                TickTrace.iterNanos += System.nanoTime() - traceStart;
+                TickTrace.inScan = false;
+            }
             // 调试面板只显示这一 tick 最后看的一格：只在最后算一次（以前每一格都新建一次，还要查两遍可交互）
             if (guiPos != null && level != null) {
                 currentGuiInfo = new GuiBlockInfo(guiPos.immutable(), level.getBlockState(guiPos), LitematicaUtils.getBlockState(guiPos),
@@ -458,6 +537,15 @@ public abstract class Module extends ConfigUtils {
         return false;
     }
 
+    /** 这一轮里因为要从背包换物品而先跳过的格子（按扫描顺序）：这一轮扫完、手边能放的都放了，再处理它们 */
+    private final it.unimi.dsi.fastutil.longs.LongArrayList swapDeferred = new it.unimi.dsi.fastutil.longs.LongArrayList();
+    private static final int MAX_SWAP_DEFERRED = 4096;
+
+    /** 这一格要用的物品现在不在手边（要从背包换过来）：先跳过，这一轮最后再换（子类实现；needsWork(pos) 之后调用） */
+    protected boolean deferForSwap(BlockPos pos) {
+        return false;
+    }
+
     /** 刚执行的动作让一个方块进入“先调整完”的状态 */
     protected boolean adjustFocusActive() {
         return false;
@@ -528,6 +616,19 @@ public abstract class Module extends ConfigUtils {
     /** 子类补充的调试信息 */
     protected String debugExtra() {
         return "";
+    }
+
+    /** 调试：整层判定为什么还没完成（子类补充） */
+    protected String debugLayerWait() {
+        return "";
+    }
+
+    /** 调试：一格的情况（投影 / 世界 / 冷却 / 等确认 / 尝试次数） */
+    protected String describePos(@Nullable BlockPos pos) {
+        if (pos == null || level == null) return "null";
+        return pos.toShortString() + " want=" + LitematicaUtils.getBlockState(pos) + " have=" + level.getBlockState(pos)
+                + " cooldown=" + isOnCooldown(pos) + " awaiting=" + isAwaitingServer(pos) + " attempts=" + layerAttempts.getOrDefault(pos.asLong(), 0)
+                + " obstructed=" + isObstructedForLayer(pos);
     }
 
     private int forcedLayerSkips;
@@ -671,6 +772,9 @@ public abstract class Module extends ConfigUtils {
         boolean layerDone = !layerPending;
         // 整层判定：范围内这一轮都完成了，还要本层在已加载区块里的其余部分也都完成
         if (layerDone && wholeLayer) layerDone = restOfLayerDone(layerY);
+        if (traced && TickTrace.ENABLED) {
+            TickTrace.detail("layer " + layerY + (layerDone ? " done" : layerPending ? " unfinished at " + describePos(lastPendingPos) : " rest: " + debugLayerWait()));
+        }
         // 看门狗只数“范围内有没完成的格子、却一直没有放置尝试”的时间：等玩家走到范围外那部分时不算
         if (!layerPending) layerIdleTicks = 0;
         onLayerPassFinished(layerY, layerDone);
@@ -800,6 +904,7 @@ public abstract class Module extends ConfigUtils {
         scanState = ScanState.RUNNING;
         waitingPos = null;
         currentCycleItem = null;
+        swapDeferred.clear();
         iteratorManager.reset();
     }
 

@@ -72,6 +72,7 @@ public class Print extends Module {
         super(NAME, Configs.Print.ENABLED, Configs.Print.PRINT_SELECTION_TYPE, true);
         this.guide = new PlacementGuide(client);
         this.needSchematic = true;
+        this.traced = TickTrace.ENABLED;
         BlockChangeHub.register(this::onClientBlockChanged);
     }
 
@@ -275,6 +276,17 @@ public class Print extends Module {
     /** 整层判定还没有结论（统计在算、或者自己的动作在等服务端确认）：主循环不歇 10 tick，下一 tick 再看，这期间统计多算一会儿 */
     private boolean layerVerdictWaiting;
 
+    /** 范围内都打完了、这一层还剩够不着的格子时，最近一次挡住这一层的那一格（HUD 提示玩家走过去）；其他时候为 null */
+    @Nullable
+    private volatile BlockPos waitingFarPos;
+
+    @Nullable
+    public BlockPos getWaitingFarPos() {
+        BlockPos far = waitingFarPos;
+        Integer layer = getCurrentLayer();
+        return far != null && layer != null && far.getY() == layer && isWholeLayerRule() ? far : null;
+    }
+
     @Override
     protected boolean layerVerdictPending() {
         return layerVerdictWaiting;
@@ -400,11 +412,18 @@ public class Print extends Module {
         if (counts != null && counts[0] == counts[1]) {
             // 整层（已加载的部分）每一格都对（和打印机判断“打好了”的规则一样）
             done = true;
-        } else if (counts == null || layerIndex.layer() != layer) {
-            // 统计还没算好，或者逐格的整层统计还没换到这一层（下一 tick 换）：先不算完成
+        } else if (counts == null) {
+            // 统计还没算好：先不算完成
             layerVerdictWaiting = true;
             return false;
         } else {
+            if (layerIndex.layer() != layer && player != null) {
+                // 逐格的整层统计当场换到这一层。以前等下一 tick 的 preprocess 才换：有放不了的方块（跳过的侦测器、TNT、水……）的层，
+                // 每过一层都要多等一 tick，几十层的机器开一次打印机光是往上走就要好几秒
+                net.minecraft.world.level.ChunkPos center = player.chunkPosition();
+                layerIndex.tick(level, schematic, layer, LitematicaUtils.getSchematicWorkBoxes(), selectionSignature(), center.x, center.z,
+                        mc.options.getEffectiveRenderDistance() + 1, budget);
+            }
             // 有没打好的格子：逐格判断（打印机在范围内看过的用它的结论，范围外的看能不能放、能不能原地调对）
             done = layerIndex.done(schematic, level, budget);
             if (!done && !layerIndex.ready()) {
@@ -412,6 +431,9 @@ public class Print extends Module {
                 return false;
             }
         }
+        // 挡住这一层的是够不着的格子（不在扫描范围里）：HUD 上提示玩家走过去（打印机在等，不是卡住了）
+        BlockPos blocking = done ? null : layerIndex.lastBlocking();
+        waitingFarPos = blocking != null && layerIndex.layer() == layer && !coveredByScan(blocking) ? blocking.immutable() : null;
         // 自己放的方块还没被服务端确认：客户端看到的可能只是预测（被撤回的话这一层还没完），确认了才往上
         if (done && ActionConfirm.anyPending(level, player == null ? 0 : player.tickCount)) {
             layerVerdictWaiting = true;
@@ -514,7 +536,9 @@ public class Print extends Module {
         if (!required.canSurvive(level, pos)) return false;
         // 打印机已经发现缺这种材料：走过去也放不了，不让它卡住这一层（缺材料的提示里会列出来）
         Item item = block.asItem();
-        return item == net.minecraft.world.item.Items.AIR || !materialMissing(item);
+        // 自己没有物品的方块：只有打印机拿别的物品放的那几种能放（末地传送门、活塞头……放不了，和范围内的判断一致）
+        if (item == net.minecraft.world.item.Items.AIR) return PlacementGuide.placedWithOtherItem(block);
+        return !materialMissing(item);
     }
 
     @Override
@@ -590,8 +614,94 @@ public class Print extends Module {
             }
             return false;
         }
+        // 缺的方块没有能拿来放的物品（末地传送门、活塞头、移动中的活塞……）：打印机放不了。
+        // 以前空着手对这一格点 6 次（每次隔 3 tick）才算这一层完成，每到这一层都要白等
+        if (!hasPlacementItem(action, required) && BlockMatchingType.get(required, current) == BlockMatchingType.MISSING_BLOCK) {
+            deferToUpperLayer(blockPos);
+            return false;
+        }
+        // 有侦测器正盯着这一格（先于依附它的方块放下的；开着影响检测时任何一个）：这一格放上方块、或者点一下改状态，它都会亮一下。
+        // 动手之前再确认一次没影响（侦测器放下以后，周围可能又放了别的东西）；有影响就先不放
+        if (observerPulseWouldHurt(blockPos)) {
+            deferToUpperLayer(blockPos);
+            return false;
+        }
+        // 要用的材料已经缺了很久（见 longShortage），现在还是哪里都没有：先不算要做的事。以前每 3 tick 空试一次，
+        // 机器别的地方都打完了，打印机还是从底层到顶层一圈一圈地转、一直占着 CPU。材料一有就照常放
+        if (stillShort(action, required)) {
+            deferToUpperLayer(blockPos);
+            return false;
+        }
         this.action = action;
         return true;
+    }
+
+    /** 因为“侦测器先于依附它的方块”先放下的侦测器（它面前那一格还没放） */
+    private final it.unimi.dsi.fastutil.longs.LongOpenHashSet earlyObservers = new it.unimi.dsi.fastutil.longs.LongOpenHashSet();
+
+    /** 见 {@link #earlyObservers}（PlacementGuide 决定先放侦测器时调用） */
+    public void noteEarlyObserver(BlockPos pos) {
+        if (earlyObservers.size() > 4096) earlyObservers.clear();
+        earlyObservers.add(pos.asLong());
+    }
+
+    /**
+     * 盯着 target 的侦测器现在亮一下会动到周围的红石。先放下的侦测器（见 earlyObservers）总是查；开着侦测器安全放置和影响检测时，
+     * 世界里任何盯着它的侦测器都查（玩家自己放的、以前放下的）
+     */
+    private boolean observerPulseWouldHurt(BlockPos target) {
+        boolean all = Configs.Print.SAFELY_OBSERVER.getBooleanValue() && Configs.Print.OBSERVER_IMPACT_CHECK.getBooleanValue();
+        if (!all && earlyObservers.isEmpty()) return false;
+        for (Direction d : Direction.values()) {
+            BlockPos o = target.relative(d);
+            BlockState s = level.getBlockState(o);
+            if (!(s.getBlock() instanceof net.minecraft.world.level.block.ObserverBlock) || s.getValue(net.minecraft.world.level.block.ObserverBlock.FACING) != d.getOpposite()) {
+                // 记下的侦测器还没出现（刚发出去、服务端还没放下）：先留着，那时这一格也还没有支撑；那一格成了别的方块才删掉
+                if (!s.canBeReplaced()) earlyObservers.remove(o.asLong());
+                continue;
+            }
+            if (!all && !earlyObservers.contains(o.asLong())) continue;
+            String impact = ObserverImpact.pulseImpact(level, o, d.getOpposite());
+            if (impact != null) {
+                if (Boolean.getBoolean("ale.debugobserver")) System.out.println("[printer-observer] hold " + target.toShortString() + " in front of " + o.toShortString() + ": " + impact);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 这个动作要的材料都已经缺了很久，而且现在背包、潜影盒里还是没有（有了就从缺料记录里删掉） */
+    private boolean stillShort(Action action, BlockState required) {
+        if (shortages.isEmpty() || player == null || PlayerUtils.getAbilities(player).instabuild) return false;
+        Item[] items = action.getRequiredItems(required.getBlock());
+        if (items == null || items.length == 0) return false;
+        int now = player.tickCount;
+        for (Item item : items) {
+            if (item == null || item == net.minecraft.world.item.Items.AIR) return false;
+            Integer since = shortages.get(item);
+            if (since == null || now < since || now - since < SHORTAGE_GRACE_TICKS) return false;
+        }
+        var inventory = player.getInventory();
+        for (Item item : items) {
+            boolean have = false;
+            for (int i = 0; i < inventory.getContainerSize() && !have; i++) have = inventory.getItem(i).is(item);
+            if (!have && Configs.Print.USE_QUICK_SHULKER.getBooleanValue()) have = QuickShulkerUtils.findShulkerWithItem(player, item) != -1;
+            if (have) {
+                for (Item i : items) shortages.remove(i);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** 这个动作手上要拿的物品里有真的物品（不是空手） */
+    private static boolean hasPlacementItem(Action action, BlockState required) {
+        Item[] items = action.getRequiredItems(required.getBlock());
+        if (items == null) return false;
+        for (Item item : items) {
+            if (item != null && item != net.minecraft.world.item.Items.AIR) return true;
+        }
+        return false;
     }
 
     @Nullable
@@ -679,12 +789,27 @@ public class Print extends Module {
 
     @Override
     protected void executeIteration(BlockPos blockPos, AtomicReference<Boolean> skipIteration) {
+        if (!TickTrace.ENABLED) {
+            executeIterationNow(blockPos, skipIteration);
+            return;
+        }
+        long start = System.nanoTime();
+        try {
+            executeIterationNow(blockPos, skipIteration);
+        } finally {
+            TickTrace.execNanos += System.nanoTime() - start;
+        }
+    }
+
+    private void executeIterationNow(BlockPos blockPos, AtomicReference<Boolean> skipIteration) {
         if (DEBUG_ADJUST && player != null && level != null) {
             System.out.println("[printer-exec] t" + player.tickCount + " path=" + execPath + " pos=" + blockPos.toShortString()
                     + " adjustPos=" + (adjustPos == null ? null : adjustPos.toShortString()) + " have=" + level.getBlockState(blockPos));
         }
         placingIceForWater = false;
         lastOutcome = Outcome.NOT_POSSIBLE;
+        // 范围内又有事做了：不再提示“走过去”
+        waitingFarPos = null;
         if (fluidPlan != null && fluidPlan.target().equals(blockPos)) {
             executeFluid(blockPos, skipIteration);
             return;
@@ -782,6 +907,10 @@ public class Print extends Module {
         Direction side = action.getValidSide(level, blockPos);
         if (side == null) {
             addHighlight(blockPos, HighlightType.FAILED);
+            // 没有能贴的面（墙上的火把、告示牌、头颅、梯子……要贴的那一格还没放）。那一格这一层马上会放：等它；
+            // 在上面几层、或者下面那层已经放弃了、投影里根本没有：现在放不了，不让它卡住这一层。
+            // 以前不算尝试、也不放行，每到这一层都要等看门狗（约 4 秒）
+            if (!supportComesThisLayer(blockPos)) deferToUpperLayer(blockPos);
             return;
         }
         // 需求 8：放置投影里的潜影盒时，手上潜影盒的内容物必须与投影一致（空盒对空盒，装着东西的必须一模一样）
@@ -832,7 +961,20 @@ public class Print extends Module {
                 RemoteContainerUtils.tryGetItemFromContainers(reqItems[0]);
             }
             addHighlight(blockPos, HighlightType.FAILED);
+            // 背包和潜影盒里都没有这种材料（缺材料的提示里会列出来）。刚缺的照旧在这一层等一会儿（等看门狗，约 4 秒：
+            // 玩家可能马上就补上，先往上打会乱了顺序）；已经缺了这么久还没补上的（例如熄灭营火的铲子、填堆肥桶的海带），
+            // 以后到别的层、到顶回来复查时就不再每层白等，和范围外缺材料的格子一样（见 looksPlaceable）。材料有了照常放
+            boolean later = mayGetLater(reqItems);
+            boolean longMissing = !later && longShortage(reqItems);
+            if (longMissing) deferToUpperLayer(blockPos);
+            if (TickTrace.ENABLED && Boolean.getBoolean("ale.debugmissing")) {
+                System.out.println("[printer-missing] t" + player.tickCount + " " + java.util.Arrays.toString(reqItems) + " at " + blockPos.toShortString()
+                        + " result=" + switchResult + " later=" + later + " long=" + longMissing + " shortages=" + shortages);
+            }
             return;
+        }
+        if (reqItems != null) {
+            for (Item item : reqItems) shortages.remove(item);
         }
         boolean useShift;
         if (placingShulker) {
@@ -896,10 +1038,10 @@ public class Print extends Module {
             addHighlight(blockPos, HighlightType.PLACE);
         else
             addHighlight(blockPos, HighlightType.ADJUST);
-        // 先调整完再放下一个：这一格接下来还要在原地点几下 / 再放几次（单人游戏里的 V3 协议已经直接按投影的状态放了）
-        boolean protocolSetsState = hitModifier != null && mc.hasSingleplayerServer()
-                && fi.dy.masa.litematica.util.PlacementHandler.getEffectiveProtocolVersion() == fi.dy.masa.litematica.util.EasyPlaceProtocol.V3;
-        considerAdjustFocus(blockPos, usedItem, protocolSetsState);
+        // 先调整完再放下一个：这一格接下来还要在原地点几下 / 再放几次（V3 协议已经直接按投影的状态放了的不用：
+        // 单人游戏一定会；服务器上的 Servux 也会，确认过一次以后就不再每放一块都停下来等确认，见 ServerProtocol.setsState）
+        boolean protocolSetsState = hitModifier != null && ServerProtocol.setsState(ctx.requiredState);
+        considerAdjustFocus(blockPos, usedItem, protocolSetsState, hitModifier != null);
         if (needsSecondPlacement(ctx.requiredState, ctx.currentState)) {
             if (followUps.size() >= 256) followUps.removeFirstLong();
             followUps.add(blockPos.asLong());
@@ -980,10 +1122,17 @@ public class Print extends Module {
         return adjustPos;
     }
 
+    /**
+     * 正在调整的这一格是用协议刚放下的、要调的属性协议能直接定（见 AdjustFirst.protocolProperty），而且还没点过：
+     * 服务端确认后不用点就对了，说明服务器按协议放好了这个属性（ServerProtocol.stateConfirmed）
+     */
+    private boolean adjustCheckProtocol;
+
     /** 刚对 pos 发出了动作：如果这一格还要在原地接着调整，就停在这一格，调整完再放下一个方块 */
-    private void considerAdjustFocus(BlockPos pos, Item usedItem, boolean protocolSetsState) {
+    private void considerAdjustFocus(BlockPos pos, Item usedItem, boolean protocolSetsState, boolean viaProtocol) {
         if (!Configs.Print.ADJUST_FIRST.getBooleanValue() || ctx == null || action == null) return;
-        boolean adjusting = switch (BlockMatchingType.get(ctx.requiredState, ctx.currentState)) {
+        BlockMatchingType matching = BlockMatchingType.get(ctx.requiredState, ctx.currentState);
+        boolean adjusting = switch (matching) {
             // 方块对了、状态不对：点一下调整（在同一格再放一块的双层台阶、多贴一面的藤蔓照旧的顺序）
             case ERROR_BLOCK_STATE -> action instanceof ClickAction;
             // 方块不对但能在原地转换（泥土锄成耕地、空花盆放花、原木去皮）
@@ -1003,6 +1152,10 @@ public class Print extends Module {
             adjustPos = pos.immutable();
             adjustNoEffect = 0;
             adjustLastProgressTick = player.tickCount;
+            adjustCheckProtocol = viaProtocol && matching == BlockMatchingType.MISSING_BLOCK && AdjustFirst.protocolProperty(ctx.requiredState) != null;
+        } else if (matching != BlockMatchingType.MISSING_BLOCK) {
+            // 在原地点过了：之后对了不能说明是协议放好的
+            adjustCheckProtocol = false;
         }
         adjustStateBefore = ctx.currentState;
         adjustActionSent = true;
@@ -1047,6 +1200,7 @@ public class Print extends Module {
             } finally {
                 PlacementGuide.pipelinedClick = false;
             }
+            if (TickTrace.ENABLED) TickTrace.detail("pipelined " + pos.toShortString() + " left=" + adjustClicksLeft);
             // 客户端已经看到对了（中继器会预测结果）、或者现在点不了：先等回应，回来以后照常核对
             if (!canClick) {
                 if (DEBUG_ADJUST) System.out.println("[printer-adjust] t" + now + " pipeline stops at " + pos.toShortString() + " left=" + adjustClicksLeft
@@ -1062,7 +1216,11 @@ public class Print extends Module {
             return true;
         }
         // 上一个动作服务端还没回应：客户端看到的不一定是结果，等着
-        if (isAwaitingServer(pos)) return true;
+        if (isAwaitingServer(pos)) {
+            if (TickTrace.ENABLED) TickTrace.detail("await-ack " + pos.toShortString() + " " + schematic.getBlockState(pos).getBlock()
+                    + " held=" + (now - adjustLastProgressTick));
+            return true;
+        }
         BlockState current = level.getBlockState(pos);
         if (adjustActionSent) {
             adjustActionSent = false;
@@ -1074,6 +1232,7 @@ public class Print extends Module {
             }
         }
         if (isCorrectBlock(pos)) {
+            if (adjustCheckProtocol) ServerProtocol.stateConfirmed(schematic.getBlockState(pos));
             clearAdjust();
             return false;
         }
@@ -1085,7 +1244,10 @@ public class Print extends Module {
             return false;
         }
         // 换物品一直没生效：等这一格的冷却过了再试
-        if (lastOutcome == Outcome.SWITCH_TIMEOUT && isOnCooldown(pos)) return true;
+        if (lastOutcome == Outcome.SWITCH_TIMEOUT && isOnCooldown(pos)) {
+            if (TickTrace.ENABLED) TickTrace.detail("switch-timeout " + pos.toShortString());
+            return true;
+        }
         BlockMatchingType type = BlockMatchingType.get(schematic.getBlockState(pos), current);
         // 方块不见了（服务端没让放）或者成了别的方块：交回正常顺序
         if (type != BlockMatchingType.ERROR_BLOCK_STATE && type != BlockMatchingType.ERROR_BLOCK) {
@@ -1110,6 +1272,7 @@ public class Print extends Module {
         int clicks = AdjustFirst.cyclicClicks(schematic.getBlockState(pos), current);
         execPath = "adjust";
         executeIteration(pos, skipIteration);
+        if (TickTrace.ENABLED) TickTrace.detail("click " + pos.toShortString() + " " + current.getBlock() + " outcome=" + lastOutcome);
         if (lastOutcome == Outcome.QUEUED && clicks > 1) adjustClicksLeft = clicks - 1;
         if (DEBUG_ADJUST) {
             System.out.println("[printer-adjust] t" + now + " click at " + pos.toShortString() + " clicks=" + clicks + " outcome=" + lastOutcome
@@ -1132,6 +1295,18 @@ public class Print extends Module {
         adjustStateBefore = null;
         adjustActionSent = false;
         adjustNoEffect = 0;
+        adjustCheckProtocol = false;
+    }
+
+    @Override
+    protected String debugLayerWait() {
+        Integer layer = getCurrentLayer();
+        long[] counts = layer == null ? null : loadedIndex.layerCounts(layer);
+        BlockPos blocking = layerIndex.lastBlocking();
+        return "verdictWaiting=" + layerVerdictWaiting + " counts=" + (counts == null ? null : counts[1] + "/" + counts[0])
+                + " index=" + (layerIndex.layer() == (layer == null ? Integer.MIN_VALUE : layer)) + " ready=" + layerIndex.ready()
+                + " pendingAcks=" + (level != null && ActionConfirm.anyPending(level, player == null ? 0 : player.tickCount))
+                + (blocking == null ? "" : " blocking=" + describePos(blocking) + " verdict=" + layerVerdict(blocking) + " scanned=" + coveredByScan(blocking));
     }
 
     @Override
@@ -1155,6 +1330,8 @@ public class Print extends Module {
         layerIndex.clear();
         wholeLayerStats = null;
         layerVerdictWaiting = false;
+        waitingFarPos = null;
+        earlyObservers.clear();
         // 按区块段的统计（loadedIndex）不清空：方块变化一直在记，下次开机直接用
     }
 
@@ -1162,6 +1339,90 @@ public class Print extends Module {
         if (!BreakUtils.INSTANCE.inQueue(pos) && !BreakUtils.INSTANCE.isBreaking(pos)) {
             BreakUtils.INSTANCE.add(pos);
         }
+    }
+
+    /**
+     * 这一格要贴的面（action 的候选面）上，有投影里要放、世界里还没放、而且就在这一层的方块：打印机这一层会把它放上，等它。
+     * 分层没开时总是等（和以前一样）。
+     */
+    private boolean supportComesThisLayer(BlockPos pos) {
+        Integer layer = getCurrentLayer();
+        if (layer == null || action == null || ctx == null) return true;
+        for (Direction d : action.getSides().keySet()) {
+            BlockPos n = pos.relative(d);
+            if (n.getY() != layer) continue;
+            BlockState want = ctx.schematic.getBlockState(n);
+            if (want.isAir() || !level.getBlockState(n).canBeReplaced()) continue;
+            if (!isLayerSkipped(n)) return true;
+        }
+        return false;
+    }
+
+    /** 缺着的材料：物品 → 第一次发现缺的 tick（换层、关开打印机都不清；手上 / 背包里又有了就删掉） */
+    private final java.util.Map<Item, Integer> shortages = new java.util.HashMap<>();
+    /** 缺了这么久还没补上，就不再每层等它（和 Module 的看门狗一样长） */
+    private static final int SHORTAGE_GRACE_TICKS = 80;
+
+    /** 这几种可用的物品都已经缺了至少 SHORTAGE_GRACE_TICKS（刚发现缺的从现在开始算） */
+    private boolean longShortage(@Nullable Item[] items) {
+        if (items == null || player == null) return false;
+        int now = player.tickCount;
+        boolean any = false;
+        boolean allLong = true;
+        // 每一种都要记上（不能记了第一种就返回，否则几种替代物品要一种一种地记，等的时间翻好几倍）
+        for (Item item : items) {
+            if (item == null || item == net.minecraft.world.item.Items.AIR) continue;
+            any = true;
+            Integer since = shortages.get(item);
+            if (since == null || now < since) {
+                shortages.put(item, now);
+                allLong = false;
+            } else if (now - since < SHORTAGE_GRACE_TICKS) {
+                allLong = false;
+            }
+        }
+        return any && allLong;
+    }
+
+    /** 现在拿不到，但打印机过一会儿自己能拿到：背包里的潜影盒里有（取物冷却中），或者开着从附近容器取物 */
+    private boolean mayGetLater(@Nullable Item[] items) {
+        if (items == null || player == null) return false;
+        if (Configs.Print.USE_REMOTE_CONTAINER.getBooleanValue()) return true;
+        if (!Configs.Print.USE_QUICK_SHULKER.getBooleanValue()) return false;
+        for (Item item : items) {
+            if (item != null && item != net.minecraft.world.item.Items.AIR && QuickShulkerUtils.findShulkerWithItem(player, item) != -1) return true;
+        }
+        return false;
+    }
+
+    /**
+     * 这一格要用的物品不在快捷栏里（要从背包换过来，或者从潜影盒取）：这一轮先放快捷栏里有的，
+     * 这一格留到这一轮最后再换（见 Module 的 swapDeferredPos）。以前按扫描顺序碰到就换，
+     * 一层里十几种方块交错时几乎每放几块就要换一次，每次都要等服务端确认。canProcessPos(pos) 刚算好了 action。
+     */
+    @Override
+    protected boolean deferForSwap(BlockPos pos) {
+        if (player == null || PlayerUtils.getAbilities(player).instabuild || ctx == null) return false;
+        Item[] items;
+        if (fluidPlan != null && fluidPlan.target().equals(pos)) items = new Item[]{fluidPlan.bucket()};
+        else if (action != null) items = action.getRequiredItems(ctx.requiredState.getBlock());
+        else return false;
+        if (items == null || items.length == 0) return false;
+        var inventory = player.getInventory();
+        for (Item item : items) {
+            if (item == null || item == net.minecraft.world.item.Items.AIR) return false;
+            for (int i = 0; i < 9; i++) {
+                if (inventory.getItem(i).is(item)) return false;
+            }
+        }
+        // 背包里有、或者背包里的潜影盒里有：要换。哪里都没有的照常处理（缺材料，见 executeIteration）
+        for (Item item : items) {
+            for (int i = 9; i < 36; i++) {
+                if (inventory.getItem(i).is(item)) return true;
+            }
+            if (Configs.Print.USE_QUICK_SHULKER.getBooleanValue() && QuickShulkerUtils.findShulkerWithItem(player, item) != -1) return true;
+        }
+        return false;
     }
 
     private void recordMissingMaterial(Item[] reqItems) {

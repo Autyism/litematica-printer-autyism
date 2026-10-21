@@ -34,7 +34,9 @@
       "com.autyism.printer.gametest.AdjustFirstGameTest",
       "com.autyism.printer.gametest.ProgressScopeGameTest",
       "com.autyism.printer.gametest.LayerDoneGameTest",
-      "com.autyism.printer.gametest.LayerStartGameTest"
+      "com.autyism.printer.gametest.LayerStartGameTest",
+      "com.autyism.printer.gametest.MachineGameTest",
+      "com.autyism.printer.gametest.ObserverFirstGameTest"
     ]
   },
   "mixins": [

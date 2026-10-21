@@ -72,6 +72,12 @@ public final class LayerIndex implements LoadedColumns.Listener {
         return layer;
     }
 
+    /** 调试：上一次判断时挡住这一层的格子；没有时为 null */
+    @Nullable
+    public BlockPos lastBlocking() {
+        return lastBlocking == Long.MIN_VALUE ? null : BlockPos.of(lastBlocking);
+    }
+
     public void clear() {
         layer = Integer.MIN_VALUE;
         columns = null;

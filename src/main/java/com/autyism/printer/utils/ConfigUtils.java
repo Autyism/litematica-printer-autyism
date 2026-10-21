@@ -62,8 +62,19 @@ public class ConfigUtils {
         if (client.hasSingleplayerServer()) {
             return Math.min(configRange, reach);
         }
+        // 服务器开着地毯的 antiCheatDisabled（装了地毯的客户端会收到服务器的规则）：服务端最远只认眼睛到方块中心 32 格，
+        // 再远的放置会被悄悄丢掉、只回一个确认，打印机以前一直在白放（工作半径设成 64 时 32 格外的方块每 3 tick 试一次）
+        if (com.autyism.printer.compat.CarpetRules.antiCheatDisabled()) {
+            return Math.min(configRange, Math.max(CARPET_ANTI_CHEAT_REACH, reach));
+        }
         return configRange;
     }
+
+    /**
+     * 地毯 antiCheatDisabled 时打印机用的距离：打印机量的是眼睛到方块最近一点，服务端量到方块中心，
+     * 所以 32 格减去半条方块对角线（0.87），再留 1 格给服务端看到的眼睛位置（比客户端慢一点）
+     */
+    private static final double CARPET_ANTI_CHEAT_REACH = 32 - 0.87 - 1.0;
 
     public static Direction getFillModeFacing() {
         if (Configs.Fill.FILL_BLOCK_FACING.getOptionListValue() instanceof FillModeFacingType fillModeFacingType) {

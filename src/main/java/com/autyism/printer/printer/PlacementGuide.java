@@ -55,6 +55,38 @@ public class PlacementGuide {
      */
     public static boolean pipelinedClick;
 
+    private static final boolean DEBUG_OBSERVER = Boolean.getBoolean("ale.debugobserver");
+
+    /**
+     * 侦测器安全放置允许放的侦测器。开着“侦测器放置影响检测”时，再确认放下去不会动到周围的红石；
+     * willPulse = 它面前那一格以后才放上方块（那时它会亮一下），这一下也要没影响（见 ObserverImpact）
+     */
+    @Nullable
+    private static Action observerAction(SchematicBlockContext ctx, Direction facing, boolean willPulse) {
+        if (Configs.Print.OBSERVER_IMPACT_CHECK.getBooleanValue()) {
+            String impact = ObserverImpact.placementImpact(ctx.level, ctx.blockPos, facing);
+            if (impact == null && willPulse) impact = ObserverImpact.pulseImpact(ctx.level, ctx.blockPos, facing);
+            if (impact != null) {
+                if (DEBUG_OBSERVER) System.out.println("[printer-observer] impact check " + ctx.blockPos.toShortString() + " facing=" + facing + " -> skip: " + impact);
+                return null;
+            }
+        }
+        return new Action().setLookDirection(facing).setNeedWaitModifyLook(true);
+    }
+
+    /**
+     * 自己没有物品、打印机拿别的物品放的方块（和 buildActionMissingBlock 里另给了物品的分支一致：花盆里的花、垂滴叶茎、
+     * 洞穴藤蔓 / 垂泪藤 / 缠怨藤的藤身、南瓜 / 西瓜茎、火、下界传送门）。别的没有物品的方块（末地传送门、活塞头……）放不了。
+     */
+    public static boolean placedWithOtherItem(Block block) {
+        return block instanceof FlowerPotBlock || block instanceof BigDripleafStemBlock
+                || block instanceof CaveVinesBlock || block instanceof CaveVinesPlantBlock
+                || block instanceof WeepingVinesBlock || block instanceof WeepingVinesPlantBlock
+                || block instanceof TwistingVinesBlock || block instanceof TwistingVinesPlantBlock
+                || block instanceof AttachedStemBlock || block instanceof StemBlock
+                || block instanceof BaseFireBlock || block instanceof NetherPortalBlock;
+    }
+
     public @Nullable Action getAction(SchematicBlockContext ctx) {
         BlockMatchingType state = BlockMatchingType.get(ctx);
         if (state == BlockMatchingType.CORRECT) return null;
@@ -394,7 +426,7 @@ public class PlacementGuide {
 
                     if (inputState == BlockMatchingType.CORRECT && outputState == BlockMatchingType.CORRECT) {
                         if (BlockUtils.checkObserverChain(input)) {
-                            return new Action().setLookDirection(facing).setNeedWaitModifyLook(true);
+                            return observerAction(ctx, facing, false);
                         }
                         return null;
                     }
@@ -429,19 +461,33 @@ public class PlacementGuide {
                         if (!output.requiredState.isAir()) {
                             if (output.currentState.isAir() && input.requiredState.getBlock() instanceof WallBlock) {
                                 BlockPosCooldownManager.INSTANCE.setCooldown(ctx.level, "observer", ctx.blockPos, 2);
-                                return new Action().setLookDirection(facing).setNeedWaitModifyLook(true);
+                                return observerAction(ctx, facing, true);
+                            }
+                            // 侦测器面前那一格的方块要靠这个侦测器才放得下（上面的中继器、铁轨，贴在它面上的火把……）：
+                            // 照上面的规则两边都放不了。确认放下侦测器、以及那一格放上方块时它亮的那一下都不会动到周围的红石，才先放侦测器
+                            if (Configs.Print.OBSERVER_SUPPORT_FIRST.getBooleanValue()
+                                    && ObserverImpact.dependsOnObserver(ctx.schematic, ctx.level, input.blockPos, ctx.blockPos)) {
+                                String impact = ObserverImpact.placementImpact(ctx.level, ctx.blockPos, facing);
+                                if (impact == null) impact = ObserverImpact.pulseImpact(ctx.level, ctx.blockPos, facing);
+                                if (DEBUG_OBSERVER) System.out.println("[printer-observer] support-first " + ctx.blockPos.toShortString() + " facing=" + facing
+                                        + " for " + input.requiredState.getBlock() + " -> " + (impact == null ? "place" : "skip: " + impact));
+                                if (impact == null) {
+                                    ModuleManager.PRINT.noteEarlyObserver(ctx.blockPos);
+                                    return new Action().setLookDirection(facing).setNeedWaitModifyLook(true);
+                                }
                             }
                             return null;
                         } else {
                             // 检查是否被其他侦测器侦测
                             if (BlockUtils.checkObserverChain(input)) {
-                                return new Action().setLookDirection(facing).setNeedWaitModifyLook(true);
+                                return observerAction(ctx, facing, true);
                             }
                             if (!BlockUtils.checkObserverChain(output)) {
                                 return null;
                             }
                         }
                     }
+                    return observerAction(ctx, facing, inputState != BlockMatchingType.CORRECT);
                 }
 
                 return new Action().setLookDirection(facing).setNeedWaitModifyLook(true);

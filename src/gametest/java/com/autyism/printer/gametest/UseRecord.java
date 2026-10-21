@@ -37,4 +37,18 @@ public final class UseRecord {
     public static Entry take(int sequence) {
         return MAP.remove(sequence);
     }
+
+    /** 最近发出的 n 个放置包（按序号） */
+    public static java.util.List<String> recent(int n) {
+        java.util.List<Integer> seqs = new java.util.ArrayList<>(MAP.keySet());
+        java.util.Collections.sort(seqs);
+        java.util.List<String> out = new java.util.ArrayList<>();
+        for (int i = Math.max(0, seqs.size() - n); i < seqs.size(); i++) {
+            Entry e = MAP.get(seqs.get(i));
+            if (e == null) continue;
+            out.add("#" + seqs.get(i) + " t" + e.tick() + " " + e.target() + " work=" + (e.workPos() == null ? null : e.workPos().toShortString())
+                    + " " + (e.wanted() == null ? null : e.wanted().getBlock()));
+        }
+        return out;
+    }
 }

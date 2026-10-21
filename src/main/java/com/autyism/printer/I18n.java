@@ -42,6 +42,7 @@ public class I18n {
     public static final I18n HUD_PRINT_PROGRESS_LOADED = of("hud.print_progress_loaded");
     public static final I18n HUD_PRINT_ERRORS = of("hud.print_errors");
     public static final I18n HUD_LAYER = of("hud.layer");
+    public static final I18n HUD_LAYER_WAIT_FAR = of("hud.layer_wait_far");
 
     private static final String PREFIX_CONFIG = "config";
     private static final String PREFIX_COMMENT = "desc";

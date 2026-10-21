@@ -466,7 +466,11 @@ public class InventoryUtils {
         ItemStack mainHand = player.getMainHandItem();
         for (Item item : items) {
             if (mainHand.is(item) && passesFilter(mainHand)) {
-                return stackMayBeUsedUp(player, mainHand) ? ItemSwitchResult.WAITING : ItemSwitchResult.READY;
+                if (stackMayBeUsedUp(player, mainHand)) {
+                    traceUsedUp(player, mainHand);
+                    return ItemSwitchResult.WAITING;
+                }
+                return ItemSwitchResult.READY;
             }
         }
         Inventory inventory = player.getInventory();
@@ -484,15 +488,21 @@ public class InventoryUtils {
             if (Inventory.isHotbarSlot(slot)) {
                 setHotbarSlot(slot, inventory);
                 if (!player.getMainHandItem().is(item) || !passesFilter(player.getMainHandItem())) return ItemSwitchResult.UNAVAILABLE;
-                return stackMayBeUsedUp(player, player.getMainHandItem()) ? ItemSwitchResult.WAITING : ItemSwitchResult.READY;
+                if (stackMayBeUsedUp(player, player.getMainHandItem())) {
+                    traceUsedUp(player, player.getMainHandItem());
+                    return ItemSwitchResult.WAITING;
+                }
+                return ItemSwitchResult.READY;
             }
             // 打开着其他容器（如快捷潜影盒延迟关闭）时不能对玩家背包做交换
             if (player.containerMenu != player.inventoryMenu) {
+                com.autyism.printer.printer.TickTrace.detail("item-wait: another container is open");
                 return ItemSwitchResult.WAITING;
             }
             // 有延迟时：之前的动作还没被服务端确认、或上一次交换还没被处理，先等（见 ActionConfirm.readyForInventoryClick）
             int sequenceNow = client.level instanceof PacketUtils.SequenceExtension seq ? seq.litematica_printer3$currentSequence() : 0;
             if (!com.autyism.printer.printer.ActionConfirm.readyForInventoryClick(client.level, sequenceNow, player.tickCount)) {
+                com.autyism.printer.printer.TickTrace.detail("item-wait: swap waits for confirmations");
                 return ItemSwitchResult.WAITING;
             }
             boolean switched = InventoryUtils.setPickedItemToHand(slot, itemStack, client);
@@ -509,23 +519,36 @@ public class InventoryUtils {
                 }
                 System.out.println(sb);
             }
+            com.autyism.printer.printer.TickTrace.detail("item-wait: swapped from the inventory");
             return switched || player.getMainHandItem().is(item) ? ItemSwitchResult.WAITING : ItemSwitchResult.UNAVAILABLE;
         }
         boolean requestStarted = QuickShulkerUtils.requestShulkerItem(player, items);
         if (requestStarted || QuickShulkerUtils.isBusy()) {
+            com.autyism.printer.printer.TickTrace.detail("item-wait: shulker box");
             return ItemSwitchResult.WAITING;
         }
         return ItemSwitchResult.UNAVAILABLE;
     }
 
+    private static void traceUsedUp(LocalPlayer player, ItemStack stack) {
+        if (!com.autyism.printer.printer.TickTrace.ENABLED || client.level == null) return;
+        com.autyism.printer.printer.TickTrace.detail("item-wait: stack may be used up " + stack.getItem() + " count=" + stack.getCount()
+                + " unreflected=" + com.autyism.printer.printer.ActionConfirm.unreflectedUses(client.level, player.tickCount, stack.getItem())
+                + " inFlight=" + com.autyism.printer.printer.ActionConfirm.inFlightCount(client.level, player.tickCount, stack.getItem()));
+    }
+
     /**
      * 生存模式这一组可能已经用完：服务端发来的“剩几个”有延迟，会把客户端自己算好的数量改大，
      * 客户端以为还有、服务端其实已经用完（放置被拒、方块闪一下又消失）。
-     * 客户端显示的数量最多比真实数量多出“用这种物品、已发出但还没被确认的放置数”，所以数量不多于这个数时先等确认回来。
+     * 客户端显示的数量最多比真实数量多出“已发出、还没确认、而且显示的数量里还没扣掉的”那几次（见 ActionConfirm.unreflectedUses），
+     * 所以数量不多于这个数时先等确认回来。客户端自己扣过的不再扣第二遍：以前一组放到一半就要停下来等。
      */
     private static boolean stackMayBeUsedUp(LocalPlayer player, ItemStack stack) {
+        // 空手（例如空手点红石粉把十字点成点）不消耗任何东西。以前这里按“0 个不多于 0 次”算成用完了，
+        // 一直等到换物品超时、调整放弃（每个红石点要卡 10 秒），这一层后面的方块都要等它
+        if (stack.isEmpty()) return false;
         if (PlayerUtils.getAbilities(player).instabuild || client.level == null) return false;
-        return stack.getCount() <= com.autyism.printer.printer.ActionConfirm.inFlightCount(client.level, player.tickCount, stack.getItem());
+        return stack.getCount() <= com.autyism.printer.printer.ActionConfirm.unreflectedUses(client.level, player.tickCount, stack.getItem());
     }
 
     private static int findItemInInventory(Inventory inventory, Item item) {

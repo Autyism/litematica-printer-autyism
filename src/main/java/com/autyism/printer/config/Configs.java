@@ -437,6 +437,18 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 .defaultValue(true)
                 .build();
 
+        // 侦测器先于依附它的方块：侦测器面前要放的方块（中继器、铁轨……）要靠它支撑时，确认没影响就先放侦测器
+        public static final ConfigBoolean OBSERVER_SUPPORT_FIRST = booleanValue("printObserverSupportFirst")
+                .defaultValue(true)
+                .setVisible(SAFELY_OBSERVER::getBooleanValue)
+                .build();
+
+        // 侦测器影响检测：每放一个侦测器都先确认放下去不会动到周围的红石
+        public static final ConfigBoolean OBSERVER_IMPACT_CHECK = booleanValue("printObserverImpactCheck")
+                .defaultValue(true)
+                .setVisible(SAFELY_OBSERVER::getBooleanValue)
+                .build();
+
         // 铁轨安全放置：只在不会放错方向、不会把旁边铁轨拉歪时才放
         public static final ConfigBoolean SAFE_RAILS = booleanValue("printSafeRails")
                 .defaultValue(true)
@@ -540,6 +552,8 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 PRINT_WATERLOGGED,
                 PRINT_ICE_FOR_WATER,
                 SAFELY_OBSERVER,
+                OBSERVER_SUPPORT_FIRST,
+                OBSERVER_IMPACT_CHECK,
                 SAFE_RAILS,
                 STRIP_LOGS,
                 NOTE_BLOCK_TUNING,

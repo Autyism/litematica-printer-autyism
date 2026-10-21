@@ -8,6 +8,7 @@ import com.autyism.printer.handler.handlers.*;
 import com.autyism.printer.printer.ActionManager;
 import com.autyism.printer.printer.ContainerGuard;
 import com.autyism.printer.printer.MissingMaterialTracker;
+import com.autyism.printer.printer.TickTrace;
 import com.autyism.printer.utils.BreakUtils;
 import com.autyism.printer.utils.ConfigUtils;
 import com.autyism.printer.utils.ModUtils;
@@ -41,7 +42,10 @@ public class ModuleManager {
     public static void tick() {
         // If TakeItOut is waiting for a server-side shulker extraction, skip
         // all processing so the printer does not interfere.
-        if (TakeItOutCompat.isAwaitingItem()) return;
+        if (TakeItOutCompat.isAwaitingItem()) {
+            TickTrace.stop("takeitout");
+            return;
+        }
         com.autyism.printer.utils.ToolSwitchUtils.tick();
 
         QuickShulkerUtils.tick();
@@ -51,11 +55,20 @@ public class ModuleManager {
         com.autyism.printer.compat.BedrockCompat.syncWithModule(ConfigUtils.isPrinterEnable() && Configs.Bedrock.ENABLED.getBooleanValue());
         com.autyism.printer.printer.ReachHelper.tick();
         // 单人世界刚发出“调高交互距离”的指令：等它生效再开始（否则分层打印会从眼睛附近的层开始）
-        if (com.autyism.printer.printer.ReachHelper.isRaising()) return;
+        if (com.autyism.printer.printer.ReachHelper.isRaising()) {
+            TickTrace.stop("reach-raise");
+            return;
+        }
         // 需求 1：玩家打开/正在打开容器时暂停打印机，避免和服务端的背包状态不同步
-        if (ContainerGuard.isPaused()) return;
+        if (ContainerGuard.isPaused()) {
+            TickTrace.stop("container-pause");
+            return;
+        }
         // 快速移动投影还没把投影数据挪到新位置（见 FastMoveCompat）
-        if (com.autyism.printer.compat.FastMoveCompat.moveSettling()) return;
+        if (com.autyism.printer.compat.FastMoveCompat.moveSettling()) {
+            TickTrace.stop("fastmove");
+            return;
+        }
         boolean printerEnabled = ConfigUtils.isPrinterEnable();
         // 打印机从停着到开始干活（打开总开关，或者总开关开着时打开了第一个模式）：清掉上次留下的状态
         boolean running = ConfigUtils.isAnyModeRunning();
@@ -85,11 +98,13 @@ public class ModuleManager {
         }
 
         if (ActionManager.INSTANCE.sendQueue(mc.player).needWaitModifyLook) {
+            TickTrace.stop("look-wait");
             return;
         }
 
         if (Configs.Core.LAG_CHECK.getBooleanValue()) {
             if (packetTick > Configs.Core.LAG_CHECK_MAX.getIntegerValue()) {
+                TickTrace.stop("lag-check");
                 return;
             }
             packetTick++;
@@ -98,9 +113,11 @@ public class ModuleManager {
         for (Module module : VALUES) {
             if (!(module instanceof GUI)) {
                 if (BreakUtils.INSTANCE.isNeedHandle()) {
+                    TickTrace.stop("break-queue");
                     return;
                 }
                 if (ActionManager.INSTANCE.needWaitModifyLook) {
+                    TickTrace.stop("look-wait");
                     return;
                 }
             }

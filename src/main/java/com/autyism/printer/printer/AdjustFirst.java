@@ -81,6 +81,22 @@ public final class AdjustFirst {
         return false;
     }
 
+    /**
+     * 轻松放置协议（V3）放下时就能直接定下、不用再点的那个属性（expectsFollowUp 里“协议放好了就不用调”的那几种）。
+     * Servux 的 V3 也认这些属性；协议定不了的（拉杆、蜡烛数量……）返回 null。
+     */
+    @Nullable
+    public static net.minecraft.world.level.block.state.properties.Property<?> protocolProperty(BlockState required) {
+        Block b = required.getBlock();
+        if (b instanceof RepeaterBlock) return RepeaterBlock.DELAY;
+        if (b instanceof ComparatorBlock) return ComparatorBlock.MODE;
+        if (b instanceof NoteBlock) return NoteBlock.NOTE;
+        if (b instanceof DaylightDetectorBlock) return DaylightDetectorBlock.INVERTED;
+        if ((b instanceof DoorBlock || b instanceof TrapDoorBlock) && !isIron(required)) return BlockStateProperties.OPEN;
+        if (b instanceof FenceGateBlock) return FenceGateBlock.OPEN;
+        return null;
+    }
+
     /** 音符盒音高、中继器延迟：从 current 要点几下才到 required（每点一下进一档，到头回到最小）；别的方块返回 0 */
     public static int cyclicClicks(BlockState required, BlockState current) {
         Block b = required.getBlock();

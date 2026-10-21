@@ -49,6 +49,9 @@ public class QuickShulkerUtils {
     private static int deferredCloseTicks;
     private static int deferredCloseRetries;
     private static final int MAX_DEFERRED_CLOSE_RETRIES = 10;
+    /** 发出打开潜影盒之后，界面一直没打开就放弃这一次（以后再取）：以前会一直“忙”，打印机就一直停在等这个潜影盒 */
+    private static final int OPEN_TIMEOUT_TICKS = 60;
+    private static int openWaitTicks;
 
     private QuickShulkerUtils() {}
 
@@ -56,6 +59,16 @@ public class QuickShulkerUtils {
         com.autyism.printer.compat.AdvancedShulkerCompat.tick();
         if (shulkerCooldown > 0) {
             shulkerCooldown--;
+        }
+        LocalPlayer self = mc.player;
+        if (isOpenHandler && self != null && self.containerMenu == self.inventoryMenu
+                && !com.autyism.printer.compat.AdvancedShulkerCompat.isPending()) {
+            if (++openWaitTicks > OPEN_TIMEOUT_TICKS) {
+                if (Boolean.getBoolean("ale.debuglook")) System.out.println("[qs] open timed out");
+                abortOpen();
+            }
+        } else {
+            openWaitTicks = 0;
         }
         if (deferredCloseTicks > 0 && --deferredCloseTicks == 0) {
             LocalPlayer player = mc.player;
@@ -174,6 +187,7 @@ public class QuickShulkerUtils {
         setShulkerBoxSlot(shulkerSlot);
         ModUtils.closeScreen++;
         setOpenHandler(true);
+        openWaitTicks = 0;
         setShulkerCooldown(Configs.Print.SHULKER_COOLDOWN.getIntegerValue());
 
         // 按来源打开潜影盒：PLUGIN 走右键模拟；MOD 优先 Advanced Shulkerboxes（拿到手上对空气使用），否则 QuickShulker API

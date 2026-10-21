@@ -63,8 +63,22 @@ public abstract class MixinClientPacketListener {
         ServerEffects.clear();
     }
 
+    // 服务端同步了背包里的物品数量：它只算到已经处理的动作，还没确认的放置的消耗不在这个数量里（见 ActionConfirm.unreflectedUses）
+    @Inject(method = "handleContainerSetSlot", at = @At("RETURN"))
+    private void onSlotSync(net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket packet, CallbackInfo ci) {
+        com.autyism.printer.printer.ActionConfirm.onInventorySync(Minecraft.getInstance().level);
+    }
+
+    //? if >=1.21.2 {
+    @Inject(method = "handleSetPlayerInventory", at = @At("RETURN"))
+    private void onPlayerInventorySync(net.minecraft.network.protocol.game.ClientboundSetPlayerInventoryPacket packet, CallbackInfo ci) {
+        com.autyism.printer.printer.ActionConfirm.onInventorySync(Minecraft.getInstance().level);
+    }
+    //?}
+
     @Inject(method = "handleContainerContent", at = @At("RETURN"))
     private void onContainerContent(ClientboundContainerSetContentPacket packet, CallbackInfo ci) {
+        com.autyism.printer.printer.ActionConfirm.onInventorySync(Minecraft.getInstance().level);
         LocalPlayer player = Minecraft.getInstance().player;
         if (QuickShulkerUtils.isOpenHandler() && player != null
                 //? if <1.21.5 {
