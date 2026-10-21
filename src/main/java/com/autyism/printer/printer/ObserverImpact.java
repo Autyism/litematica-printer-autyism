@@ -68,7 +68,11 @@ public final class ObserverImpact {
         if (b instanceof LanternBlock) return s.getValue(LanternBlock.HANGING) ? pos.above() : pos.below();
         if (b instanceof CeilingHangingSignBlock) return pos.above();
         if (b instanceof DiodeBlock || b instanceof RedStoneWireBlock || b instanceof BaseRailBlock || b instanceof CarpetBlock
-                || b instanceof BasePressurePlateBlock || b instanceof BaseTorchBlock || b instanceof StandingSignBlock || b instanceof BannerBlock
+                //? if >=1.21 {
+                || b instanceof BaseTorchBlock
+                //?} else
+                /*|| b instanceof TorchBlock*/
+                || b instanceof BasePressurePlateBlock || b instanceof StandingSignBlock || b instanceof BannerBlock
                 || b instanceof SnowLayerBlock || b instanceof FlowerPotBlock || b instanceof CandleBlock) {
             return pos.below();
         }
@@ -183,10 +187,17 @@ public final class ObserverImpact {
             return level.getHeight();
         }
 
+        //? if >=1.21 {
         @Override
         public int getMinY() {
             return level.getMinY();
         }
+        //?} else {
+        /*@Override
+        public int getMinBuildHeight() {
+            return level.getMinBuildHeight();
+        }
+        *///?}
     }
 
     /** s 是侦测器（在 at），正盯着 target */
@@ -236,9 +247,11 @@ public final class ObserverImpact {
             boolean powered = view.hasNeighborSignal(y) || view.hasNeighborSignal(y.above());
             return powered != s.getValue(BlockStateProperties.TRIGGERED) ? b + at + " would fire" : null;
         }
+        //? if >=1.21 {
         if (b instanceof CrafterBlock) {
             return view.hasNeighborSignal(y) != s.getValue(BlockStateProperties.TRIGGERED) ? "crafter" + at + " would craft" : null;
         }
+        //?}
         if (b instanceof TntBlock) return view.hasNeighborSignal(y) ? "TNT" + at + " would be lit" : null;
         if (b instanceof RepeaterBlock) {
             Direction f = s.getValue(BlockStateProperties.HORIZONTAL_FACING);

@@ -1,3 +1,4 @@
+//? if 1.21.11 {
 package com.autyism.printer.gametest;
 
 import com.autyism.printer.config.Configs;
@@ -29,16 +30,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 真服务器上的轻松放置协议（V3，由 Servux 处理）。
- * <p>
- * 要先在本地开一个装了 Servux + 地毯（不开 accurateBlockPlacement）的测试服：release-work\printer120\servux-test.ps1，端口 25599。
- * 客户端以离线玩家 ALEGameTest（op 2）连进去，打开 Litematica 的“实体数据同步”（只有开着它 Litematica 才认得出 Servux）。
- * 打印机用协议放：各种朝向的侦测器、活塞、发射器、投掷器、木桶、中继器、比较器、漏斗、音符盒都要放对，而且要比转头放快。
- * <p>
- * -Pservuxrefuse=true：测试服把轻松放置的权限调高了（玩家没权限），协议放置会被服务端拒绝：打印机要在几次之后改回转头放置，最后照样全部放对。
- * 只在 -Pgt 里明确写了 servux 时运行（要先开测试服）。
- */
+// 真服务器上的轻松放置协议（V3，由 Servux 处理）。
+//
+// 要先在本地开一个装了 Servux + 地毯（不开 accurateBlockPlacement）的测试服：release-work\printer120\servux-test.ps1，端口 25599。
+// 客户端以离线玩家 ALEGameTest（op 2）连进去，打开 Litematica 的“实体数据同步”（只有开着它 Litematica 才认得出 Servux）。
+// 打印机用协议放：各种朝向的侦测器、活塞、发射器、投掷器、木桶、中继器、比较器、漏斗、音符盒都要放对，而且要比转头放快。
+//
+// -Pservuxrefuse=true：测试服把轻松放置的权限调高了（玩家没权限），协议放置会被服务端拒绝：打印机要在几次之后改回转头放置，最后照样全部放对。
+// 只在 -Pgt 里明确写了 servux 时运行（要先开测试服）。
 @SuppressWarnings("UnstableApiUsage")
 public final class ServuxProtocolGameTest implements FabricClientGameTest {
     private static final String ADDRESS = "localhost:25599";
@@ -142,7 +141,7 @@ public final class ServuxProtocolGameTest implements FabricClientGameTest {
         }
     }
 
-    /** 清空、发材料、打印一遍，返回用了几个 tick；最后每一格都必须和投影完全一样 */
+    // 清空、发材料、打印一遍，返回用了几个 tick；最后每一格都必须和投影完全一样
     private static int print(ClientGameTestContext context, Map<BlockPos, BlockState> ref, boolean protocol, boolean expectRefuse) {
         context.runOnClient(client -> GT.disableAll());
         command(context, "fill -8 " + Y + " -1 10 " + (Y + 1) + " 21 air");
@@ -214,3 +213,14 @@ public final class ServuxProtocolGameTest implements FabricClientGameTest {
         context.waitTicks(1);
     }
 }
+//?} else {
+/*package com.autyism.printer.gametest;
+
+// 只在 1.21.11 上跑（见 1.21.11 上的这个文件）：其他版本是空的
+@SuppressWarnings("UnstableApiUsage")
+public final class ServuxProtocolGameTest implements net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest {
+    @Override
+    public void runTest(net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext context) {
+    }
+}
+*///?}

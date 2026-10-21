@@ -178,7 +178,9 @@ public final class ObserverFirstGameTest implements FabricClientGameTest {
         int readyTicks = 0;
         for (int i = 0; i < 600; i++) {
             boolean ready = context.computeOnClient(c -> {
+                //? if >=1.21.11 {
                 if (fi.dy.masa.litematica.schematic.placement.PlacementManagerDaemonHandler.INSTANCE.hasAnyTasks()) return false;
+                //?}
                 var w = fi.dy.masa.litematica.world.SchematicWorldHandler.getSchematicWorld();
                 for (var e : before.entrySet()) {
                     BlockPos p = e.getKey();

@@ -25,6 +25,10 @@ stonecutter parameters {
         regex(current.parsed >= "26.1") {
             replace("\\bWaterlilyBlock\\b", "LilyPadBlock", "\\bLilyPadBlock\\b", "WaterlilyBlock")
         }
+        // 26.1: ChunkPos is a record (asLong -> pack)
+        regex(current.parsed >= "26.1") {
+            replace("\\bChunkPos\\.asLong\\(", "ChunkPos.pack(", "\\bChunkPos\\.pack\\(", "ChunkPos.asLong(")
+        }
         // 26.2: dyed blocks and items are grouped by colour
         regex(current.parsed >= "26.2") {
             replace("\\bItems\\.WHITE_SHULKER_BOX\\b", "Items.DYED_SHULKER_BOX.white()", "\\bItems\\.DYED_SHULKER_BOX\\.white\\(\\)", "Items.WHITE_SHULKER_BOX")

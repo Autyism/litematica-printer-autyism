@@ -41,8 +41,10 @@ public final class ServerProtocol {
         return block instanceof net.minecraft.world.level.block.ObserverBlock
                 || block instanceof net.minecraft.world.level.block.piston.PistonBaseBlock
                 || block instanceof net.minecraft.world.level.block.DispenserBlock
-                || block instanceof net.minecraft.world.level.block.BarrelBlock
-                || block instanceof net.minecraft.world.level.block.CrafterBlock;
+                //? if >=1.21 {
+                || block instanceof net.minecraft.world.level.block.CrafterBlock
+                //?}
+                || block instanceof net.minecraft.world.level.block.BarrelBlock;
     }
 
     private static final ArrayDeque<Sent> SENT = new ArrayDeque<>();

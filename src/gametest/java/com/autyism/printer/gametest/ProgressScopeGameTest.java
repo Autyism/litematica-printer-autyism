@@ -69,6 +69,9 @@ public final class ProgressScopeGameTest implements FabricClientGameTest {
             if (loaded[1] != total || loaded[0] != placed) {
                 throw new AssertionError("[progress] whole-schematic progress should be " + placed + " / " + total + ", got " + loaded[0] + " / " + loaded[1]);
             }
+            //? if >=26.2 {
+            /*context.runOnClient(c -> c.gui.hud.getChat().clearMessages(false));
+            *///?} else
             context.runOnClient(c -> c.gui.getChat().clearMessages(false));
             context.waitTicks(2);
             GT.screenshot(context, "progress-whole-schematic");
@@ -170,10 +173,10 @@ public final class ProgressScopeGameTest implements FabricClientGameTest {
             for (String key : List.of("printProgressScope", "printLayerDoneScope", "printAdjustFirst", "progressScope.loaded", "progressScope.range",
                     "layerDoneScope.whole", "layerDoneScope.range")) {
                 String full = "litematica-printer-autyism.config." + key;
-                if (!net.minecraft.client.resources.language.I18n.exists(full)) out.add("no text for " + full);
-                if (!key.contains(".") && !net.minecraft.client.resources.language.I18n.exists(full + ".desc")) out.add("no text for " + full + ".desc");
+                if (!net.minecraft.locale.Language.getInstance().has(full)) out.add("no text for " + full);
+                if (!key.contains(".") && !net.minecraft.locale.Language.getInstance().has(full + ".desc")) out.add("no text for " + full + ".desc");
             }
-            if (!net.minecraft.client.resources.language.I18n.exists("litematica-printer-autyism.hud.print_progress_loaded")) out.add("no HUD text");
+            if (!net.minecraft.locale.Language.getInstance().has("litematica-printer-autyism.hud.print_progress_loaded")) out.add("no HUD text");
             return out;
         });
         if (!problems.isEmpty()) throw new AssertionError("[progress/settings] " + problems);
@@ -196,6 +199,9 @@ public final class ProgressScopeGameTest implements FabricClientGameTest {
             return c.reloadResourcePacks();
         });
         // 重新加载资源时会盖一层加载画面，等它完全消失
+        //? if >=26.2 {
+        /*context.waitFor(c -> reload.isDone() && c.gui.overlay() == null, 1200);
+        *///?} else
         context.waitFor(c -> reload.isDone() && c.getOverlay() == null, 1200);
         context.waitTicks(5);
     }

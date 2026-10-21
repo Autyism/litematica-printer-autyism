@@ -41,9 +41,10 @@ public class LitematicaUtils {
         //? if >=26.2 {
         /*return List.of(range.getLayerMode(), range.getAxis(), range.getMinLayerBoundary(), range.getMaxLayerBoundary(),
                 range.getLayerSingle(), range.getLayerAbove(), range.getLayerBelow());
-        *///?} else
+        *///?} else {
         return List.of(range.getLayerMode(), range.getAxis(), range.getLayerMin(), range.getLayerMax(),
                 range.getLayerSingle(), range.getLayerAbove(), range.getLayerBelow());
+        //?}
     }
 
     public static Vec3 usePrecisionPlacement(BlockPos pos, BlockState stateSchematic) {

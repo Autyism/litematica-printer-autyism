@@ -261,8 +261,7 @@ public class Print extends Module {
         var mc = net.minecraft.client.Minecraft.getInstance();
         WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
         if (schematic == null || mc.level == null || mc.player == null) return;
-        net.minecraft.world.level.ChunkPos center = mc.player.chunkPosition();
-        loadedIndex.tick(mc.level, schematic, LitematicaUtils.getSchematicWorkBoxes(), selectionSignature(), center.x, center.z,
+        loadedIndex.tick(mc.level, schematic, LitematicaUtils.getSchematicWorkBoxes(), selectionSignature(), mc.player.getBlockX() >> 4, mc.player.getBlockZ() >> 4,
                 mc.options.getEffectiveRenderDistance() + 1, budgetNanos, mc.player.tickCount);
     }
 
@@ -391,8 +390,7 @@ public class Print extends Module {
         long[] counts = loadedIndex.layerCounts(layer);
         // 这一层（已加载的部分）每一格都对：不用逐格的整层统计（restOfLayerDone 直接用按区块段的统计）
         if (counts != null && counts[0] == counts[1]) return;
-        net.minecraft.world.level.ChunkPos center = player.chunkPosition();
-        layerIndex.tick(level, schematic, layer, LitematicaUtils.getSchematicWorkBoxes(), selectionSignature(), center.x, center.z,
+        layerIndex.tick(level, schematic, layer, LitematicaUtils.getSchematicWorkBoxes(), selectionSignature(), player.getBlockX() >> 4, player.getBlockZ() >> 4,
                 mc.options.getEffectiveRenderDistance() + 1, budget);
     }
 
@@ -420,9 +418,8 @@ public class Print extends Module {
             if (layerIndex.layer() != layer && player != null) {
                 // 逐格的整层统计当场换到这一层。以前等下一 tick 的 preprocess 才换：有放不了的方块（跳过的侦测器、TNT、水……）的层，
                 // 每过一层都要多等一 tick，几十层的机器开一次打印机光是往上走就要好几秒
-                net.minecraft.world.level.ChunkPos center = player.chunkPosition();
-                layerIndex.tick(level, schematic, layer, LitematicaUtils.getSchematicWorkBoxes(), selectionSignature(), center.x, center.z,
-                        mc.options.getEffectiveRenderDistance() + 1, budget);
+                layerIndex.tick(level, schematic, layer, LitematicaUtils.getSchematicWorkBoxes(), selectionSignature(), player.getBlockX() >> 4,
+                        player.getBlockZ() >> 4, mc.options.getEffectiveRenderDistance() + 1, budget);
             }
             // 有没打好的格子：逐格判断（打印机在范围内看过的用它的结论，范围外的看能不能放、能不能原地调对）
             done = layerIndex.done(schematic, level, budget);

@@ -157,7 +157,7 @@ public final class AdjustFirstGameTest implements FabricClientGameTest {
             player.getInventory().clearContent();
             // 材料都放在背包后面的格子里：每种都要先换到手上
             for (int i = 0; i < ITEMS.length; i++) {
-                player.getInventory().setItem(9 + i, new ItemStack(ITEMS[i], ITEMS[i].getDefaultMaxStackSize()));
+                player.getInventory().setItem(9 + i, new ItemStack(ITEMS[i], new ItemStack(ITEMS[i]).getMaxStackSize()));
             }
             player.inventoryMenu.sendAllDataToRemote();
         });

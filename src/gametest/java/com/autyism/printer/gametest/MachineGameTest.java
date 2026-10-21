@@ -1,3 +1,4 @@
+//? if 1.21.11 {
 package com.autyism.printer.gametest;
 
 import com.autyism.printer.Reference;
@@ -41,24 +42,22 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-/**
- * 真实红石机器的打印速度（-Pgt=machine -Pdebugstall=true）：用户正在搭的 576k 刷沙机（5241 格，573 个侦测器、
- * 200 个音符盒、172 个中继器……），连到本地测试服（Servux + 地毯，开着 antiCheatDisabled，和用户的服务器一样；
- * 见 release-work\printer120\machine-test.ps1），按用户实例里的打印机设置打印。
- * <p>
- * 每 tick 记下打印机停在哪一步（TickTrace），最后汇总：总共多少 tick、没放东西的 tick 都停在哪、最长的几次停顿、
- * 每一层从什么时候开始；打到一半关掉再打开，量重新开始要多久。打完核对每一格（红石运行时属性除外）。
- * 玩家跟着当前层飞（在这一层上方 3 格），和用户自己搭的时候一样。
- * <p>
- * -Pmachinemode=survival：生存模式，测试按当前和上面两层缺的材料发物品（不用潜影盒）。
- */
+// 真实红石机器的打印速度（-Pgt=machine -Pdebugstall=true）：用户正在搭的 576k 刷沙机（5241 格，573 个侦测器、
+// 200 个音符盒、172 个中继器……），连到本地测试服（Servux + 地毯，开着 antiCheatDisabled，和用户的服务器一样；
+// 见 release-work\printer120\machine-test.ps1），按用户实例里的打印机设置打印。
+//
+// 每 tick 记下打印机停在哪一步（TickTrace），最后汇总：总共多少 tick、没放东西的 tick 都停在哪、最长的几次停顿、
+// 每一层从什么时候开始；打到一半关掉再打开，量重新开始要多久。打完核对每一格（红石运行时属性除外）。
+// 玩家跟着当前层飞（在这一层上方 3 格），和用户自己搭的时候一样。
+//
+// -Pmachinemode=survival：生存模式，测试按当前和上面两层缺的材料发物品（不用潜影盒）。
 @SuppressWarnings("UnstableApiUsage")
 public final class MachineGameTest implements FabricClientGameTest {
     private static final String ADDRESS = "localhost:25599";
     private static final String DEFAULT_SCHEMATIC = "D:/Games/PCL2/.minecraft/versions/1.21.11-Fabric 0.19.5 Main/schematics/sync/576k换色刷沙机v2 by WireJefio.litematic";
     private static final String USER_CONFIG = "D:/Games/PCL2/.minecraft/versions/1.21.11-Fabric 0.19.5 Main/config/litematica-printer-autyism.json";
     private static final BlockPos ORIGIN = new BlockPos(100, -60, 100);
-    /** 红石运行时状态：电路自己会改，不要求和投影一样 */
+    // 红石运行时状态：电路自己会改，不要求和投影一样
     private static final Set<String> RUNTIME_PROPS = Set.of("powered", "lit", "power", "triggered", "extended", "enabled", "locked", "short",
             "occupied", "attached", "disarmed");
 
@@ -297,7 +296,7 @@ public final class MachineGameTest implements FabricClientGameTest {
         verify(context, name, expected);
     }
 
-    /** 现在正在被推着的方块、投影里收着却伸出来的活塞（最多 8 个） */
+    // 现在正在被推着的方块、投影里收着却伸出来的活塞（最多 8 个）
     private static List<String> movingNow(net.minecraft.client.multiplayer.ClientLevel level, Map<BlockPos, BlockState> expected, BlockPos min, BlockPos max) {
         List<String> out = new ArrayList<>();
         for (BlockPos p : BlockPos.betweenClosed(min, max)) {
@@ -316,7 +315,7 @@ public final class MachineGameTest implements FabricClientGameTest {
         return out;
     }
 
-    /** 在世界里铺一层 n x n 的下界砖，存成投影，再清掉 */
+    // 在世界里铺一层 n x n 的下界砖，存成投影，再清掉
     private static void captureFlat(ClientGameTestContext context, int n) {
         BlockPos a = ORIGIN, b = ORIGIN.offset(n - 1, 0, n - 1);
         String box = String.format(Locale.ROOT, "%d %d %d %d %d %d", a.getX(), a.getY(), a.getZ(), b.getX(), b.getY(), b.getZ());
@@ -347,7 +346,7 @@ public final class MachineGameTest implements FabricClientGameTest {
         return min;
     }
 
-    /** 服务端的地毯规则在客户端的副本（装了地毯的客户端连上地毯服务器时会收到全部规则） */
+    // 服务端的地毯规则在客户端的副本（装了地毯的客户端连上地毯服务器时会收到全部规则）
     private static String carpetAntiCheat() {
         try {
             return String.valueOf(Class.forName("carpet.CarpetSettings").getField("antiCheatDisabled").getBoolean(null));
@@ -356,7 +355,7 @@ public final class MachineGameTest implements FabricClientGameTest {
         }
     }
 
-    /** 生存模式：当前层和上面两层还缺的方块，背包里不够就发（每种最多两组），背包快满时清掉用不上的 */
+    // 生存模式：当前层和上面两层还缺的方块，背包里不够就发（每种最多两组），背包快满时清掉用不上的
     private static void supply(ClientGameTestContext context, Map<BlockPos, BlockState> expected, int layer, int maxStacks) {
         List<String> commands = context.computeOnClient(c -> {
             // 先当前这一层，再上面两层（背包放不下时先保证当前这一层的材料）
@@ -423,7 +422,7 @@ public final class MachineGameTest implements FabricClientGameTest {
         return true;
     }
 
-    /** 汇总：没放东西的 tick 停在哪、最长的停顿、每层开始的 tick */
+    // 汇总：没放东西的 tick 停在哪、最长的停顿、每层开始的 tick
     private static void summarize(String name, List<Sample> samples, Map<Integer, Integer> layerFirstTick, int ticks) {
         int acting = 0, actions = 0;
         Map<String, Integer> idleByStop = new TreeMap<>();
@@ -485,7 +484,7 @@ public final class MachineGameTest implements FabricClientGameTest {
         return s.length() > 120 ? s.substring(0, 120) : s;
     }
 
-    /** 逐格核对：缺的、放错的、状态不对的（红石运行时属性不算） */
+    // 逐格核对：缺的、放错的、状态不对的（红石运行时属性不算）
     private static void verify(ClientGameTestContext context, String name, Map<BlockPos, BlockState> expected) {
         List<String> lines = context.computeOnClient(c -> {
             Map<String, Integer> kinds = new TreeMap<>();
@@ -557,3 +556,14 @@ public final class MachineGameTest implements FabricClientGameTest {
         return v == null || v.isBlank() ? def : v.strip();
     }
 }
+//?} else {
+/*package com.autyism.printer.gametest;
+
+// 只在 1.21.11 上跑（见 1.21.11 上的这个文件）：其他版本是空的
+@SuppressWarnings("UnstableApiUsage")
+public final class MachineGameTest implements net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest {
+    @Override
+    public void runTest(net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext context) {
+    }
+}
+*///?}
