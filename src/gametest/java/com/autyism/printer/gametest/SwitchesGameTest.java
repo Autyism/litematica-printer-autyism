@@ -46,6 +46,9 @@ public final class SwitchesGameTest implements FabricClientGameTest {
             context.runOnClient(c -> logic());
             context.runOnClient(c -> migration());
             inWorld(context, sp);
+            // Litematica 1.20.1 版没有投影事件，这个安全设置在那里不起作用
+            //? if >=1.21.5
+            placementMove(context, sp);
         } finally {
             context.runOnClient(c -> {
                 GT.disableAll();
@@ -192,6 +195,59 @@ public final class SwitchesGameTest implements FabricClientGameTest {
             throw new AssertionError("[switches] migration test failed to run: " + e, e);
         }
     }
+
+    //? if >=1.21.5 {
+    /** 安全设置“投影移动时关闭打印机”：投影一移动、旋转，开着的打印机就关掉；设置关着时不管 */
+    private static void placementMove(ClientGameTestContext context, TestSingleplayerContext sp) {
+        BlockPos min = new BlockPos(910, 64, 10), max = new BlockPos(911, 64, 10);
+        sp.getServer().runOnServer(s -> {
+            for (BlockPos p : BlockPos.betweenClosed(min, max)) s.overworld().setBlockAndUpdate(p, Blocks.STONE.defaultBlockState());
+        });
+        var placement = GT.captureAndPlace(context, sp, min, max, new BlockPos(910, 70, 10), "placement_move");
+        context.waitTicks(5);
+        fi.dy.masa.malilib.gui.interfaces.IMessageConsumer quiet = new fi.dy.masa.malilib.gui.interfaces.IMessageConsumer() {
+            @Override
+            public void addMessage(fi.dy.masa.malilib.gui.Message.MessageType type, String messageKey, Object... args) {
+            }
+
+            @Override
+            public void addMessage(fi.dy.masa.malilib.gui.Message.MessageType type, int lifeTime, String messageKey, Object... args) {
+            }
+        };
+        try {
+            context.runOnClient(c -> {
+                Configs.Core.STOP_ON_PLACEMENT_MOVE.setBooleanValue(true);
+                Configs.Core.WORK_SWITCH.setBooleanValue(true);
+                placement.setOrigin(new BlockPos(911, 70, 10), msg -> {});
+            });
+            if (context.computeOnClient(c -> Configs.Core.WORK_SWITCH.getBooleanValue())) {
+                throw new AssertionError("[switches] moving a placement did not turn the printer off");
+            }
+            context.runOnClient(c -> {
+                Configs.Core.WORK_SWITCH.setBooleanValue(true);
+                placement.setRotation(net.minecraft.world.level.block.Rotation.CLOCKWISE_90, quiet);
+            });
+            if (context.computeOnClient(c -> Configs.Core.WORK_SWITCH.getBooleanValue())) {
+                throw new AssertionError("[switches] rotating a placement did not turn the printer off");
+            }
+            context.runOnClient(c -> {
+                Configs.Core.STOP_ON_PLACEMENT_MOVE.setBooleanValue(false);
+                Configs.Core.WORK_SWITCH.setBooleanValue(true);
+                placement.setOrigin(new BlockPos(912, 70, 10), msg -> {});
+            });
+            if (!context.computeOnClient(c -> Configs.Core.WORK_SWITCH.getBooleanValue())) {
+                throw new AssertionError("[switches] with Stop When a Placement Moves off, moving a placement still turned the printer off");
+            }
+        } finally {
+            context.runOnClient(c -> {
+                Configs.Core.STOP_ON_PLACEMENT_MOVE.setBooleanValue(true);
+                Configs.Core.WORK_SWITCH.setBooleanValue(false);
+            });
+            GT.removeAllPlacements(context);
+        }
+        GT.log("[switches] placement move OK: moving or rotating a placement turns the printer off, only with the setting on");
+    }
+    //?}
 
     private static void inWorld(ClientGameTestContext context, TestSingleplayerContext sp) {
         GT.clearArena(sp, 890, -10, 914, 14, 72);

@@ -1,6 +1,6 @@
 package com.autyism.printer.printer;
 
-//? if >=1.21.11 <26.1 {
+//? if >=1.21.5 {
 import com.autyism.printer.I18n;
 import com.autyism.printer.config.Configs;
 import com.autyism.printer.utils.MessageUtils;
@@ -21,10 +21,10 @@ import java.util.List;
  * 免得打印机还按旧位置放方块。用 Litematica 自己的投影事件，只有位置真的变了它才会发出（重置除外，那是玩家主动点的）。
  */
 public final class PlacementMoveGuard
-        //? if >=1.21.11 <26.1
+        //? if >=1.21.5
         implements ISchematicPlacementEventListener
 {
-    //? if >=1.21.11 <26.1 {
+    //? if >=1.21.5 {
     private static final PlacementMoveGuard INSTANCE = new PlacementMoveGuard();
 
     private PlacementMoveGuard() {
@@ -92,7 +92,7 @@ public final class PlacementMoveGuard
     public void onPlacementRemoved(SchematicPlacement placement) {
     }
     //?} else {
-    /*// Litematica for other Minecraft versions has no placement events yet
+    /*// Litematica for 1.20.1 has no placement events
     public static void register() {
     }
     *///?}
