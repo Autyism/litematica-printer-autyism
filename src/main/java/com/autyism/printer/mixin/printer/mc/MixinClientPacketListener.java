@@ -66,13 +66,28 @@ public abstract class MixinClientPacketListener {
     // 服务端同步了背包里的物品数量：它只算到已经处理的动作，还没确认的放置的消耗不在这个数量里（见 ActionConfirm.unreflectedUses）
     @Inject(method = "handleContainerSetSlot", at = @At("RETURN"))
     private void onSlotSync(net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket packet, CallbackInfo ci) {
-        com.autyism.printer.printer.ActionConfirm.onInventorySync(Minecraft.getInstance().level);
+        // 背包菜单（id 0）里快捷栏是第 36~44 格；-2 是老版本直接按背包下标发的；-1 是鼠标上拿着的东西（不影响快捷栏）。
+        // 开着别的容器时不知道是哪一格，按整个背包算
+        LocalPlayer player = Minecraft.getInstance().player;
+        int id = packet.getContainerId(), slot = packet.getSlot();
+        if (id == -1) return;
+        int hotbar = -1;
+        if (player != null && id == player.inventoryMenu.containerId) {
+            if (slot < 36 || slot > 44) return;
+            hotbar = slot - 36;
+        } else if (id == -2) {
+            if (slot < 0 || slot > 8) return;
+            hotbar = slot;
+        }
+        com.autyism.printer.printer.ActionConfirm.onInventorySync(Minecraft.getInstance().level, hotbar);
     }
 
     //? if >=1.21.2 {
     @Inject(method = "handleSetPlayerInventory", at = @At("RETURN"))
     private void onPlayerInventorySync(net.minecraft.network.protocol.game.ClientboundSetPlayerInventoryPacket packet, CallbackInfo ci) {
-        com.autyism.printer.printer.ActionConfirm.onInventorySync(Minecraft.getInstance().level);
+        // 按背包下标发的：0~8 是快捷栏，别的格子不影响打印机手上的东西
+        if (packet.slot() < 0 || packet.slot() > 8) return;
+        com.autyism.printer.printer.ActionConfirm.onInventorySync(Minecraft.getInstance().level, packet.slot());
     }
     //?}
 

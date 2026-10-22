@@ -28,6 +28,11 @@ public final class ActionConfirm {
     /** 序号 → 发出时的 tick（和 ITEMS 一起：按序号记，不会像 PENDING 那样被同一格后来的动作盖掉） */
     private static final it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap SENT_TICKS = new it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap();
     /**
+     * 序号 → 发出时手上是快捷栏第几格（0~8，不知道时 -1）。服务端同步某一格的数量时，只有从这一格用掉的那几次不在它的数量里；
+     * 以前不分格子：快捷栏里有几组同样的方块、又有很多放置在路上时，每一组都被算成“可能用完了”，换下一组前要停下来等
+     */
+    private static final it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap SLOTS = new it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap();
+    /**
      * 还没确认、而且客户端手上显示的数量里没有扣掉它这一次消耗的动作（序号）。
      * 发出时客户端自己扣了一个（正常预测放置）就不在这里；服务端发来背包数量（只算到它已经处理的动作）以后，
      * 当时还没确认的都放进来：那个数量里没有它们。
@@ -39,6 +44,14 @@ public final class ActionConfirm {
      */
     private static final it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap<net.minecraft.world.item.Item> UNREFLECTED_COUNT =
             new it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap<>();
+    /** 同上，按 {格子, 物品} 数（键见 slotKey）；格子不知道的动作算进每一格 */
+    private static final it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap UNREFLECTED_SLOT_COUNT = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap();
+    private static final it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap<net.minecraft.world.item.Item> UNREFLECTED_ANY_SLOT =
+            new it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap<>();
+
+    private static long slotKey(int slot, net.minecraft.world.item.Item item) {
+        return ((long) slot << 32) | (net.minecraft.world.item.Item.getId(item) & 0xffffffffL);
+    }
     private static int countTick;
     private static boolean countValid;
     private static int lastAcked = -1;
@@ -69,16 +82,24 @@ public final class ActionConfirm {
         if (ITEMS.size() > 4096) {
             ITEMS.clear();
             SENT_TICKS.clear();
+            SLOTS.clear();
             UNREFLECTED.clear();
             countValid = false;
         }
+        int slot = selectedHotbarSlot();
         ITEMS.put(sequence, item);
         SENT_TICKS.put(sequence, tick);
+        SLOTS.put(sequence, slot);
         if (consumedLocally) {
             if (UNREFLECTED.remove(sequence)) countValid = false;
         } else if (UNREFLECTED.add(sequence)) {
-            if (countValid && countTick == tick) UNREFLECTED_COUNT.addTo(item, 1);
-            else countValid = false;
+            if (countValid && countTick == tick) {
+                UNREFLECTED_COUNT.addTo(item, 1);
+                if (slot < 0) UNREFLECTED_ANY_SLOT.addTo(item, 1);
+                else UNREFLECTED_SLOT_COUNT.addTo(slotKey(slot, item), 1);
+            } else {
+                countValid = false;
+            }
         }
     }
 
@@ -89,6 +110,7 @@ public final class ActionConfirm {
         PENDING.values().removeIf(e -> e[0] <= lastAcked);
         ITEMS.int2ObjectEntrySet().removeIf(e -> e.getIntKey() <= lastAcked);
         SENT_TICKS.int2IntEntrySet().removeIf(e -> e.getIntKey() <= lastAcked);
+        SLOTS.int2IntEntrySet().removeIf(e -> e.getIntKey() <= lastAcked);
         UNREFLECTED.removeIf(s -> s <= lastAcked);
         countValid = false;
         if (!BREAKS.isEmpty()) BREAKS.values().removeIf(e -> e[0] <= lastAcked);
@@ -100,12 +122,31 @@ public final class ActionConfirm {
      * 服务端只算到它已经处理的动作：这时还没确认的动作，它们的消耗都不在客户端现在显示的数量里。
      */
     public static void onInventorySync(ClientLevel level) {
+        onInventorySync(level, -1);
+    }
+
+    /**
+     * 同上，只同步了快捷栏第 hotbarSlot 格（-1 = 整个背包或不知道是哪格）：只有从这一格用掉的那几次不在它的数量里。
+     * 同步的不是快捷栏的格子时什么都不用记（打印机只从快捷栏拿东西放）
+     */
+    public static void onInventorySync(ClientLevel level, int hotbarSlot) {
         if (level == null) return;
         sync(level);
         for (it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry<net.minecraft.world.item.Item> e : ITEMS.int2ObjectEntrySet()) {
-            if (e.getIntKey() > lastAcked) UNREFLECTED.add(e.getIntKey());
+            int seq = e.getIntKey();
+            if (seq <= lastAcked) continue;
+            if (hotbarSlot >= 0) {
+                int s = SLOTS.getOrDefault(seq, -1);
+                if (s >= 0 && s != hotbarSlot) continue;
+            }
+            UNREFLECTED.add(seq);
         }
         countValid = false;
+    }
+
+    private static int selectedHotbarSlot() {
+        var player = net.minecraft.client.Minecraft.getInstance().player;
+        return player == null ? -1 : com.autyism.printer.utils.InventoryUtils.getSelectedSlot(player.getInventory());
     }
 
     /**
@@ -115,20 +156,34 @@ public final class ActionConfirm {
      * 然后 16、8、4……越往后越是一块一块地放。
      */
     public static int unreflectedUses(ClientLevel level, int tick, net.minecraft.world.item.Item item) {
-        sync(level);
-        if (!countValid || countTick != tick) {
-            UNREFLECTED_COUNT.clear();
-            for (it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry<net.minecraft.world.item.Item> e : ITEMS.int2ObjectEntrySet()) {
-                int seq = e.getIntKey();
-                if (seq <= lastAcked || !UNREFLECTED.contains(seq)) continue;
-                int sentTick = SENT_TICKS.getOrDefault(seq, tick);
-                if (tick - sentTick > TIMEOUT_TICKS || tick < sentTick) continue;
-                UNREFLECTED_COUNT.addTo(e.getValue(), 1);
-            }
-            countTick = tick;
-            countValid = true;
-        }
+        recount(level, tick);
         return UNREFLECTED_COUNT.getInt(item);
+    }
+
+    /** 同上，只算从快捷栏第 slot 格用掉的（格子不知道的也算上） */
+    public static int unreflectedUses(ClientLevel level, int tick, net.minecraft.world.item.Item item, int slot) {
+        recount(level, tick);
+        return UNREFLECTED_SLOT_COUNT.get(slotKey(slot, item)) + UNREFLECTED_ANY_SLOT.getInt(item);
+    }
+
+    private static void recount(ClientLevel level, int tick) {
+        sync(level);
+        if (countValid && countTick == tick) return;
+        UNREFLECTED_COUNT.clear();
+        UNREFLECTED_SLOT_COUNT.clear();
+        UNREFLECTED_ANY_SLOT.clear();
+        for (it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry<net.minecraft.world.item.Item> e : ITEMS.int2ObjectEntrySet()) {
+            int seq = e.getIntKey();
+            if (seq <= lastAcked || !UNREFLECTED.contains(seq)) continue;
+            int sentTick = SENT_TICKS.getOrDefault(seq, tick);
+            if (tick - sentTick > TIMEOUT_TICKS || tick < sentTick) continue;
+            UNREFLECTED_COUNT.addTo(e.getValue(), 1);
+            int slot = SLOTS.getOrDefault(seq, -1);
+            if (slot < 0) UNREFLECTED_ANY_SLOT.addTo(e.getValue(), 1);
+            else UNREFLECTED_SLOT_COUNT.addTo(slotKey(slot, e.getValue()), 1);
+        }
+        countTick = tick;
+        countValid = true;
     }
 
     /** 发出了一个破坏包（开始或结束挖掘） */
@@ -235,6 +290,7 @@ public final class ActionConfirm {
             PENDING.clear();
             ITEMS.clear();
             SENT_TICKS.clear();
+            SLOTS.clear();
             UNREFLECTED.clear();
             countValid = false;
             BREAKS.clear();

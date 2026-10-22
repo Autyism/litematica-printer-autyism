@@ -575,7 +575,7 @@ public class InventoryUtils {
             ItemStack stack = inventory.getItem(h);
             if (stack.isEmpty() || !passesFilter(stack)) continue;
             for (Item item : items) {
-                if (item != null && stack.is(item) && !stackMayBeUsedUp(player, stack)) return h;
+                if (item != null && stack.is(item) && !stackMayBeUsedUp(player, stack, h)) return h;
             }
         }
         return -1;
@@ -584,7 +584,9 @@ public class InventoryUtils {
     private static void traceUsedUp(LocalPlayer player, ItemStack stack) {
         if (!com.autyism.printer.printer.TickTrace.ENABLED || client.level == null) return;
         com.autyism.printer.printer.TickTrace.detail("item-wait: stack may be used up " + stack.getItem() + " count=" + stack.getCount()
-                + " unreflected=" + com.autyism.printer.printer.ActionConfirm.unreflectedUses(client.level, player.tickCount, stack.getItem())
+                + " unreflected=" + com.autyism.printer.printer.ActionConfirm.unreflectedUses(client.level, player.tickCount, stack.getItem(),
+                getSelectedSlot(player.getInventory()))
+                + " (all slots " + com.autyism.printer.printer.ActionConfirm.unreflectedUses(client.level, player.tickCount, stack.getItem()) + ")"
                 + " inFlight=" + com.autyism.printer.printer.ActionConfirm.inFlightCount(client.level, player.tickCount, stack.getItem()));
     }
 
@@ -595,11 +597,16 @@ public class InventoryUtils {
      * 所以数量不多于这个数时先等确认回来。客户端自己扣过的不再扣第二遍：以前一组放到一半就要停下来等。
      */
     private static boolean stackMayBeUsedUp(LocalPlayer player, ItemStack stack) {
+        return stackMayBeUsedUp(player, stack, getSelectedSlot(player.getInventory()));
+    }
+
+    /** 快捷栏第 slot 格的这一组：只算从这一格用掉、服务端同步的数量里还没扣的那几次（见 ActionConfirm.unreflectedUses） */
+    private static boolean stackMayBeUsedUp(LocalPlayer player, ItemStack stack, int slot) {
         // 空手（例如空手点红石粉把十字点成点）不消耗任何东西。以前这里按“0 个不多于 0 次”算成用完了，
         // 一直等到换物品超时、调整放弃（每个红石点要卡 10 秒），这一层后面的方块都要等它
         if (stack.isEmpty()) return false;
         if (PlayerUtils.getAbilities(player).instabuild || client.level == null) return false;
-        return stack.getCount() <= com.autyism.printer.printer.ActionConfirm.unreflectedUses(client.level, player.tickCount, stack.getItem());
+        return stack.getCount() <= com.autyism.printer.printer.ActionConfirm.unreflectedUses(client.level, player.tickCount, stack.getItem(), slot);
     }
 
     private static int findItemInInventory(Inventory inventory, Item item) {

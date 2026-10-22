@@ -167,6 +167,20 @@ public final class MachineGameTest implements FabricClientGameTest {
             var json = fi.dy.masa.malilib.util.data.json.JsonUtils.parseJsonFile(Path.of(USER_CONFIG));
             if (json == null || !json.isJsonObject()) throw new AssertionError("[machine] cannot read " + USER_CONFIG);
             fi.dy.masa.malilib.config.ConfigUtils.readConfigBase(json.getAsJsonObject(), Reference.MOD_ID, Configs.OPTIONS);
+            // -Pmachineset=placeUsePacket=true;iterationTimeLimit=20：在用户的设置上改几项（只在这次测试里）
+            for (String pair : prop("ale.machineset", "").split(";")) {
+                if (!pair.contains("=")) continue;
+                String key = pair.substring(0, pair.indexOf('=')).trim(), value = pair.substring(pair.indexOf('=') + 1).trim();
+                boolean found = false;
+                for (var option : Configs.OPTIONS) {
+                    if (option.getName().equals(key) && option instanceof fi.dy.masa.malilib.config.IConfigValue v) {
+                        v.setValueFromString(value);
+                        found = true;
+                    }
+                }
+                if (!found) throw new AssertionError("[machine] no printer setting " + key);
+                GT.log("[machine] setting " + key + "=" + value);
+            }
             Configs.Core.WORK_SWITCH.setBooleanValue(false);
             fi.dy.masa.litematica.config.Configs.Generic.ENTITY_DATA_SYNC.setBooleanValue(true);
             fi.dy.masa.litematica.config.Configs.Generic.EASY_PLACE_PROTOCOL.setOptionListValue(EasyPlaceProtocol.AUTO);
