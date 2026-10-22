@@ -91,7 +91,10 @@ public final class MachineGameTest implements FabricClientGameTest {
 
     private void run(ClientGameTestContext context, Path src, boolean survival, int maxTicks) {
         String name = src.getFileName().toString();
-        int flat = name.startsWith("flat_") ? Integer.parseInt(name.substring(5)) : 0;
+        // flat_24 = 24x24 一层；flat_24_5 = 24x24 五层高（看换层时等了多久）
+        String[] flatSize = name.startsWith("flat_") ? name.substring(5).split("_") : new String[0];
+        int flat = flatSize.length > 0 ? Integer.parseInt(flatSize[0]) : 0;
+        int flatHeight = flatSize.length > 1 ? Integer.parseInt(flatSize[1]) : 1;
         command(context, "gamemode creative");
         command(context, "carpet antiCheatDisabled true");
         // 原版的交互距离（以前的 servux 测试在这个测试服上把它调到了 64，存在玩家数据里）：和用户的服务器一样靠地毯的 32 格
@@ -99,7 +102,7 @@ public final class MachineGameTest implements FabricClientGameTest {
         command(context, "time set noon");
         command(context, "gamerule doDaylightCycle false");
         command(context, "gamerule randomTickSpeed 0");
-        if (flat > 0) captureFlat(context, flat);
+        if (flat > 0) captureFlat(context, flat, flatHeight);
         SchematicPlacement placement = context.computeOnClient(client -> {
             try {
                 Path dir = DataManager.getSchematicsBaseDirectory();
@@ -330,10 +333,10 @@ public final class MachineGameTest implements FabricClientGameTest {
     }
 
     // 在世界里铺一层 n x n 的下界砖，存成投影，再清掉
-    private static void captureFlat(ClientGameTestContext context, int n) {
-        BlockPos a = ORIGIN, b = ORIGIN.offset(n - 1, 0, n - 1);
+    private static void captureFlat(ClientGameTestContext context, int n, int height) {
+        BlockPos a = ORIGIN, b = ORIGIN.offset(n - 1, height - 1, n - 1);
         String box = String.format(Locale.ROOT, "%d %d %d %d %d %d", a.getX(), a.getY(), a.getZ(), b.getX(), b.getY(), b.getZ());
-        command(context, "tp @s " + (a.getX() + n / 2) + " " + (a.getY() + 3) + " " + (a.getZ() + n / 2));
+        command(context, "tp @s " + (a.getX() + n / 2) + " " + (a.getY() + height + 2) + " " + (a.getZ() + n / 2));
         command(context, "fill " + box + " nether_bricks");
         context.waitFor(c -> c.level.getBlockState(a).is(net.minecraft.world.level.block.Blocks.NETHER_BRICKS)
                 && c.level.getBlockState(b).is(net.minecraft.world.level.block.Blocks.NETHER_BRICKS), 400);
