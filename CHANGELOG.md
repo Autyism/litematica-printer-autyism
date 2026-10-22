@@ -22,6 +22,9 @@
 - Much faster in survival. A full stack used to stop at 32, then 16, 8, 4... to wait for the server, so plain blocks went down row by row; now the printer only holds back the placements the server hasn't counted yet.
 - Fix: clicking with an empty hand (turning a redstone cross into a dot) waited 10 seconds every time in survival, and the rest of the layer waited with it.
 - About twice as many blocks per tick: printed blocks no longer each play a placement sound (one per tick is kept). Dozens of sounds per tick took time on every block.
+- Plain blocks go down much faster. Each position is read once per check instead of up to six times, cooldowns are looked up directly by position, nothing is recorded for highlights while highlighting is off, and the lag check no longer holds the first ticks after the printer is turned on. A 24×24 floor in survival on a laggy connection now takes about a third of a second (it was close to a second).
+- If another mod turns off the game's own block prediction (Meteor's NoGhostBlocks, for example), the printer notices after a few blocks and sends placements straight to the server, skipping the client-side simulation that had no effect anyway.
+- Survival: when a stack runs out, the printer goes on with another stack of the same item in the hotbar at once. It used to count unconfirmed placements per item, so every stack looked possibly used up while many placements were on the way.
 - Faster item swaps in survival: each pass first places what is already in the hotbar, then brings everything the rest of the pass needs into the hotbar in one go, instead of one item at a time with a wait for the server after each. Empty slots are used first, then the slot the printer used longest ago, so a block that is used all the time stays in the hotbar (only Litematica's *pickBlockableSlots* are used, as before). A large area of one block gets several stacks at once, and when a stack runs out the printer carries on with the next stack in the hotbar instead of waiting.
 - With Servux, repeater delay, note pitch, comparator mode and open doors or trapdoors come out right straight away. Once the first one is confirmed, the printer no longer stops after each of these blocks to wait for the server.
 - On a Carpet server with *antiCheatDisabled* (Carpet on the client too), the work range is kept to the 32 blocks the server accepts. Blocks further away used to be tried again and again for nothing.
@@ -66,6 +69,9 @@ More: open "Details" below.
 - 生存模式快很多：以前一组方块放到 32 个就停下来等服务器，然后 16、8、4……普通方块也是一排一排地放；现在只等服务器还没算进数量里的那几次。
 - 修复：生存模式空手点（把十字红石点成点）每次都要卡 10 秒，这一层后面的方块都跟着等。
 - 每 tick 能放的方块多了约一倍：打印的方块不再每块都播一次放置声（每 tick 留一次）。以前一 tick 几十个声音，每一块都要花时间。
+- 普通方块放得快很多：同一格每次判断只读一遍方块（以前最多读六遍），冷却直接按坐标查，高亮关着时不再记高亮，刚打开打印机的头几 tick 也不会再被延迟检测拦住。生存模式、网络有延迟时，24×24 的地板大约三分之一秒放完（以前接近一秒）。
+- 别的模组关掉了游戏自己的方块预测时（例如 Meteor 的 NoGhostBlocks），打印机放几块就能发现，之后直接把放置发给服务器，省掉客户端那一遍本来就不起作用的模拟。
+- 生存：一组用完时，马上接着用快捷栏里同样物品的另一组。以前按物品统计还没确认的放置，放置一多，每一组都像是可能已经用完了。
 - 生存模式换物品快了：每一轮先放快捷栏里有的，再把这一轮剩下要用的物品一次换进快捷栏，不再一次换一种、每换一种等一次服务器。先用空格子，再换掉打印机最久没用的那一格，一直在用的方块会留在快捷栏里（和以前一样只用 Litematica 的“可选取方块的物品栏位”）。一大片同一种方块时一次换进好几组；一组用完直接接着用快捷栏里的下一组，不用等服务器。
 - 有 Servux 的服务器上，中继器延迟、音符盒音高、比较器模式、开着的门和活板门一放下就是对的；确认过一次以后，不再每放一个都停下来等服务器。
 - 开着 *antiCheatDisabled* 的地毯服务器（客户端也装了地毯）：工作范围按服务器认的 32 格算。以前更远的方块一直在白放。
