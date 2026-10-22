@@ -26,6 +26,21 @@ public final class UseRecord {
 
     private static final ConcurrentHashMap<Integer, Entry> MAP = new ConcurrentHashMap<>();
 
+    /** 客户端发出背包点击包时的 tick（PrefetchGameTest 数物品分几批换进快捷栏） */
+    private static final it.unimi.dsi.fastutil.ints.IntArrayList CLICK_TICKS = new it.unimi.dsi.fastutil.ints.IntArrayList();
+
+    public static synchronized void noteClick(int tick) {
+        if (CLICK_TICKS.size() < 100000) CLICK_TICKS.add(tick);
+    }
+
+    public static synchronized int[] clickTicks() {
+        return CLICK_TICKS.toIntArray();
+    }
+
+    public static synchronized void resetClicks() {
+        CLICK_TICKS.clear();
+    }
+
     private UseRecord() {
     }
 

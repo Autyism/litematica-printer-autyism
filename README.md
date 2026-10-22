@@ -70,7 +70,7 @@ Compared with the 1.21.11 printer builds it is based on, this edition adds or re
 
 - **Pauses while you use containers** (on by default). From the moment you right-click a chest or another block with a screen, a villager, a horse or a storage minecart until shortly after the screen closes, and while any inventory screen is open, the printer pauses (all modes). Taking materials out of a chest no longer leads to wrong blocks.
 - **Shulker box restocking** (on by default). When a material runs out, the printer finds a shulker box in your inventory that holds it, opens it in the background (no screen appears) and takes the stack out. This uses Advanced Shulkerboxes or QuickShulker; on servers with the AxShulkers plugin, set the source to *Plugin*. When your inventory is nearly full, it first puts away items you do not need right now, preferably into a box that already holds them.
-- **Hotbar handling.** Materials are moved into the hotbar slots allowed by Litematica's *pickBlockableSlots* setting. When printing starts, your selected hotbar slot is re-synced with the server, so mods that filter "duplicate" slot packets cannot make it place the wrong item.
+- **Hotbar handling.** Materials are moved into the hotbar slots allowed by Litematica's *pickBlockableSlots* setting, several at once when a pass needs more than one, into empty slots first and then the slot the printer used longest ago. When printing starts, your selected hotbar slot is re-synced with the server, so mods that filter "duplicate" slot packets cannot make it place the wrong item.
 
 ### Breaking, filling and bedrock
 
@@ -405,7 +405,7 @@ Found a bug? Please open an issue: https://github.com/Autyism/litematica-printer
 - **States set by the game:** redstone power, lit states, leaf distance, sapling growth, daylight detector power and similar values are not reproduced and may show as "wrong state" in the progress display.
 - **Fluids with buckets:** the printer has to see a face of a neighbouring block, so some sources wait until you move. A source that gets covered by a layer above before it was placed must be placed by hand.
 - **Multiplayer:** the work radius is limited by the server's reach; Auto Raise Reach only works in singleplayer; shulker restocking needs the matching mod or plugin on the server; the Easy Place protocol needs Servux on the server.
-- **Many materials in survival:** when you use more block types than fit in the hotbar slots, printing is slower on laggy servers, because each swap from the main inventory waits for the server.
+- **Many materials in survival:** when you use more block types than fit in the hotbar slots, printing is slower on laggy servers. Items come from the main inventory in batches (as many as those hotbar slots hold), and each batch waits for the server.
 - **Bedrock Miner (bunnyi116) and Meteor's NoGhostBlocks** do not work together.
 - **Translations:** English and Simplified Chinese are complete. In Traditional Chinese, Classical Chinese and Russian, newer options show Simplified Chinese or English text.
 
@@ -491,7 +491,7 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 
 - **使用容器时暂停**（默认开）。从你右键箱子或其他有界面的方块、村民、马或运输矿车的那一刻起，直到界面关闭后稍等片刻，以及打开任何背包 / 容器界面期间，打印机都会暂停（所有模式）。去箱子里拿材料不会再导致放错方块。
 - **潜影盒补货**（默认开）。某种材料用完时，打印机会在背包里找装着它的潜影盒，在后台打开（不会弹出界面）并把材料取出来。支持 Advanced Shulkerboxes 和 QuickShulker；装了 AxShulkers 插件的服务器把潜影盒来源改成“插件”。背包快满时，会先把暂时用不到的物品放回去，优先放进已经装着同种物品的潜影盒。
-- **快捷栏处理。** 材料会被换到 Litematica 设置 *pickBlockableSlots* 允许的快捷栏格子里。每次开始打印时，打印机会和服务器重新同步当前选中的快捷栏格子，这样即使有模组拦截“重复”的切换格子包，也不会拿错物品。
+- **快捷栏处理。** 材料会被换到 Litematica 设置 *pickBlockableSlots* 允许的快捷栏格子里；一轮要换好几种时一次换好，先用空格子，再换掉打印机最久没用的那一格。每次开始打印时，打印机会和服务器重新同步当前选中的快捷栏格子，这样即使有模组拦截“重复”的切换格子包，也不会拿错物品。
 
 ### 挖掘、填充和破基岩
 
@@ -826,7 +826,7 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 - **由游戏决定的状态：** 红石充能、亮灭、树叶距离、树苗生长阶段、阳光探测器的信号强度等不会被还原，在进度显示里可能算作“状态错误”。
 - **用桶打印流体：** 打印机需要能看到相邻方块的某个面，所以有些水源要等你走动后才会放。如果水源还没放就被上一层盖住了，需要手动放。
 - **多人游戏：** 工作半径受服务器触及距离限制；自动调高交互距离只在单人世界有效；潜影盒补货需要服务器装对应的模组或插件；轻松放置协议需要服务器装 Servux。
-- **生存模式材料种类多：** 材料种类比可用的快捷栏格子多时，在延迟高的服务器上打印会变慢，因为每次从背包换物品都要等服务器确认。
+- **生存模式材料种类多：** 材料种类比可用的快捷栏格子多时，在延迟高的服务器上打印会变慢：物品从背包分批换进那几格，每换一批都要等服务器确认。
 - **Bedrock Miner（bunnyi116）和 Meteor 的 NoGhostBlocks** 不能同时使用。
 - **翻译：** 英文和简体中文是完整的。繁体中文、文言文和俄语里，较新的选项会显示简体中文或英文。
 

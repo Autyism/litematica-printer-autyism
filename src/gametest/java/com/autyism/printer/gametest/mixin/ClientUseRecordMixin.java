@@ -42,6 +42,7 @@ public abstract class ClientUseRecordMixin {
             System.out.println("[client-carried-send] slot=" + c.getSlot() + " selected=" + player.getInventory().getSelectedSlot()
                     + " carried=" + carried + " tick=" + player.tickCount + " by=" + by);
         }
+        if (packet instanceof net.minecraft.network.protocol.game.ServerboundContainerClickPacket) UseRecord.noteClick(player.tickCount);
         if (!(packet instanceof ServerboundUseItemOnPacket p)) return;
         net.minecraft.core.BlockPos work = com.autyism.printer.printer.ActionManager.INSTANCE.workPos;
         net.minecraft.world.level.block.state.BlockState wanted = null;

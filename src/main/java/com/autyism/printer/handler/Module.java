@@ -234,6 +234,15 @@ public abstract class Module extends ConfigUtils {
                 return;
             }
 
+            // 生存：上一轮最后要一起换、在等服务端确认的物品：确认回来了就先换（这一 tick 不再放别的，下一 tick 一起放）；
+            // 等了几 tick 还没好就先不放别的，让确认回来（一直放别的，确认就一直回不完）
+            int prefetch = prefetchBeforeScan();
+            if (prefetch != PREFETCH_NONE) {
+                trace(prefetch == PREFETCH_DONE ? "prefetch" : "prefetch-hold");
+                idle = false;
+                return;
+            }
+
             // 双层台阶的第二块之类：第一块一被确认就接着放（不停下来等，等的时候照常放别的方块）
             int revisited = revisitFollowUps(skipIteration);
             if (revisited > 0) {
@@ -275,6 +284,13 @@ public abstract class Module extends ConfigUtils {
                     // 这一轮手边能放的都放完了：现在才按扫描顺序处理先跳过的格子。一开始换物品就停（换好以后下一轮
                     // 把这种方块一起放掉）；别的原因放不了的（下面还没有支撑……）照常算一次尝试，和没跳过时一样
                     boolean focused = false;
+                    // 生存：要换的几种物品一起换进快捷栏，下一 tick 一起放（以前一次换一种，每换一种都要等服务端确认一次）。
+                    // 还要等确认时这一 tick 先不换，下一 tick 照常重扫（能放的照放），确认回来再一起换
+                    if (!swapDeferred.isEmpty() && !skipIteration.get() && !ActionManager.INSTANCE.needWaitModifyLook
+                            && prefetchForDeferred(swapDeferred) != PREFETCH_NONE) {
+                        skipIteration.set(true);
+                        passDidWork = true; // 有物品要换：这一轮不算“没事做”，下一 tick 照常重扫（不进入空闲）
+                    }
                     for (int i = 0; i < swapDeferred.size(); i++) {
                         if (timeLimitExceeded.get() || skipIteration.get() || ActionManager.INSTANCE.needWaitModifyLook) break;
                         BlockPos deferred = BlockPos.of(swapDeferred.getLong(i));
@@ -544,6 +560,19 @@ public abstract class Module extends ConfigUtils {
     /** 这一格要用的物品现在不在手边（要从背包换过来）：先跳过，这一轮最后再换（子类实现；needsWork(pos) 之后调用） */
     protected boolean deferForSwap(BlockPos pos) {
         return false;
+    }
+
+    /** prefetchForDeferred 的结果：不管（照旧一格一格换）/ 要等服务端确认 / 换好了 */
+    protected static final int PREFETCH_NONE = 0, PREFETCH_WAIT = 1, PREFETCH_DONE = 2;
+
+    /** 每 tick 扫描之前（子类实现）：上一轮最后没换成的物品现在换（DONE）、先停下来等确认（WAIT），或者照常扫描（NONE） */
+    protected int prefetchBeforeScan() {
+        return PREFETCH_NONE;
+    }
+
+    /** 这一轮跳过的格子要用的物品，一起换进快捷栏（子类实现）；不是 PREFETCH_NONE 时这一 tick 不再处理跳过的格子 */
+    protected int prefetchForDeferred(it.unimi.dsi.fastutil.longs.LongList deferred) {
+        return PREFETCH_NONE;
     }
 
     /** 刚执行的动作让一个方块进入“先调整完”的状态 */

@@ -123,6 +123,8 @@ public final class ToolSwitchUtils {
             }
         }
         com.autyism.printer.printer.ActionConfirm.breakSent(level, packet.getPos(), packet.getSequence());
+        // 手上这格正用来挖：从背包换物品进快捷栏时先不换掉它（见 InventoryUtils.pickTargetSlots）
+        InventoryUtils.noteHotbarSlotUsed(InventoryUtils.getSelectedSlot(player.getInventory()));
         return false;
     }
 

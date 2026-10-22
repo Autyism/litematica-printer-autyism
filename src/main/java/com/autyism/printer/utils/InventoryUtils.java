@@ -72,6 +72,38 @@ public class InventoryUtils {
     /** 换世界 / 重新开启打印机时清空 */
     public static void clearRecentlyUsed() {
         RECENTLY_USED.clear();
+        java.util.Arrays.fill(HOTBAR_LAST_USE, 0L);
+    }
+
+    /** 快捷栏每一格最近一次被打印机用来放东西（或者刚换进物品）的先后，数大的是最近的 */
+    private static final long[] HOTBAR_LAST_USE = new long[9];
+    private static long hotbarUseCounter;
+
+    /** 打印机刚用快捷栏第 slot 格放了东西，或者刚往这一格换进了物品 */
+    public static void noteHotbarSlotUsed(int slot) {
+        if (slot >= 0 && slot < 9) HOTBAR_LAST_USE[slot] = ++hotbarUseCounter;
+    }
+
+    /**
+     * 打印机从背包换物品进快捷栏时能用的格子，按先用哪格排好：Litematica 设置里允许换进方块的格子
+     * （pickBlockableSlots；装着工具、会掉耐久的东西时按 Litematica 的设置跳过），空格子先用，
+     * 其余的先换掉打印机最久没用过的那格。以前按 Litematica 的轮流顺序换，一层里一直要用的方块（例如石头）
+     * 也会轮到被换走，下次用到又得换回来。keepSelected：不动手上正拿着的那格
+     */
+    public static List<Integer> pickTargetSlots(Player player, boolean keepSelected) {
+        Inventory inventory = player.getInventory();
+        int selected = getSelectedSlot(inventory);
+        List<Integer> empty = new java.util.ArrayList<>();
+        List<Integer> used = new java.util.ArrayList<>();
+        for (int slot : InventoryUtilsAccessor.getPICK_BLOCKABLE_SLOTS()) {
+            if (slot < 0 || slot > 8 || (keepSelected && slot == selected)) continue;
+            if (!InventoryUtilsAccessor.canPickToSlot(inventory, slot)) continue;
+            if (inventory.getItem(slot).isEmpty()) empty.add(slot);
+            else used.add(slot);
+        }
+        used.sort(java.util.Comparator.comparingLong(s -> HOTBAR_LAST_USE[s]));
+        empty.addAll(used);
+        return empty;
     }
 
     public static void markRecentlyUsed(Item item) {
@@ -158,16 +190,9 @@ public class InventoryUtils {
         if (InventoryUtilsAccessor.getPICK_BLOCKABLE_SLOTS().isEmpty()) {
             return PickResult.FAIL_NO_PICK_SLOTS_CONFIGURED;
         }
-        // 寻找可用槽位
-        int hotbarSlot = sourceSlot;
-        if (sourceSlot == -1 || !Inventory.isHotbarSlot(sourceSlot)) {
-            hotbarSlot = InventoryUtilsAccessor.getEmptyPickBlockableHotbarSlot(inventory);
-        }
-        if (hotbarSlot == -1) {
-            hotbarSlot = InventoryUtilsAccessor.getPickBlockTargetSlot(player);
-        }
+        // 寻找可用槽位（和真正换的时候挑法一样，见 pickTargetSlots）
         // 无可用槽位 → 精准失败类型；否则成功
-        return hotbarSlot != -1 ? PickResult.SUCCESS : PickResult.FAIL_NO_SUITABLE_SLOT_FOUND;
+        return !pickTargetSlots(player, false).isEmpty() ? PickResult.SUCCESS : PickResult.FAIL_NO_SUITABLE_SLOT_FOUND;
     }
 
     public static boolean setPickedItemToHand(int sourceSlot, ItemStack stack, Minecraft mc) {
@@ -183,17 +208,12 @@ public class InventoryUtils {
             showMessageWithCooldown(Message.MessageType.WARNING, "litematica.message.warn.pickblock.no_valid_slots_configured");
             return false;
         }
-        int hotbarSlot = sourceSlot;
-        // 尝试寻找一个空的可拾取方块的热键栏槽位
-        if (sourceSlot == -1 || !Inventory.isHotbarSlot(sourceSlot)) {
-            hotbarSlot = InventoryUtilsAccessor.getEmptyPickBlockableHotbarSlot(inventory);
-        }
-        // 如果没有空槽位，则寻找一个可拾取方块的热键栏槽位
-        if (hotbarSlot == -1) {
-            hotbarSlot = InventoryUtilsAccessor.getPickBlockTargetSlot(player);
-        }
+        // 换进哪一格：空格子先用，没有空的就换掉打印机最久没用过的那格（见 pickTargetSlots）
+        List<Integer> targets = pickTargetSlots(player, false);
+        int hotbarSlot = targets.isEmpty() ? -1 : targets.get(0);
         if (hotbarSlot != -1) {
             setHotbarSlot(hotbarSlot, inventory);
+            noteHotbarSlotUsed(hotbarSlot);
             if (EntityUtils.isCreativeMode(player)) {
                 getMainStacks(inventory).set(hotbarSlot, stack.copy());
                 client.gameMode.handleCreativeModeItemAdd(client.player.getMainHandItem(), 36 + hotbarSlot);
@@ -221,67 +241,75 @@ public class InventoryUtils {
 
         int slot = fi.dy.masa.malilib.util.InventoryUtils.findSlotWithItem(player.inventoryMenu, stackReference, true);
         if (slot != -1) {
-            ClientPacketListener connection = client.getConnection();
-            if (connection == null) {
-                return false;
-            }
-            int currentHotbarSlot = getSelectedSlot(player.getInventory());
-            if (Configs.Placement.PRINT_USE_PACKET.getBooleanValue()) {
-                NonNullList<Slot> slots = player.inventoryMenu.slots;
-                int totalSlots = slots.size();
-                List<ItemStack> copies = Lists.newArrayListWithCapacity(totalSlots);
-                for (Slot slotItem : slots) {
-                    copies.add(slotItem.getItem().copy());
-                }
-
-                //? if <1.21.5 {
-                /*Int2ObjectMap<ItemStack> snapshot = new Int2ObjectOpenHashMap<>();
-                *///?} else
-                Int2ObjectMap<HashedStack> snapshot = new Int2ObjectOpenHashMap<>();
-
-                for (int j = 0; j < totalSlots; j++) {
-                    ItemStack original = copies.get(j);
-                    ItemStack current = slots.get(j).getItem();
-                    if (!ItemStack.isSameItem(original, current)) {
-                        //? if <1.21.5 {
-                        /*snapshot.put(j, current.copy());
-                        *///?} else
-                        snapshot.put(j, HashedStack.create(current, connection.decoratedHashOpsGenenerator()));
-                    }
-                }
-
-                //? if <1.21.5 {
-                /*connection.send(new ServerboundContainerClickPacket(
-                        player.inventoryMenu.containerId,
-                        player.inventoryMenu.getStateId(),
-                        slot,
-                        currentHotbarSlot,
-                        ClickType.SWAP,
-                        player.inventoryMenu.getCarried().copy(),
-                        snapshot
-                ));
-                *///?} else {
-                HashedStack hashedStack = HashedStack.create(player.inventoryMenu.getCarried(), connection.decoratedHashOpsGenenerator());
-                connection.send(new ServerboundContainerClickPacket(
-                        player.inventoryMenu.containerId,
-                        player.inventoryMenu.getStateId(),
-                        Shorts.checkedCast(slot),
-                        SignedBytes.checkedCast(currentHotbarSlot),
-                        ClickType.SWAP,
-                        snapshot,
-                        hashedStack
-                ));
-                //?}
-
-                player.inventoryMenu.clicked(slot, currentHotbarSlot, ClickType.SWAP, player);
-            } else {
-                if (client.gameMode != null) {
-                    client.gameMode.handleInventoryMouseClick(player.inventoryMenu.containerId, slot, currentHotbarSlot, ClickType.SWAP, player);
-                }
-            }
-            return true;
+            return swapIntoHotbar(player, slot, getSelectedSlot(player.getInventory()));
         }
         return false;
+    }
+
+    /**
+     * 背包菜单里的第 slot 格和快捷栏第 hotbarSlot 格对换（不改手上选中的格子）。
+     * 和按数字键把鼠标下的物品换到快捷栏一样，客户端马上改好，服务端按顺序照做
+     */
+    public static boolean swapIntoHotbar(Player player, int slot, int hotbarSlot) {
+        ClientPacketListener connection = client.getConnection();
+        if (connection == null) {
+            return false;
+        }
+        if (Configs.Placement.PRINT_USE_PACKET.getBooleanValue()) {
+            NonNullList<Slot> slots = player.inventoryMenu.slots;
+            int totalSlots = slots.size();
+            List<ItemStack> copies = Lists.newArrayListWithCapacity(totalSlots);
+            for (Slot slotItem : slots) {
+                copies.add(slotItem.getItem().copy());
+            }
+            // 和原版一样：先在客户端换好，再把换过以后变了的格子一起发给服务端。以前先算再换，发过去的“变了的格子”
+            // 总是空的，服务端每次都要把这几格重发一遍、同步编号跟着变，同一 tick 里接着换就会对不上
+            player.inventoryMenu.clicked(slot, hotbarSlot, ClickType.SWAP, player);
+
+            //? if <1.21.5 {
+            /*Int2ObjectMap<ItemStack> snapshot = new Int2ObjectOpenHashMap<>();
+            *///?} else
+            Int2ObjectMap<HashedStack> snapshot = new Int2ObjectOpenHashMap<>();
+
+            for (int j = 0; j < totalSlots; j++) {
+                ItemStack original = copies.get(j);
+                ItemStack current = slots.get(j).getItem();
+                if (!ItemStack.matches(original, current)) {
+                    //? if <1.21.5 {
+                    /*snapshot.put(j, current.copy());
+                    *///?} else
+                    snapshot.put(j, HashedStack.create(current, connection.decoratedHashOpsGenenerator()));
+                }
+            }
+
+            //? if <1.21.5 {
+            /*connection.send(new ServerboundContainerClickPacket(
+                    player.inventoryMenu.containerId,
+                    player.inventoryMenu.getStateId(),
+                    slot,
+                    hotbarSlot,
+                    ClickType.SWAP,
+                    player.inventoryMenu.getCarried().copy(),
+                    snapshot
+            ));
+            *///?} else {
+            HashedStack hashedStack = HashedStack.create(player.inventoryMenu.getCarried(), connection.decoratedHashOpsGenenerator());
+            connection.send(new ServerboundContainerClickPacket(
+                    player.inventoryMenu.containerId,
+                    player.inventoryMenu.getStateId(),
+                    Shorts.checkedCast(slot),
+                    SignedBytes.checkedCast(hotbarSlot),
+                    ClickType.SWAP,
+                    snapshot,
+                    hashedStack
+            ));
+            //?}
+        } else {
+            if (client.gameMode != null) {
+                client.gameMode.handleInventoryMouseClick(player.inventoryMenu.containerId, slot, hotbarSlot, ClickType.SWAP, player);
+            }
+        }
+        return true;
     }
 
     /**
@@ -337,6 +365,9 @@ public class InventoryUtils {
             for (Slot slotItem : slots) {
                 copies.add(slotItem.getItem().copy());
             }
+            // 和原版一样：先在客户端换好，再把换过以后变了的格子一起发给服务端。以前先算再换，发过去的“变了的格子”
+            // 总是空的，服务端每次都要把这几格重发一遍、同步编号跟着变，同一 tick 里接着换就会对不上
+            player.inventoryMenu.clicked(sourceSlot, OFFHAND_SLOT_INDEX, ClickType.SWAP, player);
 
             // 版本兼容的快照对象
             //? if <1.21.5 {
@@ -348,7 +379,7 @@ public class InventoryUtils {
             for (int j = 0; j < totalSlots; j++) {
                 ItemStack original = copies.get(j);
                 ItemStack current = slots.get(j).getItem();
-                if (!ItemStack.isSameItem(original, current)) {
+                if (!ItemStack.matches(original, current)) {
                     //? if <1.21.5 {
                     /*snapshot.put(j, current.copy());
                     *///?} else
@@ -379,9 +410,6 @@ public class InventoryUtils {
                     hashedStack
             ));
             //?}
-
-            // 本地同步交换操作
-            player.inventoryMenu.clicked(sourceSlot, OFFHAND_SLOT_INDEX, ClickType.SWAP, player);
         } else {
             // 不使用数据包：本地直接交换到副手
             if (client.gameMode != null) {
@@ -464,16 +492,22 @@ public class InventoryUtils {
             return ItemSwitchResult.READY;
         }
         ItemStack mainHand = player.getMainHandItem();
+        Inventory inventory = player.getInventory();
         for (Item item : items) {
             if (mainHand.is(item) && passesFilter(mainHand)) {
                 if (stackMayBeUsedUp(player, mainHand)) {
+                    // 手上这一组可能已经用完了（服务端还没算到的几次）：快捷栏里还有一组同样的就切过去，不用停下来等
+                    int other = usableHotbarStack(player, inventory, items);
+                    if (other != -1) {
+                        setHotbarSlot(other, inventory);
+                        return ItemSwitchResult.READY;
+                    }
                     traceUsedUp(player, mainHand);
                     return ItemSwitchResult.WAITING;
                 }
                 return ItemSwitchResult.READY;
             }
         }
-        Inventory inventory = player.getInventory();
         if (PlayerUtils.getAbilities(player).instabuild) {
             ItemStack wanted = creativeOverride != null ? creativeOverride.copy() : new ItemStack(items[0]);
             InventoryUtils.setPickedItemToHand(wanted, client);
@@ -483,6 +517,11 @@ public class InventoryUtils {
         for (Item item : items) {
             int slot = findItemInInventory(inventory, item);
             if (slot == -1) continue;
+            if (Inventory.isHotbarSlot(slot)) {
+                // 快捷栏里有几组：挑一组不会已经用完的（找到的第一组可能是刚用完、服务端还没算到的那一组）
+                int usable = usableHotbarStack(player, inventory, new Item[]{item});
+                if (usable != -1) slot = usable;
+            }
             ItemStack itemStack = inventory.getItem(slot);
             orderlyStoreItem = itemStack.copy();
             if (Inventory.isHotbarSlot(slot)) {
@@ -528,6 +567,18 @@ public class InventoryUtils {
             return ItemSwitchResult.WAITING;
         }
         return ItemSwitchResult.UNAVAILABLE;
+    }
+
+    /** 快捷栏里装着这些物品之一、而且不会已经用完的一格（见 stackMayBeUsedUp），没有时 -1 */
+    private static int usableHotbarStack(LocalPlayer player, Inventory inventory, Item[] items) {
+        for (int h = 0; h < 9; h++) {
+            ItemStack stack = inventory.getItem(h);
+            if (stack.isEmpty() || !passesFilter(stack)) continue;
+            for (Item item : items) {
+                if (item != null && stack.is(item) && !stackMayBeUsedUp(player, stack)) return h;
+            }
+        }
+        return -1;
     }
 
     private static void traceUsedUp(LocalPlayer player, ItemStack stack) {

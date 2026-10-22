@@ -741,6 +741,7 @@ public class Print extends Module {
             }
             notePlacementAttempt(blockPos);
             InventoryUtils.markRecentlyUsed(plan.bucket());
+            InventoryUtils.noteHotbarSlotUsed(InventoryUtils.getSelectedSlot(player.getInventory()));
             addHighlight(blockPos, HighlightType.PLACE);
         }
         // 流体靠视角定位：每 tick 只放一格，并给足时间等服务端确认
@@ -992,6 +993,7 @@ public class Print extends Module {
         lastOutcome = Outcome.QUEUED;
         notePlacementAttempt(blockPos);
         if (reqItems != null && reqItems.length > 0 && reqItems[0] != null) InventoryUtils.markRecentlyUsed(reqItems[0]);
+        InventoryUtils.noteHotbarSlotUsed(InventoryUtils.getSelectedSlot(player.getInventory()));
         // 放冰完成：入队挖掘并进入等待水生成
         if (placingIceForWater) {
             placingIceForWater = false;
@@ -1322,6 +1324,9 @@ public class Print extends Module {
         placingIceForWater = false;
         switchWaitPos = null;
         switchWaitCount = 0;
+        pendingPrefetch = null;
+        prefetchBackoffUntil = Integer.MIN_VALUE;
+        deferredItems.clear();
         clearAdjust();
         adjustGaveUp.clear();
         layerIndex.clear();
@@ -1412,14 +1417,220 @@ public class Print extends Module {
                 if (inventory.getItem(i).is(item)) return false;
             }
         }
+        // 换了也放不了的（没有能贴的面、下落方块下面没有支撑）不跳过：照常处理，不为它换物品（executeIteration 换物品之前就会停下）
+        if ((fluidPlan == null || !fluidPlan.target().equals(pos)) && cannotPlaceAnyway(pos)) return false;
         // 背包里有、或者背包里的潜影盒里有：要换。哪里都没有的照常处理（缺材料，见 executeIteration）
+        deferredItems.remove(pos.asLong());
         for (Item item : items) {
             for (int i = 9; i < 36; i++) {
-                if (inventory.getItem(i).is(item)) return true;
+                if (inventory.getItem(i).is(item)) {
+                    // 记下要换的物品，这一轮最后几种一起换（见 prefetchForDeferred）；潜影盒要按内容物挑，不提前换
+                    if (!(ctx.requiredState.getBlock() instanceof ShulkerBoxBlock)) {
+                        if (deferredItems.size() > MAX_DEFERRED_ITEMS) deferredItems.clear();
+                        deferredItems.put(pos.asLong(), item);
+                    }
+                    return true;
+                }
             }
             if (Configs.Print.USE_QUICK_SHULKER.getBooleanValue() && QuickShulkerUtils.findShulkerWithItem(player, item) != -1) return true;
         }
         return false;
+    }
+
+    /** executeIteration 在换物品之前就会停下的情况（那里的下落检查、能贴的面）；含水方块走自己的流程，不算 */
+    private boolean cannotPlaceAnyway(BlockPos pos) {
+        if (action == null || level == null) return false;
+        if (Configs.Print.PRINT_ICE_FOR_WATER.getBooleanValue() && BlockUtils.needsWater(ctx.requiredState)) return false;
+        if (Configs.Placement.FALLING_CHECK.getBooleanValue() && ctx.requiredState.getBlock() instanceof FallingBlock) {
+            BlockPos down = pos.below();
+            BlockState downWorld = level.getBlockState(down);
+            if (FallingBlock.isFree(downWorld)) return true;
+            BlockState downSchematic = ctx.schematic.getBlockState(down);
+            if (!downSchematic.isAir() && downWorld != downSchematic) return true;
+        }
+        return action.getValidSide(level, pos) == null;
+    }
+
+    /** 这一轮因为物品在背包里而跳过的格子 → 要换进来的物品（见 deferForSwap） */
+    private final it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap<Item> deferredItems = new it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap<>();
+    private static final int MAX_DEFERRED_ITEMS = 8192;
+
+    /**
+     * 生存：这一轮跳过的格子要用的物品，一起从背包换进快捷栏可以换进方块的格子（Litematica 的 pickBlockableSlots：
+     * 空格子先用，再换掉打印机最久没用过的那格，见 InventoryUtils.pickTargetSlots），下一 tick 这些方块只要切一下格子就能放。
+     * 以前一次只换一种：换一种就要等服务端确认之前的动作、再等它处理这次交换，一层里方块种类一多，每种都要停一下。
+     * 之前的动作还没被确认时（和平常换物品一样要等，见 ActionConfirm.readyForInventoryClick）先记下来，
+     * 确认回来以后在下一 tick 扫描之前换（见 prefetchBeforeScan）
+     */
+    @Override
+    protected int prefetchForDeferred(it.unimi.dsi.fastutil.longs.LongList deferred) {
+        try {
+            if (!canPrefetch() || inBackoff()) {
+                pendingPrefetch = null;
+                return PREFETCH_NONE;
+            }
+            var inventory = player.getInventory();
+            // 要换进来的物品和附近要放几个（按跳过的先后）；已经在快捷栏里的不用换
+            it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap<Item> demand = new it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap<>();
+            for (int i = 0; i < deferred.size(); i++) {
+                Item item = deferredItems.get(deferred.getLong(i));
+                if (item == null) continue;
+                if (!demand.containsKey(item) && inHotbar(inventory, item)) continue;
+                demand.addTo(item, 1);
+            }
+            if (demand.isEmpty() || InventoryUtils.pickTargetSlots(player, false).isEmpty()) {
+                pendingPrefetch = null;
+                return PREFETCH_NONE;
+            }
+            int sequenceNow = currentSequence();
+            if (!ActionConfirm.readyForInventoryClick(client.level, sequenceNow, player.tickCount)) {
+                if (pendingPrefetch == null || player.tickCount < pendingPrefetchSince) pendingPrefetchSince = player.tickCount;
+                pendingPrefetch = demand;
+                if (TickTrace.ENABLED) TickTrace.detail("prefetch-wait " + demand.size() + " items");
+                return PREFETCH_WAIT;
+            }
+            pendingPrefetch = null;
+            return swapBatch(demand, sequenceNow) ? PREFETCH_DONE : PREFETCH_NONE;
+        } finally {
+            deferredItems.clear();
+        }
+    }
+
+    /** 上一轮最后要换、但还在等服务端确认的物品和附近要放几个（见 prefetchForDeferred）；没有时是 null */
+    @Nullable
+    private it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap<Item> pendingPrefetch;
+    /** 从哪一 tick 开始等的（中间每一轮最后照样更新要换的东西，开始等的时间不变） */
+    private int pendingPrefetchSince;
+    /** 等确认时最多照常放别的这么多 tick，之后先不放别的，让确认回来 */
+    private static final int PREFETCH_HOLD_AFTER_TICKS = 3;
+    /**
+     * 一共最多等这么多 tick（1 秒）。还没确认（动作被服务端吞了之类）就不等了：之后一段时间照旧一格一格地换
+     * （那边等不到会放弃这一格、过一会儿再试），不会停在这里什么都不放
+     */
+    private static final int PREFETCH_MAX_WAIT_TICKS = 20;
+    private static final int PREFETCH_BACKOFF_TICKS = 40;
+    private int prefetchBackoffUntil = Integer.MIN_VALUE;
+
+    private boolean inBackoff() {
+        if (prefetchBackoffUntil == Integer.MIN_VALUE) return false;
+        int now = player.tickCount;
+        if (now < prefetchBackoffUntil && now >= prefetchBackoffUntil - PREFETCH_BACKOFF_TICKS) return true;
+        prefetchBackoffUntil = Integer.MIN_VALUE;
+        return false;
+    }
+
+    @Override
+    protected int prefetchBeforeScan() {
+        if (pendingPrefetch == null) return PREFETCH_NONE;
+        if (!canPrefetch()) {
+            pendingPrefetch = null;
+            return PREFETCH_NONE;
+        }
+        // 有一个动作还在等转头、没发出去：它要用手上的东西，这时不换
+        if (ActionManager.INSTANCE.needWaitModifyLook) return PREFETCH_NONE;
+        int sequenceNow = currentSequence();
+        if (ActionConfirm.readyForInventoryClick(client.level, sequenceNow, player.tickCount)) {
+            var demand = pendingPrefetch;
+            pendingPrefetch = null;
+            // 等的这几 tick 里可能已经换好了、放完了
+            var inventory = player.getInventory();
+            demand.keySet().removeIf(item -> inHotbar(inventory, item));
+            if (demand.isEmpty()) return PREFETCH_NONE;
+            return swapBatch(demand, sequenceNow) ? PREFETCH_DONE : PREFETCH_NONE;
+        }
+        int waited = player.tickCount - pendingPrefetchSince;
+        if (waited < 0) pendingPrefetchSince = player.tickCount;
+        if (waited > PREFETCH_MAX_WAIT_TICKS) {
+            if (TickTrace.ENABLED) TickTrace.detail("prefetch-giveup after " + waited + " ticks");
+            pendingPrefetch = null;
+            prefetchBackoffUntil = player.tickCount + PREFETCH_BACKOFF_TICKS;
+            return PREFETCH_NONE;
+        }
+        if (waited >= PREFETCH_HOLD_AFTER_TICKS) {
+            if (TickTrace.ENABLED) TickTrace.detail("prefetch-hold " + waited + " ticks");
+            return PREFETCH_WAIT;
+        }
+        return PREFETCH_NONE;
+    }
+
+    private boolean canPrefetch() {
+        return player != null && !PlayerUtils.getAbilities(player).instabuild && player.containerMenu == player.inventoryMenu
+                && client.level != null;
+    }
+
+    private int currentSequence() {
+        return client.level instanceof PacketUtils.SequenceExtension seq ? seq.litematica_printer3$currentSequence() : 0;
+    }
+
+    private static boolean inHotbar(net.minecraft.world.entity.player.Inventory inventory, Item item) {
+        for (int h = 0; h < 9; h++) {
+            if (inventory.getItem(h).is(item)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * 按附近要放几个把这几种物品换进快捷栏：先每种一格（按要放的先后），还有空余的格子，再给附近要放的比换进来的还多的方块
+     * 多换几组进来（差得最多的先）。例如一整面墙的石头：一组用完马上切到下一组，不用每 64 个停下来等一次
+     */
+    private boolean swapBatch(it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap<Item> demand, int sequenceNow) {
+        var inventory = player.getInventory();
+        List<Integer> targets = InventoryUtils.pickTargetSlots(player, false);
+        if (targets.isEmpty()) return false;
+        // 每种物品在背包里的几组，多的在前
+        Map<Item, it.unimi.dsi.fastutil.ints.IntArrayList> sources = new HashMap<>();
+        for (Item item : demand.keySet()) {
+            it.unimi.dsi.fastutil.ints.IntArrayList list = new it.unimi.dsi.fastutil.ints.IntArrayList();
+            for (int i = 9; i < 36; i++) {
+                if (inventory.getItem(i).is(item)) list.add(i);
+            }
+            list.sort((x, y) -> Integer.compare(inventory.getItem(y).getCount(), inventory.getItem(x).getCount()));
+            sources.put(item, list);
+        }
+        // 换的计划：{背包格, 快捷栏格}
+        List<int[]> plan = new ArrayList<>();
+        it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap<Item> taken = new it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap<>();
+        it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap<Item> covered = new it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap<>();
+        for (Item item : demand.keySet()) {
+            if (plan.size() >= targets.size()) break;
+            var list = sources.get(item);
+            if (list.isEmpty()) continue;
+            plan.add(new int[]{list.getInt(0), targets.get(plan.size())});
+            taken.put(item, 1);
+            covered.put(item, inventory.getItem(list.getInt(0)).getCount());
+        }
+        while (plan.size() < targets.size()) {
+            Item best = null;
+            int bestShort = 0;
+            for (var e : demand.object2IntEntrySet()) {
+                int n = taken.getInt(e.getKey());
+                if (n == 0 || n >= sources.get(e.getKey()).size()) continue;
+                int shortBy = e.getIntValue() - covered.getInt(e.getKey());
+                if (shortBy > bestShort) {
+                    best = e.getKey();
+                    bestShort = shortBy;
+                }
+            }
+            if (best == null) break;
+            int from = sources.get(best).getInt(taken.getInt(best));
+            plan.add(new int[]{from, targets.get(plan.size())});
+            taken.addTo(best, 1);
+            covered.addTo(best, inventory.getItem(from).getCount());
+        }
+        int swapped = 0;
+        StringBuilder log = TickTrace.ENABLED ? new StringBuilder() : null;
+        for (int[] step : plan) {
+            String what = log == null ? null : inventory.getItem(step[0]).getItem() + "x" + inventory.getItem(step[0]).getCount();
+            if (InventoryUtils.swapIntoHotbar(player, step[0], step[1])) {
+                swapped++;
+                InventoryUtils.noteHotbarSlotUsed(step[1]);
+                if (log != null) log.append(' ').append(what).append("->").append(step[1]);
+            }
+        }
+        if (swapped == 0) return false;
+        ActionConfirm.noteInventoryClick(client.level, sequenceNow, player.tickCount);
+        if (log != null) TickTrace.detail("prefetch:" + log);
+        return true;
     }
 
     private void recordMissingMaterial(Item[] reqItems) {

@@ -22,7 +22,7 @@
 - Much faster in survival. A full stack used to stop at 32, then 16, 8, 4... to wait for the server, so plain blocks went down row by row; now the printer only holds back the placements the server hasn't counted yet.
 - Fix: clicking with an empty hand (turning a redstone cross into a dot) waited 10 seconds every time in survival, and the rest of the layer waited with it.
 - About twice as many blocks per tick: printed blocks no longer each play a placement sound (one per tick is kept). Dozens of sounds per tick took time on every block.
-- Fewer item swaps: each pass first places what is already in the hotbar and swaps afterwards, one item at a time, instead of swapping every few blocks.
+- Faster item swaps in survival: each pass first places what is already in the hotbar, then brings everything the rest of the pass needs into the hotbar in one go, instead of one item at a time with a wait for the server after each. Empty slots are used first, then the slot the printer used longest ago, so a block that is used all the time stays in the hotbar (only Litematica's *pickBlockableSlots* are used, as before). A large area of one block gets several stacks at once, and when a stack runs out the printer carries on with the next stack in the hotbar instead of waiting.
 - With Servux, repeater delay, note pitch, comparator mode and open doors or trapdoors come out right straight away. Once the first one is confirmed, the printer no longer stops after each of these blocks to wait for the server.
 - On a Carpet server with *antiCheatDisabled* (Carpet on the client too), the work range is kept to the 32 blocks the server accepts. Blocks further away used to be tried again and again for nothing.
 - Blocks the printer can't place (end portal, piston heads) and blocks with nothing to stand on yet no longer hold up a layer.
@@ -66,7 +66,7 @@ More: open "Details" below.
 - 生存模式快很多：以前一组方块放到 32 个就停下来等服务器，然后 16、8、4……普通方块也是一排一排地放；现在只等服务器还没算进数量里的那几次。
 - 修复：生存模式空手点（把十字红石点成点）每次都要卡 10 秒，这一层后面的方块都跟着等。
 - 每 tick 能放的方块多了约一倍：打印的方块不再每块都播一次放置声（每 tick 留一次）。以前一 tick 几十个声音，每一块都要花时间。
-- 少换物品：每一轮先放快捷栏里有的，放完再换，一次换一种，不再隔几块就换一次。
+- 生存模式换物品快了：每一轮先放快捷栏里有的，再把这一轮剩下要用的物品一次换进快捷栏，不再一次换一种、每换一种等一次服务器。先用空格子，再换掉打印机最久没用的那一格，一直在用的方块会留在快捷栏里（和以前一样只用 Litematica 的“可选取方块的物品栏位”）。一大片同一种方块时一次换进好几组；一组用完直接接着用快捷栏里的下一组，不用等服务器。
 - 有 Servux 的服务器上，中继器延迟、音符盒音高、比较器模式、开着的门和活板门一放下就是对的；确认过一次以后，不再每放一个都停下来等服务器。
 - 开着 *antiCheatDisabled* 的地毯服务器（客户端也装了地毯）：工作范围按服务器认的 32 格算。以前更远的方块一直在白放。
 - 放不了的方块（末地传送门、活塞头）、还没有东西可以贴的方块，不再挡住一层。
