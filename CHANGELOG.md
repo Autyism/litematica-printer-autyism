@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.0 — 2026-10-14
+## 1.2.0 — 2026-10-22
 
 - New: **Finish Adjusting First** (on by default). A block that still needs clicks (repeater delay, note pitch, comparator mode, lever, door, candles...) is finished before the next block is placed; each click waits for the server. Note pitch and repeater delay are faster: the printer works out how many clicks are needed from what the server confirmed, clicks once per tick, then checks the result.
 - With ALE 1.2.0 on the client and the server (or in single player), rails go down directly in the schematic's shape; ramps that vanilla's rules can't place safely are no longer left empty.
