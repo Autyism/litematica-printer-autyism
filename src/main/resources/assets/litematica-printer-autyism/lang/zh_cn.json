@@ -153,7 +153,7 @@
   "litematica-printer-autyism.config.placeInterval": "放置间隔时间",
   "litematica-printer-autyism.config.placeInterval.desc": "两轮放置之间隔多少游戏刻，0 表示每刻都放。有些特殊方块会自动多等一会儿。在限制发包的服务器上，或者打印红石机器时，建议至少设为 1。打印、填充、排流体共用。",
   "litematica-printer-autyism.config.placeUsePacket": "放置使用数据包",
-  "litematica-printer-autyism.config.placeUsePacket.desc": "直接发送放置数据包，代替普通的放置流程，在限制发包的服务器上可以减少“幽灵方块”。打印、填充、排流体共用。",
+  "litematica-printer-autyism.config.placeUsePacket.desc": "直接发送放置数据包，代替普通的放置流程，在限制发包的服务器上可以减少“幽灵方块”。打印、填充、排流体共用。别的模组关掉了游戏的方块预测时（例如 Meteor 的 NoGhostBlocks），打印机会自己这样放。",
   "litematica-printer-autyism.config.print": "打印",
   "litematica-printer-autyism.config.printAutoFillComposter": "堆肥桶自动填充",
   "litematica-printer-autyism.config.printAutoFillComposter.desc": "自动向堆肥桶填充可堆肥物品，以生成骨粉。\n(§l警告：此操作会消耗背包内的可堆肥物品！§r)",

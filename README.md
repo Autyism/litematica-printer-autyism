@@ -259,7 +259,7 @@ The Printing tab ends with the placing settings, which Filling and Fluid Removal
 
 | Option | Default | What it does |
 |---|---|---|
-| Placement Using Packets | off | Places without client-side prediction; can help on strict servers. |
+| Placement Using Packets | off | Places without client-side prediction; can help on strict servers. The printer also does this by itself when another mod turns the game's block prediction off (Meteor's NoGhostBlocks, for example). |
 | Placement Interval Time | 1 tick | Ticks between placement rounds. Not recommended at 0 for redstone. |
 | Blocks to Place Per Tick | 1 | Placements per round; `0` means no limit. |
 | Placement Cooldown Time | 3 ticks | Wait before retrying the same spot. Do not set it to 0. |
@@ -680,7 +680,7 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 
 | 选项 | 默认值 | 作用 |
 |---|---|---|
-| 放置使用数据包 | 关 | 放置时不做客户端预测，在严格的服务器上可能有帮助。 |
+| 放置使用数据包 | 关 | 放置时不做客户端预测，在严格的服务器上可能有帮助。别的模组关掉了游戏的方块预测时（例如 Meteor 的 NoGhostBlocks），打印机会自己这样放。 |
 | 放置间隔时间 | 1 tick | 每轮放置之间隔多少 tick。打印红石机器时不建议设为 0。 |
 | 每刻放置方块数 | 1 | 每轮放几个方块，`0` 表示不限制。 |
 | 放置冷却时间 | 3 tick | 同一格重试前等多久，不要设为 0。 |

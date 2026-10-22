@@ -153,7 +153,7 @@
   "litematica-printer-autyism.config.placeInterval": "置間隔時",
   "litematica-printer-autyism.config.placeInterval.desc": "兩輪置方相隔之刻數，零則每刻皆置。特方或自增其候。服限發包，或印紅石之器，宜不下一。印、填、排液共用。",
   "litematica-printer-autyism.config.placeUsePacket": "用封包置",
-  "litematica-printer-autyism.config.placeUsePacket.desc": "徑發置方之包，以代常途，服限發包時可減「幽方」。印、填、排液共用。",
+  "litematica-printer-autyism.config.placeUsePacket.desc": "徑發置方之包，以代常途，服限發包時可減「幽方」。印、填、排液共用。他模閉戲中方塊之預測者（如 Meteor 之 NoGhostBlocks），印者自循此法。",
   "litematica-printer-autyism.config.print": "印",
   "litematica-printer-autyism.config.printAutoFillComposter": "堆肥桶自填",
   "litematica-printer-autyism.config.printAutoFillComposter.desc": "自填堆肥桶以可堆肥物，生骨粉。\n(§l警告：此耗背包內之可堆肥物！§r)",

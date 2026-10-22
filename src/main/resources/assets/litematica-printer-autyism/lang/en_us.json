@@ -153,7 +153,7 @@
   "litematica-printer-autyism.config.placeInterval": "Placement Interval Time",
   "litematica-printer-autyism.config.placeInterval.desc": "Game ticks between placement rounds; 0 places every tick. Some special blocks get extra waits automatically. On servers that limit packets, or when printing redstone, keep it at 1 or more. Used by Printing, Filling and Fluid Removal.",
   "litematica-printer-autyism.config.placeUsePacket": "Placement Using Packets",
-  "litematica-printer-autyism.config.placeUsePacket.desc": "Sends the placement packet directly instead of going through the normal placing path, which can reduce ghost blocks on servers that limit packets. Used by Printing, Filling and Fluid Removal.",
+  "litematica-printer-autyism.config.placeUsePacket.desc": "Sends the placement packet directly instead of going through the normal placing path, which can reduce ghost blocks on servers that limit packets. Used by Printing, Filling and Fluid Removal. The printer also does this by itself when another mod turns the game's block prediction off (Meteor's NoGhostBlocks, for example).",
   "litematica-printer-autyism.config.print": "Printing",
   "litematica-printer-autyism.config.printAutoFillComposter": "Composter Auto Fill",
   "litematica-printer-autyism.config.printAutoFillComposter.desc": "Automatically fill compostable items into composters to generate bone meal.\n(§lWarning: This operation will consume compostable items in inventory!§r)",
