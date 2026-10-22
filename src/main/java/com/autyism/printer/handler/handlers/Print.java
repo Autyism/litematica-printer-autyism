@@ -1553,9 +1553,10 @@ public class Print extends Module {
         return PREFETCH_NONE;
     }
 
+    /** 生存、只开着自己的背包，而且没有正在用潜影盒、远程容器取东西（那时背包里的东西随时会变） */
     private boolean canPrefetch() {
         return player != null && !PlayerUtils.getAbilities(player).instabuild && player.containerMenu == player.inventoryMenu
-                && client.level != null;
+                && client.level != null && !QuickShulkerUtils.isBusy() && !RemoteContainerUtils.hasPendingExchange();
     }
 
     private int currentSequence() {
