@@ -178,7 +178,10 @@ public class ActionManager {
         }
         MultiPlayerGameModeExtension gameModeExtension = (MultiPlayerGameModeExtension) Reference.MINECRAFT.gameMode;
         if (gameModeExtension != null) {
-            boolean localPrediction = !Configs.Placement.PRINT_USE_PACKET.getBooleanValue();
+            boolean localPrediction = !Configs.Placement.PRINT_USE_PACKET.getBooleanValue() && !predictionIneffective(player);
+            // 放新方块之前这一格的样子：放完客户端还是没变，说明客户端的预测被关掉了（见 predictionIneffective）
+            net.minecraft.world.level.block.state.BlockState placeBefore = localPrediction && workPos != null
+                    ? player.level().getBlockState(workPos) : null;
             BlockHitResult blockHitResult = new BlockHitResult(hitVec, side, target, false);
             if (DEBUG_LOOK) {
                 System.out.println("[printer-use] target=" + target.toShortString() + " hand=" + player.getMainHandItem().getItem()
@@ -207,6 +210,9 @@ public class ActionManager {
                 TickTrace.sendNanos += System.nanoTime() - sendStart;
                 TickTrace.action();
             }
+            if (placeBefore != null && placeBefore.canBeReplaced()) {
+                notePrediction(player, player.level().getBlockState(workPos) != placeBefore);
+            }
             net.minecraft.world.item.ItemStack handAfter = player.getMainHandItem();
             boolean consumedLocally = hadItem
                     && (handAfter.isEmpty() ? countBefore == 1 : handAfter.is(usedItem) && handAfter.getCount() < countBefore);
@@ -226,7 +232,44 @@ public class ActionManager {
             setShift(player, true);
         }
         clearQueue();
+        sentCount++;
         return this;
+    }
+
+    /** 发出过多少个动作（每发一个客户端世界都可能变了；Print 读方块状态的缓存靠它作废） */
+    public int sentCount;
+
+    // ---------------- 客户端预测没用时直接发放置包 ----------------
+    /**
+     * 原版放方块时客户端先自己模拟一遍（各个模组的放置钩子都会跑一遍），这一步占了打印机放一块的大约一半时间。
+     * 有的模组把这一步的结果关掉了（例如 Meteor 的 NoGhostBlocks：客户端不先显示方块，等服务端回来）：模拟白跑，
+     * 只是费时间。连续好几块新方块放下去客户端都没变，就当作预测被关掉了，这个世界里之后直接发放置包
+     * （和“用封包放置”一样），每 tick 能放的方块多一半左右。客户端有一次显示出了刚放的方块，就从头数
+     */
+    private static final int NO_EFFECT_STREAK = 8;
+    private int predictionNoEffect;
+    private boolean predictionOff;
+    @Nullable
+    private net.minecraft.world.level.Level predictionLevel;
+
+    private boolean predictionIneffective(LocalPlayer player) {
+        if (player.level() != predictionLevel) {
+            predictionLevel = player.level();
+            predictionNoEffect = 0;
+            predictionOff = false;
+        }
+        return predictionOff;
+    }
+
+    private void notePrediction(LocalPlayer player, boolean shown) {
+        if (shown) {
+            predictionNoEffect = 0;
+            return;
+        }
+        if (++predictionNoEffect >= NO_EFFECT_STREAK && !predictionOff) {
+            predictionOff = true;
+            if (TickTrace.ENABLED) TickTrace.detail("prediction off: placing with packets");
+        }
     }
 
     public void setNeedWaitModifyLookFromAction(boolean needWaitModifyLook) {

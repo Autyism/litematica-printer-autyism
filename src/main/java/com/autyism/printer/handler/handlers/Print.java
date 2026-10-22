@@ -130,10 +130,11 @@ public class Print extends Module {
     protected void onLayerPassPosition(BlockPos pos) {
         WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
         if (schematic == null) return;
-        BlockState required = schematic.getBlockState(pos);
+        readStates(pos);
+        BlockState required = memoRequired;
         if (required.isAir()) return;
         lsTotal++;
-        BlockState current = level.getBlockState(pos);
+        BlockState current = memoCurrent;
         switch (BlockMatchingType.get(required, current)) {
             case CORRECT -> lsCorrect++;
             case ERROR_BLOCK_STATE -> {
@@ -147,6 +148,33 @@ public class Print extends Module {
                 else lsMissing++;
             }
         }
+    }
+
+    // ---------------- 同一格刚读过的方块状态 ----------------
+    /**
+     * 扫描时同一格要判断好几次（是不是已经对了、要怎么放、分层统计……），每次都去投影和世界里各读一遍方块状态，
+     * 读状态是扫描里最费时间的一项。这里记住最近读过的那一格：同一 tick 里、打印机没再发过动作（发了客户端世界可能就变了）
+     * 就直接用。只记一格，换一格就重读
+     */
+    private long memoPos = Long.MIN_VALUE;
+    private int memoTick = Integer.MIN_VALUE;
+    private int memoSent = Integer.MIN_VALUE;
+    @Nullable
+    private net.minecraft.world.level.Level memoLevel;
+    private BlockState memoRequired = net.minecraft.world.level.block.Blocks.AIR.defaultBlockState();
+    private BlockState memoCurrent = net.minecraft.world.level.block.Blocks.AIR.defaultBlockState();
+
+    private void readStates(BlockPos pos) {
+        long key = pos.asLong();
+        int tick = player == null ? 0 : player.tickCount;
+        int sent = ActionManager.INSTANCE.sentCount;
+        if (key == memoPos && tick == memoTick && sent == memoSent && level == memoLevel) return;
+        memoRequired = LitematicaUtils.getBlockState(pos);
+        memoCurrent = level.getBlockState(pos);
+        memoPos = key;
+        memoTick = tick;
+        memoSent = sent;
+        memoLevel = level;
     }
 
     /** 打印机这次开启以来最近几次“某层完成”的提示（不管有没有隐藏提示都记；调试 / 测试用） */
@@ -553,8 +581,9 @@ public class Print extends Module {
         WorldSchematic schematic = SchematicWorldHandler.getSchematicWorld();
         if (schematic == null) return false;
 
-        BlockState required = schematic.getBlockState(blockPos);
-        BlockState current = level.getBlockState(blockPos);
+        readStates(blockPos);
+        BlockState required = memoRequired;
+        BlockState current = memoCurrent;
 
         // 如果原理图为空气且不破坏多余方块，则无法处理
         if (required.isAir()) {
@@ -759,8 +788,9 @@ public class Print extends Module {
 
     @Override
     public boolean isCorrectBlock(BlockPos pos) {
-        BlockState required = LitematicaUtils.getBlockState(pos);
-        BlockState current = level.getBlockState(pos);
+        readStates(pos);
+        BlockState required = memoRequired;
+        BlockState current = memoCurrent;
         BlockMatchingType type = BlockMatchingType.get(required, current);
         if (type == BlockMatchingType.ERROR_BLOCK_STATE && WaterlogPlacer.acceptsDry(level, SchematicWorldHandler.getSchematicWorld(), player, pos, required, current)) {
             return true;

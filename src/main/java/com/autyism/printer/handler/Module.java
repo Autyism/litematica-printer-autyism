@@ -990,6 +990,9 @@ public abstract class Module extends ConfigUtils {
     public abstract boolean isCorrectBlock(BlockPos pos);
 
     protected void addHighlight(BlockPos pos, HighlightType type) {
+        // 高亮关着（默认）时不记：画的时候也不画。以前照样每放一块记一条，还要先在整个队列里找同一格的旧记录删掉，
+        // 一 tick 放上百块时这一项占了扫描时间的近一成
+        if (!Configs.Highlight.HIGHLIGHT_ENABLED.getBooleanValue()) return;
         BlockPos immutable = pos.immutable();
         pendingHighlights.removeIf(ph -> ph.pos().equals(immutable));
         pendingHighlights.add(new PendingHighlight(immutable, System.currentTimeMillis(), type));

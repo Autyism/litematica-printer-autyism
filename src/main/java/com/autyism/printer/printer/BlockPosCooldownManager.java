@@ -1,15 +1,20 @@
 package com.autyism.printer.printer;
 
 import com.autyism.printer.utils.ConfigUtils;
+import it.unimi.dsi.fastutil.longs.Long2IntMap;
+import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Objects;
 
+/**
+ * 格子冷却：打印机对一格动过手以后，这几 tick 里不再碰它。
+ * 按 {维度, 类型, 来源} 分开记，每一组里坐标 → 冷却到第几次 tick() 为止。以前每查一次都要新建一个键对象、
+ * 算一遍它的哈希（维度名、类型名都要参与），一 tick 放上百块时这一项占了扫描时间的几个百分点
+ */
 public class BlockPosCooldownManager {
     public static final BlockPosCooldownManager INSTANCE = new BlockPosCooldownManager();
 
@@ -23,33 +28,36 @@ public class BlockPosCooldownManager {
         EXTERNAL
     }
 
-    private final Map<Info, Integer> cooldownMap = new HashMap<>();
+    private record Key(Identifier dimension, String type, CooldownSource source) {
+    }
 
-    /**
-     * 冷却刻数递减核心方法（可抽离到玩家交互最顶层统一调用，无任何业务依赖）
-     * 遍历所有冷却项，递减刻数，自动移除到期项（≤0）
-     * Iterator遍历避免ConcurrentModificationException，适配高频调用
-     */
+    private final Map<Key, Long2IntOpenHashMap> cooldowns = new HashMap<>();
+    /** tick() 调用了多少次 */
+    private int now;
+
+    /** 每 tick 调用一次：到期的冷却去掉；打印机关着时全部清空 */
     public void tick() {
         if (!ConfigUtils.isPrinterEnable()) {
-            if (!cooldownMap.isEmpty()) {
-                cooldownMap.clear();
+            if (!cooldowns.isEmpty()) {
+                cooldowns.clear();
             }
             return;
         }
-        if (cooldownMap.isEmpty()) {
+        now++;
+        if (cooldowns.isEmpty()) {
             return;
         }
-        Iterator<Map.Entry<Info, Integer>> iterator = cooldownMap.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<Info, Integer> entry = iterator.next();
-            int remaining = entry.getValue() - 1;
-            if (remaining <= 0) {
-                iterator.remove();
-            } else {
-                entry.setValue(remaining);
-            }
-        }
+        cooldowns.values().removeIf(map -> {
+            map.long2IntEntrySet().removeIf(e -> e.getIntValue() <= now);
+            return map.isEmpty();
+        });
+    }
+
+    private static Identifier dimension(ClientLevel level) {
+        //? if <1.21.11 {
+        /*return level.dimension().location();
+        *///?} else
+        return level.dimension().identifier();
     }
 
     /**
@@ -64,24 +72,17 @@ public class BlockPosCooldownManager {
      */
     public void setCooldown(ClientLevel level, String type, BlockPos pos, int cooldownTicks, CooldownSource source) {
         if (cooldownTicks <= 0) return;
-        //? if <1.21.11 {
-        /*Identifier dimension = level.dimension().location();
-        *///?} else
-        Identifier dimension = level.dimension().identifier();
-        Info key = new Info(dimension, type, pos, source);
-        cooldownMap.put(key, cooldownTicks);
+        cooldowns.computeIfAbsent(new Key(dimension(level), type, source), k -> new Long2IntOpenHashMap())
+                .put(pos.asLong(), now + cooldownTicks);
     }
 
     /**
      * 判断指定方块是否处于冷却中（按 type 精确匹配）
      */
     public boolean isOnCooldown(ClientLevel level, String type, BlockPos pos) {
-        //? if <1.21.11 {
-        /*Identifier dimension = level.dimension().location();
-        *///?} else
-        Identifier dimension = level.dimension().identifier();
-        Info key = new Info(dimension, type, pos, CooldownSource.SELF);
-        return cooldownMap.containsKey(key);
+        if (cooldowns.isEmpty()) return false;
+        Long2IntOpenHashMap map = cooldowns.get(new Key(dimension(level), type, CooldownSource.SELF));
+        return map != null && map.get(pos.asLong()) > now;
     }
 
     /**
@@ -89,12 +90,11 @@ public class BlockPosCooldownManager {
      * 用于 BlockUpdate 回显过滤：查询该位置是否存在任何 SELF 来源的冷却
      */
     public boolean isOnCooldown(ClientLevel level, CooldownSource source, BlockPos pos) {
-        //? if <1.21.11 {
-        /*Identifier dimension = level.dimension().location();
-        *///?} else
-        Identifier dimension = level.dimension().identifier();
-        for (Info info : cooldownMap.keySet()) {
-            if (info.dimension.equals(dimension) && info.source == source && info.pos.equals(pos)) {
+        if (cooldowns.isEmpty()) return false;
+        Identifier dimension = dimension(level);
+        long key = pos.asLong();
+        for (Map.Entry<Key, Long2IntOpenHashMap> e : cooldowns.entrySet()) {
+            if (e.getKey().source() == source && e.getKey().dimension().equals(dimension) && e.getValue().get(key) > now) {
                 return true;
             }
         }
@@ -109,12 +109,8 @@ public class BlockPosCooldownManager {
     }
 
     public void removeCooldown(ClientLevel level, String type, BlockPos pos, CooldownSource source) {
-        //? if <1.21.11 {
-        /*Identifier dimension = level.dimension().location();
-        *///?} else
-        Identifier dimension = level.dimension().identifier();
-        Info key = new Info(dimension, type, pos, source);
-        cooldownMap.remove(key);
+        Long2IntOpenHashMap map = cooldowns.get(new Key(dimension(level), type, source));
+        if (map != null) map.remove(pos.asLong());
     }
 
     /**
@@ -127,76 +123,40 @@ public class BlockPosCooldownManager {
     }
 
     public int getRemainingCooldown(ClientLevel level, String type, BlockPos pos, CooldownSource source) {
-        //? if <1.21.11 {
-        /*Identifier dimension = level.dimension().location();
-        *///?} else
-        Identifier dimension = level.dimension().identifier();
-        Info key = new Info(dimension, type, pos, source);
-        return cooldownMap.getOrDefault(key, 0);
+        Long2IntOpenHashMap map = cooldowns.get(new Key(dimension(level), type, source));
+        return map == null ? 0 : Math.max(0, map.get(pos.asLong()) - now);
     }
 
     /**
      * 清空指定维度的所有冷却数据
      */
     public void clearDimensionCooldowns(ClientLevel level) {
-        //? if <1.21.11 {
-        /*Identifier dimension = level.dimension().location();
-        *///?} else
-        Identifier dimension = level.dimension().identifier();
-        cooldownMap.keySet().removeIf(info -> info.dimension.equals(dimension));
+        Identifier dimension = dimension(level);
+        cooldowns.keySet().removeIf(key -> key.dimension().equals(dimension));
     }
 
     /**
      * 清空指定维度+指定类型的所有冷却数据（如清空某维度所有打印冷却）
      */
     public void clearTypeCooldowns(ClientLevel level, String type) {
-        //? if <1.21.11 {
-        /*Identifier dimension = level.dimension().location();
-        *///?} else
-        Identifier dimension = level.dimension().identifier();
-        cooldownMap.keySet().removeIf(info -> info.dimension.equals(dimension) && info.type.equals(type));
+        Identifier dimension = dimension(level);
+        cooldowns.keySet().removeIf(key -> key.dimension().equals(dimension) && key.type().equals(type));
     }
 
     /**
      * 清空所有冷却数据（模组重载/退出游戏/全局重置时调用）
      */
     public void clearAllCooldowns() {
-        cooldownMap.clear();
+        cooldowns.clear();
     }
 
     /** 还有格子在冷却 */
     public boolean hasAny() {
-        return !cooldownMap.isEmpty();
-    }
-
-    @SuppressWarnings("ClassCanBeRecord")
-    private static final class Info {
-        private final Identifier dimension;
-        private final String type;
-        private final BlockPos pos;
-        private final CooldownSource source;
-
-        private Info(Identifier dimension, String type, BlockPos pos, CooldownSource source) {
-            this.dimension = Objects.requireNonNull(dimension, "Dimension Identifier cannot be null!");
-            this.type = Objects.requireNonNull(type, "Cool down type cannot be null!");
-            this.pos = Objects.requireNonNull(pos, "BlockPos cannot be null!");
-            this.source = Objects.requireNonNull(source, "CooldownSource cannot be null!");
+        for (Long2IntOpenHashMap map : cooldowns.values()) {
+            for (Long2IntMap.Entry e : map.long2IntEntrySet()) {
+                if (e.getIntValue() > now) return true;
+            }
         }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(dimension, type, pos, source);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) return true;
-            if (obj == null || getClass() != obj.getClass()) return false;
-            Info info = (Info) obj;
-            return Objects.equals(dimension, info.dimension)
-                    && Objects.equals(type, info.type)
-                    && Objects.equals(pos, info.pos)
-                    && source == info.source;
-        }
+        return false;
     }
 }
