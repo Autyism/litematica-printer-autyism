@@ -49,6 +49,7 @@ public final class SwitchesGameTest implements FabricClientGameTest {
             // Litematica 1.20.1 版没有投影事件，这个安全设置在那里不起作用
             //? if >=1.21.5
             placementMove(context, sp);
+            selectionMove(context, sp);
         } finally {
             context.runOnClient(c -> {
                 GT.disableAll();
@@ -248,6 +249,65 @@ public final class SwitchesGameTest implements FabricClientGameTest {
         GT.log("[switches] placement move OK: moving or rotating a placement turns the printer off, only with the setting on");
     }
     //?}
+
+    /**
+     * 同一个安全设置的框选部分：打印机开着时框选范围一变（移动、改大小），打印机就关掉；同一 tick 里先改框选再打开不算；
+     * 打印机关着时改框选、设置关着时改框选，都不管
+     */
+    private static void selectionMove(ClientGameTestContext context, TestSingleplayerContext sp) {
+        BlockPos a = new BlockPos(900, 64, 0), b = new BlockPos(903, 65, 3);
+        java.util.function.Consumer<BlockPos> moveTo = corner -> {
+            var selectionManager = DataManager.getSelectionManager();
+            if (selectionManager.getSelectionMode() != SelectionMode.SIMPLE) selectionManager.switchSelectionMode();
+            AreaSelection selection = DataManager.getSimpleArea();
+            Box box = selection.getSubRegionBox(selection.getName());
+            if (box == null) box = selection.getSelectedSubRegionBox();
+            box.setPos1(corner);
+            box.setPos2(corner.offset(b.getX() - a.getX(), b.getY() - a.getY(), b.getZ() - a.getZ()));
+        };
+        try {
+            // 先改框选再在同一 tick 里打开：打印机要保持开着
+            context.runOnClient(c -> {
+                Configs.Core.STOP_ON_PLACEMENT_MOVE.setBooleanValue(true);
+                moveTo.accept(a);
+                Configs.Core.WORK_SWITCH.setBooleanValue(true);
+            });
+            context.waitTicks(3);
+            if (!context.computeOnClient(c -> Configs.Core.WORK_SWITCH.getBooleanValue())) {
+                throw new AssertionError("[switches] changing the selection and then turning the printer on turned it off again");
+            }
+            // 开着的时候移动框选：关掉
+            context.runOnClient(c -> moveTo.accept(a.offset(1, 0, 0)));
+            context.waitTicks(3);
+            if (context.computeOnClient(c -> Configs.Core.WORK_SWITCH.getBooleanValue())) {
+                throw new AssertionError("[switches] moving the selection did not turn the printer off");
+            }
+            // 关着的时候移动框选，再打开：保持开着
+            context.runOnClient(c -> moveTo.accept(a.offset(2, 0, 0)));
+            context.waitTicks(3);
+            context.runOnClient(c -> Configs.Core.WORK_SWITCH.setBooleanValue(true));
+            context.waitTicks(3);
+            if (!context.computeOnClient(c -> Configs.Core.WORK_SWITCH.getBooleanValue())) {
+                throw new AssertionError("[switches] a selection change made while the printer was off turned it off later");
+            }
+            // 设置关着：移动框选不管
+            context.runOnClient(c -> {
+                Configs.Core.STOP_ON_PLACEMENT_MOVE.setBooleanValue(false);
+                moveTo.accept(a.offset(3, 0, 0));
+            });
+            context.waitTicks(3);
+            if (!context.computeOnClient(c -> Configs.Core.WORK_SWITCH.getBooleanValue())) {
+                throw new AssertionError("[switches] with the setting off, moving the selection still turned the printer off");
+            }
+        } finally {
+            context.runOnClient(c -> {
+                Configs.Core.STOP_ON_PLACEMENT_MOVE.setBooleanValue(true);
+                Configs.Core.WORK_SWITCH.setBooleanValue(false);
+            });
+            context.waitTicks(2);
+        }
+        GT.log("[switches] selection move OK: moving the selection turns a running printer off, only with the setting on");
+    }
 
     private static void inWorld(ClientGameTestContext context, TestSingleplayerContext sp) {
         GT.clearArena(sp, 890, -10, 914, 14, 72);

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.1 — 2026-10-24
+
+- Bedrock mode is much faster: new **Targets at Once** (default 4). Up to that many blocks go to the bedrock miner at the same time, always at least 5 blocks apart so their pistons and torches can't interfere. Eight spread-out blocks within reach now take about a third of the time with LXYan's Bedrock Miner. Set it to 1 for the old one-at-a-time behaviour. bunnyi116's miner still follows its own task limit.
+- **Stop When a Placement Moves** is now **Stop When a Placement or Selection Moves**: moving, resizing or replacing the Litematica area selection while the printer is on also turns it off.
+
 ## 1.2.0 — 2026-10-22
 
 - New: **Finish Adjusting First** (on by default). A block that still needs clicks (repeater delay, note pitch, comparator mode, lever, door, candles...) is finished before the next block is placed; each click waits for the server. Note pitch and repeater delay are faster: the printer works out how many clicks are needed from what the server confirmed, clicks once per tick, then checks the result.

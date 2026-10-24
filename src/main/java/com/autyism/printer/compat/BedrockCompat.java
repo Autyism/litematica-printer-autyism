@@ -347,26 +347,23 @@ public class BedrockCompat {
         }
     }
 
-    /**
-     * 破基岩模组手上一个够得着的任务的位置（例如人走开时挂起、回来以后它会接着做的那一格，或者玩家自己点的）；没有就是 null。
-     * 读不出位置的任务不算。
-     */
-    @Nullable
-    public static BlockPos reachableTask(net.minecraft.client.player.LocalPlayer player) {
-        if (impl() == Impl.NONE) return null;
+    /** 破基岩模组手上所有够得着、读得出位置的任务的位置 */
+    public static java.util.List<BlockPos> reachableTasks(net.minecraft.client.player.LocalPlayer player) {
+        java.util.List<BlockPos> result = new java.util.ArrayList<>();
+        if (impl() == Impl.NONE) return result;
         try {
             for (Method m : new Method[]{activeTasksMethod, pendingTasksMethod}) {
                 if (m == null || !(m.invoke(minerInstance) instanceof java.util.Collection<?> tasks)) continue;
                 for (Object task : tasks) {
                     BlockPos taskPos = taskPos(task);
                     if (taskPos != null && com.autyism.printer.utils.PlayerUtils.isWithinBlockInteractionRange(player, taskPos, 0)) {
-                        return taskPos.immutable();
+                        result.add(taskPos.immutable());
                     }
                 }
             }
         } catch (Throwable ignored) {
         }
-        return null;
+        return result;
     }
 
     /** 任务的目标位置：lxyan2333 的 BreakingFlow.getTargetPos()，bunnyi116 的 Task.pos */
@@ -377,6 +374,28 @@ public class BedrockCompat {
             return (BlockPos) task.getClass().getField("pos").get(task);
         } catch (Throwable e) {
             return null;
+        }
+    }
+
+    /**
+     * 破基岩模组最多同时做几格：lxyan2333 的每格各走各的流程，不限；bunnyi116 的按它自己的同时任务数（limitMax，读不到时当 1），
+     * 交多了的它先排着，排着的那几格会被当成破不掉；z7087 的 blockminer 不知道，当 1。
+     */
+    public static int concurrencyLimit() {
+        return switch (impl()) {
+            case LXYAN -> Integer.MAX_VALUE;
+            case BUNNYI -> bunnyiLimitMax();
+            default -> 1;
+        };
+    }
+
+    private static int bunnyiLimitMax() {
+        try {
+            Class<?> cfgClass = Class.forName("com.github.bunnyi116.bedrockminer.config.Config");
+            Object cfg = cfgClass.getMethod("getInstance").invoke(null);
+            return Math.max(1, cfgClass.getField("limitMax").getInt(cfg));
+        } catch (Throwable e) {
+            return 1;
         }
     }
 

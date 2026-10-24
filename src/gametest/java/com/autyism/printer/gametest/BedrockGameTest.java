@@ -53,6 +53,7 @@ public final class BedrockGameTest implements FabricClientGameTest {
                     else runWith(context, sp, backend);
                     //? if >=1.21.11 {
                     runPatch(context, sp, backend);
+                    runWide(context, sp, backend);
                     runWalkAway(context, sp, backend);
                     runWornPick(context, sp, backend);
                     runPacketGuard(context, sp, backend);
@@ -147,6 +148,11 @@ public final class BedrockGameTest implements FabricClientGameTest {
     // 布置一片基岩、物品、镐（damage = 已磨损多少），打开破基岩模式
     private static void preparePatch(ClientGameTestContext context, TestSingleplayerContext sp, com.autyism.printer.enums.BedrockBackend backend,
                                      int pickDamage, BlockPos selMin, BlockPos selMax) {
+        preparePatch(context, sp, backend, pickDamage, selMin, selMax, PATCH);
+    }
+
+    private static void preparePatch(ClientGameTestContext context, TestSingleplayerContext sp, com.autyism.printer.enums.BedrockBackend backend,
+                                     int pickDamage, BlockPos selMin, BlockPos selMax, List<BlockPos> blocks) {
         context.runOnClient(client -> {
             GT.disableAll();
             com.autyism.printer.utils.ToolSwitchUtils.resetHalt();
@@ -158,7 +164,7 @@ public final class BedrockGameTest implements FabricClientGameTest {
             var level = server.overworld();
             for (int x = 76; x <= 92; x++)
                 for (int z = -6; z <= 8; z++) level.setBlockAndUpdate(new BlockPos(x, 63, z), Blocks.STONE.defaultBlockState());
-            for (BlockPos p : PATCH) level.setBlockAndUpdate(p, Blocks.BEDROCK.defaultBlockState());
+            for (BlockPos p : blocks) level.setBlockAndUpdate(p, Blocks.BEDROCK.defaultBlockState());
             var player = server.getPlayerList().getPlayers().getFirst();
             player.getInventory().clearContent();
             player.getInventory().setItem(0, new ItemStack(Items.PISTON, 64));
@@ -171,7 +177,7 @@ public final class BedrockGameTest implements FabricClientGameTest {
         sp.getServer().runCommand("item replace entity @a hotbar.3 with minecraft:netherite_pickaxe[minecraft:enchantments={\"minecraft:efficiency\":5},minecraft:damage=" + pickDamage + "]");
         sp.getServer().runCommand("effect give @a minecraft:haste infinite 1 true");
         sp.getServer().runCommand("tp @a 84.5 64 -1.5 0 60");
-        context.waitFor(client -> client.player != null && client.level.getBlockState(PATCH.getFirst()).is(Blocks.BEDROCK)
+        context.waitFor(client -> client.player != null && client.level.getBlockState(blocks.getFirst()).is(Blocks.BEDROCK)
                 && client.player.getInventory().getItem(3).is(Items.NETHERITE_PICKAXE)
                 && client.player.getInventory().getItem(3).getDamageValue() == pickDamage
                 && client.player.getInventory().getItem(0).is(Items.PISTON)
@@ -260,6 +266,55 @@ public final class BedrockGameTest implements FabricClientGameTest {
                 + ", pick wear=" + pickDamage(sp));
         if (maxPistons[0] > 2) throw new AssertionError(tag + " pistons for several targets at once (max " + maxPistons[0] + ")");
         if (after[1] > 0) throw new AssertionError(tag + " " + after[1] + " pistons/torches/slime left behind");
+    }
+
+    // 伸手范围里散开的 8 格：两个 5x5 的角（相距 5 格的可以同时破），一次一格和同时 4 格各破一遍，比耗时，都不留活塞、火把
+    private static final List<BlockPos> WIDE = List.of(
+            new BlockPos(81, 64, -4), new BlockPos(86, 64, -4), new BlockPos(81, 64, 1), new BlockPos(86, 64, 1),
+            new BlockPos(82, 64, -3), new BlockPos(87, 64, -3), new BlockPos(82, 64, 2), new BlockPos(87, 64, 2));
+
+    private static void runWide(ClientGameTestContext context, TestSingleplayerContext sp, com.autyism.printer.enums.BedrockBackend backend) {
+        int[] took = new int[2];
+        int[] activeCaps = {1, 4};
+        for (int i = 0; i < 2; i++) {
+            int cap = activeCaps[i];
+            String tag = "[bedrock-wide/" + backend + " x" + cap + "]";
+            context.runOnClient(client -> Configs.Bedrock.MAX_ACTIVE.setIntegerValue(cap));
+            preparePatch(context, sp, backend, 0, new BlockPos(80, 64, -5), new BlockPos(88, 64, 3), WIDE);
+            int[] maxPistons = {0};
+            took[i] = GT.waitServer(context, () -> {
+                maxPistons[0] = Math.max(maxPistons[0], wideMinerBlocks(sp)[0]);
+                return wideLeft(sp) == 0;
+            }, 4800, tag + " not all broken");
+            context.waitTicks(80);
+            int[] after = wideMinerBlocks(sp);
+            context.runOnClient(client -> GT.disableAll());
+            GT.log(tag + " broken " + WIDE.size() + " in " + took[i] + " ticks, max pistons at once=" + maxPistons[0] + ", left over=" + after[1]);
+            if (after[1] > 0) throw new AssertionError(tag + " " + after[1] + " pistons/torches/slime left behind");
+        }
+        context.runOnClient(client -> Configs.Bedrock.MAX_ACTIVE.setIntegerValue(Configs.Bedrock.MAX_ACTIVE.getDefaultIntegerValue()));
+        GT.log("[bedrock-wide/" + backend + "] one at a time " + took[0] + " ticks, four at once " + took[1] + " ticks");
+    }
+
+    private static int wideLeft(TestSingleplayerContext sp) {
+        return sp.getServer().computeOnServer(server -> {
+            int n = 0;
+            for (BlockPos p : WIDE) if (server.overworld().getBlockState(p).is(Blocks.BEDROCK)) n++;
+            return n;
+        });
+    }
+
+    private static int[] wideMinerBlocks(TestSingleplayerContext sp) {
+        return sp.getServer().computeOnServer(server -> {
+            int pistons = 0, all = 0;
+            for (BlockPos p : BlockPos.betweenClosed(new BlockPos(77, 63, -8), new BlockPos(91, 68, 6))) {
+                var state = server.overworld().getBlockState(p);
+                if (!isMinerBlock(state)) continue;
+                all++;
+                if (state.is(Blocks.PISTON) || state.is(Blocks.STICKY_PISTON) || state.is(Blocks.MOVING_PISTON)) pistons++;
+            }
+            return new int[]{pistons, all};
+        });
     }
 
     // 破到一半人走开：打印机先去破新位置够得着的格子，回来再把剩下的（包括走开时正在破的那一格）破完，不留活塞、火把

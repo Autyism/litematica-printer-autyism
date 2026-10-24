@@ -40,6 +40,8 @@ public class ModuleManager {
     private static boolean lastRunning = false;
 
     public static void tick() {
+        // 框选范围变了就先关打印机（投影的移动由 PlacementMoveGuard 当场处理）
+        com.autyism.printer.printer.SelectionMoveGuard.tick();
         // If TakeItOut is waiting for a server-side shulker extraction, skip
         // all processing so the printer does not interfere.
         if (TakeItOutCompat.isAwaitingItem()) {

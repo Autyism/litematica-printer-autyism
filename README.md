@@ -80,7 +80,7 @@ Compared with the 1.21.11 printer builds it is based on, this edition adds or re
 - **Filling.** Fills air, fluids and overwritable blocks inside your Litematica area selection with a block from a list (default: cobblestone) or the block in your hand. You can choose a facing, for example to place top slabs.
 - **Fluid removal.** Places blocks (default: sand) into water and lava sources inside the area selection; the flowing fluid then drains away by itself. Turn off *Sources Only* to fill flowing fluid too.
 - **Mining.** Breaks every non-liquid block inside the area selection, with an optional whitelist or blacklist, or Tweakeroo's block-breaking restriction lists.
-- **Bedrock breaking.** Hands every bedrock block in your area selection to a bedrock-breaking mod: Fabric-Bedrock-Miner (LXYan2333), Bedrock Miner (bunnyi116) or BlockMiner. *Auto* prefers LXYan2333's. Add other blocks such as end portal frames or reinforced deepslate to the block list; with Fabric-Bedrock-Miner or Bedrock Miner they are also added to that mod's own allow list automatically. By default it ignores Litematica's render layers and works on the whole selection. It hands over one block at a time and waits until the server has broken it and the bedrock mod has cleaned up, and it breaks pistons and torches the bedrock mod left behind (for example after you walked away), so they never pile up.
+- **Bedrock breaking.** Hands every bedrock block in your area selection to a bedrock-breaking mod: Fabric-Bedrock-Miner (LXYan2333), Bedrock Miner (bunnyi116) or BlockMiner. *Auto* prefers LXYan2333's. Add other blocks such as end portal frames or reinforced deepslate to the block list; with Fabric-Bedrock-Miner or Bedrock Miner they are also added to that mod's own allow list automatically. By default it ignores Litematica's render layers and works on the whole selection. It hands over up to four blocks at once (*Targets at Once*), always at least 5 blocks apart so their pistons and torches can't interfere, waits until the server has broken each one and the bedrock mod has cleaned up, and breaks pistons and torches the bedrock mod left behind (for example after you walked away), so they never pile up.
 
 ### Fluids
 
@@ -297,6 +297,7 @@ The Printing tab ends with the placing settings, which Filling and Fluid Removal
 |---|---|---|
 | Enable Bedrock Breaking | off | Sends blocks in the area selection to the bedrock-breaking mod. |
 | Bedrock Miner Backend | Auto | Which mod to use. Auto: Fabric-Bedrock-Miner (LXYan2333), then Bedrock Miner (bunnyi116), then BlockMiner. |
+| Targets at Once | 4 | Blocks handed to the bedrock mod at the same time, at least 5 blocks apart. 1 = one at a time. |
 | Ignore Render Layers | on | Works on the whole selection regardless of Litematica's render layers. |
 | Bedrock Mode Block List | `minecraft:bedrock` | Blocks to break; also added to the allow list of Fabric-Bedrock-Miner or Bedrock Miner. |
 
@@ -501,7 +502,7 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 - **填充。** 在 Litematica 选区内，把空气、流体和可覆盖的方块填成列表里的方块（默认圆石）或手上拿的方块。可以设置朝向，例如放上半砖。
 - **排流体。** 在选区内往水源和岩浆源里放方块（默认沙子），流动的液体随后自己消失。关掉“只填流体源头”就连流动的一起填。
 - **挖掘。** 挖掉选区内所有非液体方块，可以用白名单 / 黑名单，或者 Tweakeroo 的破坏限制列表。
-- **破基岩。** 把选区内的基岩交给破基岩模组处理：Fabric-Bedrock-Miner（LXYan2333）、Bedrock Miner（bunnyi116）或 BlockMiner。“自动”会优先用 LXYan2333 的。末地传送门框架、强化深板岩等方块可以加进方块列表；使用 Fabric-Bedrock-Miner 或 Bedrock Miner 时，这些方块还会自动同步到该模组自己的允许列表。默认忽略 Litematica 的渲染层，处理整个选区。一次只交一格，等服务器确认破掉、破基岩模组收拾完再交下一格；破基岩模组留下的活塞和火把（比如你中途走开了）也会拆掉，不会到处都是。
+- **破基岩。** 把选区内的基岩交给破基岩模组处理：Fabric-Bedrock-Miner（LXYan2333）、Bedrock Miner（bunnyi116）或 BlockMiner。“自动”会优先用 LXYan2333 的。末地传送门框架、强化深板岩等方块可以加进方块列表；使用 Fabric-Bedrock-Miner 或 Bedrock Miner 时，这些方块还会自动同步到该模组自己的允许列表。默认忽略 Litematica 的渲染层，处理整个选区。一次最多同时交 4 格（“同时破几格”），同时在破的格子彼此相距至少 5 格，活塞和火把不会互相干扰；每一格都等服务器确认破掉、破基岩模组收拾完才算完；破基岩模组留下的活塞和火把（比如你中途走开了）也会拆掉，不会到处都是。
 
 ### 流体
 
@@ -718,6 +719,7 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 |---|---|---|
 | 启用破基岩 | 关 | 把选区内的方块交给破基岩模组。 |
 | 破基岩模组 | 自动 | 使用哪个模组。自动：先 Fabric-Bedrock-Miner（LXYan2333），其次 Bedrock Miner（bunnyi116），再其次 BlockMiner。 |
+| 同时破几格 | 4 | 同时交给破基岩模组的格数，彼此相距至少 5 格。设成 1 就是一格一格地破。 |
 | 忽略渲染层 | 开 | 处理整个选区，不受 Litematica 渲染层限制。 |
 | 破基岩方块列表 | `minecraft:bedrock` | 要破的方块，也会加入 Fabric-Bedrock-Miner 或 Bedrock Miner 的允许列表。 |
 

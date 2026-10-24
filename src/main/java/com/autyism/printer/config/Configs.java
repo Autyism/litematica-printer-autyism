@@ -165,7 +165,7 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 .defaultValue(true)
                 .build();
 
-        // 安全：投影移动、旋转、镜像、重置时关掉打印机，见 PlacementMoveGuard
+        // 安全：投影移动、旋转、镜像、重置，或者框选范围变了，就关掉打印机，见 PlacementMoveGuard、SelectionMoveGuard
         public static final ConfigBoolean STOP_ON_PLACEMENT_MOVE = booleanValue("printerStopOnPlacementMove")
                 .defaultValue(true)
                 .build();
@@ -709,6 +709,12 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 .defaultValue(BedrockBackend.AUTO)
                 .build();
 
+        // 同时交给破基岩模组几格（同时在破的格子彼此相距至少 5 格，见 handlers.Bedrock）
+        public static final ConfigInteger MAX_ACTIVE = integerValue("bedrockMaxActive")
+                .defaultValue(4)
+                .range(1, 16)
+                .build();
+
         // 框选范围内的基岩全部处理，不受 Litematica 渲染层限制
         public static final ConfigBoolean IGNORE_RENDER_LAYER = booleanValue("bedrockIgnoreRenderLayer")
                 .defaultValue(true)
@@ -722,6 +728,7 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
         public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
                 ENABLED,
                 BACKEND,
+                MAX_ACTIVE,
                 IGNORE_RENDER_LAYER,
                 BLOCK_LIST
         );
