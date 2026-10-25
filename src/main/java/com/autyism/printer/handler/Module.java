@@ -225,6 +225,12 @@ public abstract class Module extends ConfigUtils {
                 }
             }
 
+            // 下面打好过的层又缺了方块、现在够得着：先回到那一层补
+            if (reopenLowerLayer()) {
+                rebuildIteration();
+                idle = false;
+            }
+
             // 先调整完再放下一个：正在把一个方块点到投影里的状态时，这一 tick 不去碰别的格子
             if (holdForAdjust(skipIteration)) {
                 trace("adjust-hold");
@@ -791,6 +797,8 @@ public abstract class Module extends ConfigUtils {
             // 本层剩下的格子一直放不了（缺材料、无处可贴、需要先有别的方块……）：先打上面的层，到顶后会回来复查
             forcedLayerSkips++;
             lastForcedSkipPos = lastPendingPos;
+            // 这些一直放不了的格子：一阵子之内不再因为它们回到这一层（见 reopenLowerLayer）
+            for (int i = 0; i < passPending.size(); i++) reopenedAt.put(passPending.getLong(i), nowTick());
             if (wholeLayer) {
                 // 整层判定：范围内这些一直放不了的格子先放弃（这次在这一层时不再等它们），
                 // 本层其余的部分（包括范围外的）还是要打完才往上走
@@ -832,6 +840,91 @@ public abstract class Module extends ConfigUtils {
         }
         layerPending = false;
         passPending.clear();
+    }
+
+    // ---------------- 分层：回头补下面的层 ----------------
+    /** 多久看一次下面的层 */
+    private static final int LOWER_CHECK_INTERVAL = 10;
+    /** 一次最多看这么多格（看不完下一次接着看） */
+    private static final int LOWER_CHECK_BUDGET = 6000;
+    /** 同一个缺口拉回去一次以后，这么久之内不再因为它拉回去（补不上时不来回折腾，看门狗会先去打上面） */
+    private static final int REOPEN_AGAIN_TICKS = 600;
+    private int lowerCheckTick = Integer.MIN_VALUE;
+    /** 上一次往回走的 tick：两次之间至少隔这么久，补不上的缺口很多时也不会一直上上下下 */
+    private int lastReopenTick = Integer.MIN_VALUE;
+    private static final int REOPEN_MIN_GAP = 40;
+    private long lowerCursor;
+    private final it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap reopenedAt = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap();
+
+    /**
+     * 分层时只扫当前这一层：下面打好过的层后来少了方块（被挖掉、炸掉，或者开机时那一块所在的区块还没载入，判定时没看到），
+     * 以前要等打到最顶上一层、绕回最底下时才会补。现在每半秒看一眼伸手够得着的下面几层：有缺的方块、而且现在就能放
+     * （手边有材料、有地方贴），就回到那一层，补好以后打好的层一下就过去，回到原来的层接着打。
+     * 只看“缺方块”（那一格是空的、能被替换的），不看状态不对的：下面的红石机器动起来时状态一直在变，不能因此一直往回跑。
+     *
+     * @return true 表示换到了下面的一层
+     */
+    private boolean reopenLowerLayer() {
+        if (layerY == null || player == null || level == null) return false;
+        int now = nowTick();
+        if (lowerCheckTick != Integer.MIN_VALUE && now - lowerCheckTick < LOWER_CHECK_INTERVAL && now >= lowerCheckTick) return false;
+        if (lastReopenTick != Integer.MIN_VALUE && now - lastReopenTick < REOPEN_MIN_GAP && now >= lastReopenTick) return false;
+        lowerCheckTick = now;
+        List<PrinterBox> areaBoxes = needsAreaCheck() ? getWorkAreaBoxes() : null;
+        if (areaBoxes == null || areaBoxes.isEmpty()) return false;
+        int[] bounds = layerBounds(areaBoxes);
+        if (bounds == null || layerY <= bounds[0]) return false;
+        double r = ConfigUtils.getEffectiveRange();
+        int ex = (int) Math.floor(player.getX()), ez = (int) Math.floor(player.getZ());
+        int ri = (int) Math.ceil(r);
+        int y0 = bounds[0], y1 = Math.min(layerY - 1, bounds[1]);
+        int side = 2 * ri + 1;
+        long total = (long) side * side * (y1 - y0 + 1);
+        if (total <= 0) return false;
+        if (lowerCursor >= total) lowerCursor = 0;
+        int lowest = Integer.MAX_VALUE;
+        BlockPos found = null;
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        // 从下往上一层一层看（cursor 按 y、z、x 的顺序），找到最低的一层就停
+        for (int n = 0; n < Math.min(total, LOWER_CHECK_BUDGET); n++) {
+            long c = lowerCursor;
+            if (++lowerCursor >= total) lowerCursor = 0;
+            int dy = (int) (c / ((long) side * side));
+            int rest = (int) (c % ((long) side * side));
+            int y = y0 + dy;
+            if (y >= lowest) break;
+            pos.set(ex - ri + rest % side, y, ez - ri + rest / side);
+            if (!PlayerUtils.canInteracted(pos)) continue;
+            if (!level.getBlockState(pos).canBeReplaced()) continue;
+            BlockPos at = pos.immutable();
+            if (!isPosInWorkspace(at)) continue;
+            int last = reopenedAt.getOrDefault(at.asLong(), Integer.MIN_VALUE);
+            if (last != Integer.MIN_VALUE && now - last < REOPEN_AGAIN_TICKS && now >= last) continue;
+            if (!needsWork(at) || !canFillNow(at)) continue;
+            lowest = y;
+            found = at;
+        }
+        if (found == null) return false;
+        if (reopenedAt.size() > 4096) reopenedAt.clear();
+        reopenedAt.put(found.asLong(), now);
+        lastReopenTick = now;
+        if (traced && TickTrace.ENABLED) TickTrace.detail("layer " + layerY + " -> " + found.getY() + ": missing block at " + found.toShortString());
+        if (Boolean.getBoolean("ale.debuglayer")) System.out.println("[ALE-LAYER] back from layer " + layerY + " to " + found.getY() + ": missing block at " + found.toShortString());
+        layerY = found.getY();
+        layerPending = false;
+        layerAttempts.clear();
+        layerAttemptRemaining.clear();
+        layerDeferred.clear();
+        layerVerdicts.clear();
+        passPending.clear();
+        layerIdleTicks = 0;
+        lowerCursor = 0;
+        return true;
+    }
+
+    /** 这一格现在就能补上（打印：手边或潜影盒里有材料、有地方贴）；needsWork(pos) 之后调用 */
+    protected boolean canFillNow(BlockPos pos) {
+        return true;
     }
 
     /** 可整段跳过的区块段（默认不跳过） */
@@ -919,6 +1012,9 @@ public abstract class Module extends ConfigUtils {
 
     public void resetScanState() {
         idle = false;
+        reopenedAt.clear();
+        lowerCursor = 0;
+        lastReopenTick = Integer.MIN_VALUE;
         passDidWork = false;
         cycleDidWork = false;
         passStartTick = nowTick();

@@ -48,6 +48,11 @@ public abstract class MixinMultiPlayerGameMode implements MultiPlayerGameModeExt
     }
 
     @Override
+    public void litematica_printer$syncCarriedItem() {
+        ensureHasSentCarriedItem();
+    }
+
+    @Override
     public void litematica_printer$startPrediction(PredictiveAction predictiveAction) {
         PacketUtils.sendPacket(predictiveAction);
     }

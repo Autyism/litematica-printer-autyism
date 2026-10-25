@@ -20,6 +20,9 @@ public interface MultiPlayerGameModeExtension {
 
     boolean litematica_printer$isDestroying();
 
+    /** 手上选中的快捷栏格子变了就先告诉服务端（原版放置、挖掘之前也这样做） */
+    void litematica_printer$syncCarriedItem();
+
     @FunctionalInterface
     interface PredictiveAction {
         Packet<ServerGamePacketListener> predict(int sequence);

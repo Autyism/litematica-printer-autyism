@@ -151,7 +151,7 @@ public class HotkeysCallback {
         ConfigBooleanHotkeyed[] all = modes();
         List<Integer> order = new ArrayList<>();
         for (int i = 0; i < all.length; i++) {
-            if (all[i] == Configs.Bedrock.ENABLED && !BedrockCompat.isAvailable()) continue;
+            if (all[i] == Configs.Bedrock.ENABLED && !BedrockCompat.usesBuiltin() && !BedrockCompat.isAvailable()) continue;
             order.add(i);
         }
         int current = -1;

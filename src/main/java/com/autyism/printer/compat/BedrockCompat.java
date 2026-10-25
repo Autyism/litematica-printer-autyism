@@ -72,8 +72,8 @@ public class BedrockCompat {
             case BUNNYI -> bunnyiLoaded() ? Impl.BUNNYI : Impl.NONE;
             case LXYAN -> lxyanLoaded() ? Impl.LXYAN : Impl.NONE;
             case BLOCKMINER -> blockMinerLoaded() ? Impl.BLOCKMINER : Impl.NONE;
-            // 自动：优先 lxyan2333（在用户真实实例里测试最快最稳），其次 bunnyi116、blockminer
-            case AUTO -> lxyanLoaded() ? Impl.LXYAN : bunnyiLoaded() ? Impl.BUNNYI : blockMinerLoaded() ? Impl.BLOCKMINER : Impl.NONE;
+            // 自动、内置：打印机自己破（见 bedrock.PistonBreaker），不用破基岩模组
+            case AUTO, BUILTIN -> Impl.NONE;
         };
         boolean ok = switch (choice) {
             case BUNNYI -> resolveBunnyi();
@@ -244,6 +244,12 @@ public class BedrockCompat {
 
     public static boolean isAvailable() {
         return impl() != Impl.NONE;
+    }
+
+    /** 破基岩模式用打印机自己的破法（设置是“自动”或“内置”） */
+    public static boolean usesBuiltin() {
+        BedrockBackend wanted = Configs.Bedrock.BACKEND.getOptionListValue() instanceof BedrockBackend b ? b : BedrockBackend.AUTO;
+        return wanted == BedrockBackend.AUTO || wanted == BedrockBackend.BUILTIN;
     }
 
     /** 当前用的是 bunnyi116 的破基岩模组（它和 Meteor 的 NoGhostBlocks 不兼容） */

@@ -19,7 +19,7 @@ import net.minecraft.world.level.block.Blocks;
 import java.util.List;
 
 /**
- * 需求 2：破基岩模式下，框选一个范围的基岩要能批量破除（配合 bedrockminer 模组）。
+ * 需求 2：破基岩模式下，框选一个范围的基岩要能批量破除：打印机自己破（BUILTIN），或者交给破基岩模组（BUNNYI、LXYAN）。
  */
 @SuppressWarnings("UnstableApiUsage")
 public final class BedrockGameTest implements FabricClientGameTest {
@@ -34,13 +34,13 @@ public final class BedrockGameTest implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext context) {
         if (!GTFilter.enabled("bedrock")) return;
-        if (!FabricLoader.getInstance().isModLoaded("bedrockminer")) {
+        String order = System.getProperty("ale.backends", "BUILTIN,BUNNYI,LXYAN");
+        if (order.contains("BUNNYI") && !FabricLoader.getInstance().isModLoaded("bedrockminer")) {
             throw new AssertionError("[bedrock] bedrockminer is not loaded in the test environment");
         }
         // 真实实例里装着 Meteor：确认能检测到 NoGhostBlocks（bunnyi 版破基岩模组和它不兼容，打印机会提示）
         GT.log("[bedrock] Meteor NoGhostBlocks active=" + context.computeOnClient(c -> com.autyism.printer.compat.MeteorCompat.isNoGhostBlocksActive()));
         try (TestSingleplayerContext sp = GT.newWorld(context)) {
-            String order = System.getProperty("ale.backends", "BUNNYI,LXYAN");
             java.util.List<String> failures = new java.util.ArrayList<>();
             for (String name : order.split(",")) {
                 var backend = com.autyism.printer.enums.BedrockBackend.valueOf(name.trim());
@@ -52,11 +52,16 @@ public final class BedrockGameTest implements FabricClientGameTest {
                     if (!System.getProperty("ale.bedrockonly", "").isEmpty()) GT.log("[bedrock] spaced test skipped");
                     else runWith(context, sp, backend);
                     //? if >=1.21.11 {
+                    if (backend == com.autyism.printer.enums.BedrockBackend.BUILTIN) {
+                        runFloor(context, sp, 1L);
+                        runFloor(context, sp, 2L);
+                        runStop(context, sp);
+                    }
                     runPatch(context, sp, backend);
                     runWide(context, sp, backend);
                     runWalkAway(context, sp, backend);
                     runWornPick(context, sp, backend);
-                    runPacketGuard(context, sp, backend);
+                    if (backend != com.autyism.printer.enums.BedrockBackend.BUILTIN) runPacketGuard(context, sp, backend);
                     //?}
                 } catch (AssertionError e) {
                     GT.log("[bedrock] backend " + backend + " FAILED: " + e.getMessage());
@@ -264,7 +269,7 @@ public final class BedrockGameTest implements FabricClientGameTest {
         context.runOnClient(client -> GT.disableAll());
         GT.log(tag + " broken " + PATCH.size() + " in " + ticks + " ticks, max pistons at once=" + maxPistons[0] + ", left over=" + after[1]
                 + ", pick wear=" + pickDamage(sp));
-        if (maxPistons[0] > 2) throw new AssertionError(tag + " pistons for several targets at once (max " + maxPistons[0] + ")");
+        if (backend != com.autyism.printer.enums.BedrockBackend.BUILTIN && maxPistons[0] > 2) throw new AssertionError(tag + " pistons for several targets at once (max " + maxPistons[0] + ")");
         if (after[1] > 0) throw new AssertionError(tag + " " + after[1] + " pistons/torches/slime left behind");
     }
 
@@ -358,6 +363,21 @@ public final class BedrockGameTest implements FabricClientGameTest {
         String tag = "[bedrock-wear/" + backend + "]";
         int max = new ItemStack(Items.NETHERITE_PICKAXE).getMaxDamage();
         preparePatch(context, sp, backend, max - 15, PATCH_MIN, PATCH_MAX);
+        if (backend == com.autyism.printer.enums.BedrockBackend.BUILTIN) {
+            // 打印机自己破：镐不够再破一格时就不收新的格子（提示），手上的做完
+            context.waitTicks(400);
+            int damage = pickDamage(sp);
+            int left = remainingPatch(sp);
+            boolean idle = context.computeOnClient(client -> com.autyism.printer.bedrock.PistonBreaker.INSTANCE.isIdle());
+            int[] after = minerBlocks(sp);
+            context.runOnClient(client -> GT.disableAll());
+            GT.log(tag + " stopped: pick left=" + (damage < 0 ? "GONE" : max - damage) + ", bedrock left=" + left + "/" + PATCH.size() + ", idle=" + idle + ", left over=" + after[1]);
+            if (damage < 0) throw new AssertionError(tag + " the pickaxe broke");
+            if (max - damage < 10) throw new AssertionError(tag + " the pickaxe went below the threshold: " + (max - damage));
+            if (left == 0 || left == PATCH.size()) throw new AssertionError(tag + " expected a few blocks broken before stopping, left " + left);
+            if (!idle || after[1] > 0) throw new AssertionError(tag + " work or blocks left after stopping: idle=" + idle + " left over=" + after[1]);
+            return;
+        }
         GT.waitServer(context, () -> context.computeOnClient(client -> com.autyism.printer.utils.ToolSwitchUtils.isHalted()), 2400,
                 tag + " the printer did not stop for the worn pickaxe");
         context.waitTicks(100);
@@ -392,6 +412,157 @@ public final class BedrockGameTest implements FabricClientGameTest {
         if (damage != max - 10) throw new AssertionError(tag + " the pickaxe was worn past the threshold: left " + (damage < 0 ? "GONE" : max - damage));
         if (!idle) throw new AssertionError(tag + " the bedrock miner still has work after the stop");
     }
+    //?}
+
+    //? if >=1.21.11 {
+    // 真实的基岩地面（世界最底下）：y=-64 一层满的，往上四层越来越稀（原版是 4/5、3/5、2/5、1/5），别的方块都挖空了，
+    // 人站在中间一块石头上。全部破完、不留活塞火把；掉的活塞火把落进虚空，要带够
+    private static final int FLOOR_X = 200, FLOOR_Z = 0, FLOOR_R = 3;
+
+    private static void runFloor(ClientGameTestContext context, TestSingleplayerContext sp, long seed) {
+        String tag = "[bedrock-floor seed " + seed + "]";
+        context.runOnClient(client -> {
+            GT.disableAll();
+            com.autyism.printer.utils.ToolSwitchUtils.resetHalt();
+            com.autyism.printer.bedrock.PistonBreaker.INSTANCE.resetCounters();
+        });
+        context.waitTicks(5);
+        int total = sp.getServer().computeOnServer(server -> {
+            var level = server.overworld();
+            java.util.Random random = new java.util.Random(seed);
+            int n = 0;
+            for (int x = FLOOR_X - 8; x <= FLOOR_X + 8; x++) {
+                for (int z = FLOOR_Z - 8; z <= FLOOR_Z + 8; z++) {
+                    for (int y = -64; y <= -50; y++) {
+                        BlockPos p = new BlockPos(x, y, z);
+                        boolean in = Math.abs(x - FLOOR_X) <= FLOOR_R && Math.abs(z - FLOOR_Z) <= FLOOR_R;
+                        boolean pad = x == FLOOR_X && z == FLOOR_Z;
+                        net.minecraft.world.level.block.state.BlockState state = Blocks.AIR.defaultBlockState();
+                        if (y == -64 && pad) state = Blocks.STONE.defaultBlockState();
+                        else if (y == -64 && !in) state = Blocks.STONE.defaultBlockState();
+                        else if (in && !pad && y <= -60 && (y == -64 || random.nextInt(5) < -60 - y + 1)) {
+                            state = Blocks.BEDROCK.defaultBlockState();
+                            n++;
+                        }
+                        level.setBlock(p, state, 2 | 16);
+                    }
+                }
+            }
+            var player = server.getPlayerList().getPlayers().getFirst();
+            player.getInventory().clearContent();
+            for (int i = 0; i < 6; i++) player.getInventory().setItem(9 + i, new ItemStack(Items.PISTON, 64));
+            player.getInventory().setItem(15, new ItemStack(Items.REDSTONE_TORCH, 64));
+            player.getInventory().setItem(16, new ItemStack(Items.REDSTONE_TORCH, 64));
+            player.getInventory().setItem(17, new ItemStack(Items.SLIME_BLOCK, 64));
+            player.getInventory().setSelectedSlot(4);
+            player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetHeldSlotPacket(4));
+            player.inventoryMenu.sendAllDataToRemote();
+            return n;
+        });
+        sp.getServer().runCommand("item replace entity @a hotbar.3 with minecraft:netherite_pickaxe[minecraft:enchantments={\"minecraft:efficiency\":5}]");
+        sp.getServer().runCommand("effect give @a minecraft:haste infinite 1 true");
+        sp.getServer().runCommand("tp @a " + (FLOOR_X + 0.5) + " -63 " + (FLOOR_Z + 0.5) + " 0 60");
+        context.waitFor(client -> client.player != null && client.player.onGround() && Math.abs(client.player.getX() - FLOOR_X - 0.5) < 0.01
+                && client.level.getBlockState(new BlockPos(FLOOR_X + 1, -64, FLOOR_Z)).is(Blocks.BEDROCK)
+                && client.player.getInventory().getItem(3).is(Items.NETHERITE_PICKAXE), 200);
+        context.waitTicks(10);
+        BlockPos min = new BlockPos(FLOOR_X - FLOOR_R, -64, FLOOR_Z - FLOOR_R), max = new BlockPos(FLOOR_X + FLOOR_R, -60, FLOOR_Z + FLOOR_R);
+        context.runOnClient(client -> {
+            DataManager.getRenderLayerRange().setLayerMode(LayerMode.ALL);
+            var selectionManager = DataManager.getSelectionManager();
+            if (selectionManager.getSelectionMode() != SelectionMode.SIMPLE) selectionManager.switchSelectionMode();
+            AreaSelection selection = DataManager.getSimpleArea();
+            Box box = selection.getSubRegionBox(selection.getName());
+            if (box == null) box = selection.getSelectedSubRegionBox();
+            box.setPos1(min);
+            box.setPos2(max);
+            Configs.Core.WORK_RANGE.setDoubleValue(0);
+            Configs.Break.TOOL_DURABILITY_PROTECT.setBooleanValue(true);
+            Configs.Break.TOOL_DURABILITY_THRESHOLD.setIntegerValue(10);
+            Configs.Bedrock.BACKEND.setOptionListValue(com.autyism.printer.enums.BedrockBackend.BUILTIN);
+            Configs.Bedrock.IGNORE_RENDER_LAYER.setBooleanValue(true);
+            Configs.Bedrock.BLOCK_LIST.setStrings(java.util.List.of("minecraft:bedrock"));
+            Configs.Bedrock.MAX_ACTIVE.setIntegerValue(Integer.getInteger("ale.bedrockmax", Configs.Bedrock.MAX_ACTIVE.getDefaultIntegerValue()));
+            Configs.Bedrock.ENABLED.setBooleanValue(true);
+            ModuleManager.BEDROCK.resetScanState();
+            Configs.Core.WORK_SWITCH.setBooleanValue(true);
+        });
+        int pistons0 = countItem(sp, Items.PISTON);
+        int[] t = {0};
+        int[] maxActive = {0};
+        int ticks;
+        try {
+            ticks = GT.waitServer(context, () -> {
+                int left = floorLeft(sp, min, max);
+                maxActive[0] = Math.max(maxActive[0], context.computeOnClient(client -> com.autyism.printer.bedrock.PistonBreaker.INSTANCE.activeCount()));
+                if (t[0]++ % 100 == 0) GT.log(tag + " t" + t[0] + " left=" + left + "/" + total + " "
+                        + context.computeOnClient(client -> com.autyism.printer.bedrock.PistonBreaker.INSTANCE.debugState()));
+                return left == 0;
+            }, 3000, tag + " the floor was not all broken");
+        } catch (AssertionError e) {
+            java.util.List<BlockPos> left = sp.getServer().computeOnServer(server -> {
+                java.util.List<BlockPos> out = new java.util.ArrayList<>();
+                for (BlockPos p : BlockPos.betweenClosed(min, max)) if (server.overworld().getBlockState(p).is(Blocks.BEDROCK)) out.add(p.immutable());
+                return out;
+            });
+            for (BlockPos p : left) {
+                String around = sp.getServer().computeOnServer(server -> server.overworld().getBlockState(p.above()) + " / " + server.overworld().getBlockState(p.above(2)));
+                GT.log(tag + " LEFT " + p.toShortString() + " client=" + context.computeOnClient(client -> client.level.getBlockState(p).toString())
+                        + " server above=" + around + " client above=" + context.computeOnClient(client -> client.level.getBlockState(p.above()) + " / " + client.level.getBlockState(p.above(2)))
+                        + " cooldown=" + context.computeOnClient(client -> ModuleManager.BEDROCK.isOnCooldown(p)));
+            }
+            throw e;
+        }
+        GT.waitServer(context, () -> context.computeOnClient(client -> com.autyism.printer.bedrock.PistonBreaker.INSTANCE.isIdle()), 400, tag + " still busy after the floor was gone");
+        context.waitTicks(20);
+        int leftover = floorLeftovers(sp, min, max);
+        String stats = context.computeOnClient(client -> com.autyism.printer.bedrock.PistonBreaker.INSTANCE.debugState());
+        context.runOnClient(client -> GT.disableAll());
+        GT.log(tag + " OK: " + total + " bedrock broken in " + ticks + " ticks (" + String.format("%.1f", total * 20.0 / Math.max(1, ticks)) + "/s), at most "
+                + maxActive[0] + " at once, pistons used=" + (pistons0 - countItem(sp, Items.PISTON)) + ", pick wear=" + pickDamage(sp) + ", " + stats + ", left over=" + leftover);
+        if (leftover > 0) throw new AssertionError(tag + " " + leftover + " pistons/torches/slime left behind");
+    }
+
+    private static int floorLeft(TestSingleplayerContext sp, BlockPos min, BlockPos max) {
+        return sp.getServer().computeOnServer(server -> {
+            int n = 0;
+            for (BlockPos p : BlockPos.betweenClosed(min, max)) if (server.overworld().getBlockState(p).is(Blocks.BEDROCK)) n++;
+            return n;
+        });
+    }
+
+    private static int floorLeftovers(TestSingleplayerContext sp, BlockPos min, BlockPos max) {
+        return sp.getServer().computeOnServer(server -> {
+            int n = 0;
+            for (BlockPos p : BlockPos.betweenClosed(min.offset(-2, 0, -2), max.offset(2, 4, 2))) if (isMinerBlock(server.overworld().getBlockState(p))) n++;
+            return n;
+        });
+    }
+
+    private static int countItem(TestSingleplayerContext sp, net.minecraft.world.item.Item item) {
+        return sp.getServer().computeOnServer(server -> {
+            var inv = server.getPlayerList().getPlayers().getFirst().getInventory();
+            int n = 0;
+            for (int i = 0; i < inv.getContainerSize(); i++) if (inv.getItem(i).is(item)) n += inv.getItem(i).getCount();
+            return n;
+        });
+    }
+
+    // 破到一半关掉打印机：没破完的格子不再往下破，活塞、火把、黏液块都拆干净
+    private static void runStop(ClientGameTestContext context, TestSingleplayerContext sp) {
+        String tag = "[bedrock-stop]";
+        preparePatch(context, sp, com.autyism.printer.enums.BedrockBackend.BUILTIN, 0, PATCH_MIN, PATCH_MAX);
+        GT.waitServer(context, () -> minerBlocks(sp)[0] >= 2, 400, tag + " never had two pistons out");
+        context.runOnClient(client -> Configs.Core.WORK_SWITCH.setBooleanValue(false));
+        int ticks = GT.waitServer(context, () -> minerBlocks(sp)[1] == 0
+                && context.computeOnClient(client -> com.autyism.printer.bedrock.PistonBreaker.INSTANCE.isIdle()), 400, tag + " leftovers after turning the printer off");
+        context.waitTicks(40);
+        int[] after = minerBlocks(sp);
+        context.runOnClient(client -> GT.disableAll());
+        GT.log(tag + " OK: turned off with work in progress, cleaned up in " + ticks + " ticks, " + remainingPatch(sp) + "/" + PATCH.size() + " left, left over=" + after[1]);
+        if (after[1] > 0) throw new AssertionError(tag + " " + after[1] + " blocks came back after the cleanup");
+    }
+
     //?}
 
     private static int remaining(TestSingleplayerContext sp) {

@@ -14,7 +14,8 @@ import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * 破基岩模式：把范围里的基岩（和名单里的方块）交给破基岩模组去破。
+ * 破基岩模式：范围里的基岩（和名单里的方块）。设置“破基岩模组”是自动或内置时打印机自己破（见
+ * {@link com.autyism.printer.bedrock.PistonBreaker}，这里只负责找格子交给它）；指定了某个破基岩模组时交给那个模组去破，下面说的是那种情况。
  * <p>
  * 同时交几格（设置“同时破几格”），但同时在破的格子彼此相距至少 {@link #SPACING} 格：破基岩模组在每一格旁边放的活塞、
  * 活塞头、火把和垫块都在目标两格以内，相距 5 格时一格的火把碰不到、也隔着方块激活不了另一格的活塞。挨得近的格子同时交，
@@ -174,14 +175,30 @@ public class Bedrock extends Module {
 
     @Override
     protected int getMaxExecutions() {
+        // 内置：每 tick 看这么多格能不能收下（只是算摆法，收不下的很快）
+        if (BedrockCompat.usesBuiltin()) return BUILTIN_LOOKS_PER_TICK;
         return maxActive();
     }
+
+    private static final int BUILTIN_LOOKS_PER_TICK = 64;
+    /** 内置：这一格现在摆不下（上面压着基岩、和正在破的格子挨着）：过这么久再看 */
+    private static final int BUILTIN_RETRY_TICKS = 5;
+    /** 内置：试满次数也没破掉的格子过这么久再试 */
+    private static final int BUILTIN_FAILED_COOLDOWN = 600;
 
     @Override
     protected boolean canExecute() {
         if (player.isCreative()) {
             MessageUtils.setOverlayMessage(I18n.BEDROCK_CREATIVE_MODE.getName());
             return false;
+        }
+        if (BedrockCompat.usesBuiltin()) {
+            com.autyism.printer.bedrock.PistonBreaker breaker = com.autyism.printer.bedrock.PistonBreaker.INSTANCE;
+            breaker.tick(player, level, false);
+            for (long failed : breaker.drainFailed()) setCooldown(BlockPos.of(failed), BUILTIN_FAILED_COOLDOWN);
+            // 耐久保护已经停下了（修好或换好镐，重开打印机才继续）
+            if (ToolSwitchUtils.isHalted()) return false;
+            return breaker.canAdmit(player, Configs.Bedrock.MAX_ACTIVE.getIntegerValue());
         }
         if (!BedrockCompat.isAvailable()) {
             MessageUtils.setOverlayMessage(I18n.BEDROCK_MOD_MISSING.getName());
@@ -276,6 +293,17 @@ public class Bedrock extends Module {
 
     @Override
     protected void executeIteration(BlockPos blockPos, AtomicReference<Boolean> skipIteration) {
+        if (BedrockCompat.usesBuiltin()) {
+            com.autyism.printer.bedrock.PistonBreaker breaker = com.autyism.printer.bedrock.PistonBreaker.INSTANCE;
+            if (!breaker.canAdmit(player, Configs.Bedrock.MAX_ACTIVE.getIntegerValue())) {
+                skipIteration.set(true);
+                return;
+            }
+            if (breaker.isWorkingOn(blockPos)) return;
+            if (breaker.admit(player, level, blockPos)) addHighlight(blockPos, HighlightType.BREAK);
+            else setCooldown(blockPos, BUILTIN_RETRY_TICKS);
+            return;
+        }
         if (active.size() >= maxActive()) {
             skipIteration.set(true);
             return;

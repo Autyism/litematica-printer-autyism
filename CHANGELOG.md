@@ -1,8 +1,10 @@
 # Changelog
 
-## 1.2.1 — 2026-10-24
+## 1.2.1 — 2026-10-25
 
-- Bedrock mode is much faster: new **Targets at Once** (default 4). Up to that many blocks go to the bedrock miner at the same time, always at least 5 blocks apart so their pistons and torches can't interfere. Eight spread-out blocks within reach now take about a third of the time with LXYan's Bedrock Miner. Set it to 1 for the old one-at-a-time behaviour. bunnyi116's miner still follows its own task limit.
+- Bedrock mode breaks bedrock itself now, no bedrock mod needed (**Bedrock Backend**: *Auto* / *Built-in*; the bedrock mods can still be picked). It works with pistons and redstone torches like the mods, and a slime block under the torch where nothing else can hold it. **Targets at Once** (default 12) blocks go at the same time, laid out so no torch can power another block's piston. Every step waits for the server, so lag doesn't break it, and pistons, torches and slime blocks are always cleaned up, also when you turn the printer off halfway or walk away. A real bedrock floor goes at about 12–16 blocks per second (it was 1–3). Needs a pickaxe that breaks a piston in one hit (Efficiency III or more) while standing on the ground.
+- Layered printing goes back down when a lower layer loses a block (broken, blown up, or in a chunk that wasn't loaded when the layer was checked) and the printer can reach it and has the material. It used to wait until it had come round from the top.
+- Fix: with a full inventory and a full shulker box, the printer kept taking shulker boxes into the hand and got nothing out. It now swaps a spare stack into the box for the material; if nothing in the inventory can go into a box, it says so and leaves the boxes alone.
 - **Stop When a Placement Moves** is now **Stop When a Placement or Selection Moves**: moving, resizing or replacing the Litematica area selection while the printer is on also turns it off.
 
 ## 1.2.0 — 2026-10-22

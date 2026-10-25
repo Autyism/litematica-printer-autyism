@@ -25,6 +25,9 @@ public class I18n {
     public static final I18n BEDROCK_MOD_MISSING = of("bedrock.mod_missing");
     public static final I18n BEDROCK_NOT_SUPPORT = of("bedrock.not_support");
     public static final I18n BEDROCK_NOGHOST_CONFLICT = of("bedrock.noghost_conflict");
+    public static final I18n BEDROCK_NEED_ITEMS = of("bedrock.need_items");
+    public static final I18n BEDROCK_NEED_INSTANT_PISTON = of("bedrock.need_instant_piston");
+    public static final I18n BEDROCK_PICK_WORN = of("bedrock.pick_worn");
 
     public static final I18n ICE_CREATIVE_MODE = of("ice.creative_mode");
     public static final I18n ICE_WATER_TIMEOUT = of("ice.water_timeout");

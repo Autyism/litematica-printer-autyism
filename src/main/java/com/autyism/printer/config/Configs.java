@@ -709,10 +709,10 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 .defaultValue(BedrockBackend.AUTO)
                 .build();
 
-        // 同时交给破基岩模组几格（同时在破的格子彼此相距至少 5 格，见 handlers.Bedrock）
+        // 同时破几格（内置破法按活塞、火把会不会互相干扰排开；用破基岩模组时格子彼此相距至少 5 格，见 handlers.Bedrock）
         public static final ConfigInteger MAX_ACTIVE = integerValue("bedrockMaxActive")
-                .defaultValue(4)
-                .range(1, 16)
+                .defaultValue(12)
+                .range(1, 32)
                 .build();
 
         // 框选范围内的基岩全部处理，不受 Litematica 渲染层限制

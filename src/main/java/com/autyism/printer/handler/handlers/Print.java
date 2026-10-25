@@ -1467,6 +1467,23 @@ public class Print extends Module {
         return false;
     }
 
+    @Override
+    protected boolean canFillNow(BlockPos pos) {
+        if (player == null || ctx == null || cannotPlaceAnyway(pos)) return false;
+        if (PlayerUtils.getAbilities(player).instabuild) return true;
+        Item[] items = getRequiredItems(pos);
+        if (items == null || items.length == 0) return true;
+        var inventory = player.getInventory();
+        for (Item item : items) {
+            if (item == null || item == net.minecraft.world.item.Items.AIR) continue;
+            for (int i = 0; i < 36; i++) {
+                if (inventory.getItem(i).is(item)) return true;
+            }
+            if (Configs.Print.USE_QUICK_SHULKER.getBooleanValue() && QuickShulkerUtils.findShulkerWithItem(player, item) != -1) return true;
+        }
+        return false;
+    }
+
     /** executeIteration 在换物品之前就会停下的情况（那里的下落检查、能贴的面）；含水方块走自己的流程，不算 */
     private boolean cannotPlaceAnyway(BlockPos pos) {
         if (action == null || level == null) return false;

@@ -55,6 +55,11 @@ public class ModuleManager {
             RemoteContainerUtils.tick();
         }
         com.autyism.printer.compat.BedrockCompat.syncWithModule(ConfigUtils.isPrinterEnable() && Configs.Bedrock.ENABLED.getBooleanValue());
+        // 打印机自己破基岩时关掉了（打印机、破基岩模式、或者改用破基岩模组）：手上没做完的格子不再往下破，拆干净活塞和火把
+        if (!com.autyism.printer.bedrock.PistonBreaker.INSTANCE.isIdle() && mc.player != null && mc.level != null
+                && !(ConfigUtils.isPrinterEnable() && Configs.Bedrock.ENABLED.getBooleanValue() && com.autyism.printer.compat.BedrockCompat.usesBuiltin())) {
+            com.autyism.printer.bedrock.PistonBreaker.INSTANCE.tick(mc.player, mc.level, true);
+        }
         com.autyism.printer.printer.ReachHelper.tick();
         // 单人世界刚发出“调高交互距离”的指令：等它生效再开始（否则分层打印会从眼睛附近的层开始）
         if (com.autyism.printer.printer.ReachHelper.isRaising()) {

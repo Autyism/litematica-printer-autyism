@@ -19,7 +19,7 @@
 
 Everything else is in the folded sections below (features, how to use, settings, FAQ): click a title to open it.
 
-Litematica Printer Autyism Edition places the blocks of your loaded [Litematica](https://modrinth.com/mod/litematica) schematic around you automatically. It can also fill an area, remove water and lava, mine a selection and hand bedrock to a bedrock-breaking mod.
+Litematica Printer Autyism Edition places the blocks of your loaded [Litematica](https://modrinth.com/mod/litematica) schematic around you automatically. It can also fill an area, remove water and lava, mine a selection and break bedrock.
 
 It is a standalone mod (not an add-on), based on the BiliXWhite and water2004 forks of Litematica Printer and reworked so that what it places matches the schematic, also on real servers with lag. It replaces other Litematica Printer builds; do not install both.
 
@@ -37,7 +37,7 @@ Compared with the 1.21.11 printer builds it is based on, this edition adds or re
 - Waiting for the server where it matters, so lag or Meteor's NoGhostBlocks cannot cause double placements; the lag pause now also works in singleplayer.
 - Shulker box restocking through Advanced Shulkerboxes, and shulker boxes printed only with matching contents.
 - Built-in tool switching with durability protection, and instant-first mining.
-- Bedrock mode support for LXYan2333's Fabric-Bedrock-Miner, a backend choice and an editable block list.
+- Bedrock mode breaks bedrock itself (no bedrock mod needed), many blocks at once; LXYan2333's Fabric-Bedrock-Miner and the other bedrock mods can still be used.
 - Optional bucket printing for water, lava and filled cauldrons.
 - Import of your settings from a previous Litematica Printer install.
 
@@ -80,7 +80,7 @@ Compared with the 1.21.11 printer builds it is based on, this edition adds or re
 - **Filling.** Fills air, fluids and overwritable blocks inside your Litematica area selection with a block from a list (default: cobblestone) or the block in your hand. You can choose a facing, for example to place top slabs.
 - **Fluid removal.** Places blocks (default: sand) into water and lava sources inside the area selection; the flowing fluid then drains away by itself. Turn off *Sources Only* to fill flowing fluid too.
 - **Mining.** Breaks every non-liquid block inside the area selection, with an optional whitelist or blacklist, or Tweakeroo's block-breaking restriction lists.
-- **Bedrock breaking.** Hands every bedrock block in your area selection to a bedrock-breaking mod: Fabric-Bedrock-Miner (LXYan2333), Bedrock Miner (bunnyi116) or BlockMiner. *Auto* prefers LXYan2333's. Add other blocks such as end portal frames or reinforced deepslate to the block list; with Fabric-Bedrock-Miner or Bedrock Miner they are also added to that mod's own allow list automatically. By default it ignores Litematica's render layers and works on the whole selection. It hands over up to four blocks at once (*Targets at Once*), always at least 5 blocks apart so their pistons and torches can't interfere, waits until the server has broken each one and the bedrock mod has cleaned up, and breaks pistons and torches the bedrock mod left behind (for example after you walked away), so they never pile up.
+- **Bedrock breaking.** Breaks every bedrock block in your area selection with pistons and redstone torches, the vanilla way: a piston pointing away from the block, a torch to push it out, then in one go the torch and piston are broken and a piston pointing at the bedrock is placed, which deletes the bedrock as it pulls back. Where nothing can hold the torch, a slime block goes under it. Up to *Targets at Once* blocks (default 12) go at the same time, laid out so no torch can power another block's piston. Every step waits for the server, and pistons, torches and slime blocks are always removed afterwards, also when you turn the printer off or walk away. You need pistons, redstone torches (slime blocks for lone blocks) and a pickaxe that breaks a piston in one hit (Efficiency III or more), standing on the ground. A bedrock floor goes at about 12–16 blocks per second. Add other blocks such as end portal frames or reinforced deepslate to the block list. By default it ignores Litematica's render layers and works on the whole selection. *Bedrock Backend* can instead hand the blocks to Fabric-Bedrock-Miner (LXYan2333), Bedrock Miner (bunnyi116) or BlockMiner; then blocks in progress are at least 5 apart and the list is synced to that mod's allow list.
 
 ### Fluids
 
@@ -188,10 +188,10 @@ The printer follows Litematica's render layers, so you can limit printing to cer
 
 ### Break bedrock
 
-1. Install a supported bedrock-breaking mod and play in survival (bedrock mode does not work in creative).
+1. Play in survival (bedrock mode does not work in creative) with pistons, redstone torches, a few slime blocks and a pickaxe with Efficiency III or more.
 2. Select the area with Litematica's area selection tool.
-3. In the **Bedrock** tab, keep **Bedrock Miner Backend** on *Auto* or choose a mod.
-4. Start bedrock mode with the hotkey of **Enable Bedrock Breaking**, or select it with **Cycle Mode** and press Caps Lock. The printer turns the bedrock miner on while bedrock mode runs and restores it afterwards.
+3. In the **Bedrock** tab, keep **Bedrock Backend** on *Auto* (the printer breaks it itself) or choose a bedrock mod.
+4. Start bedrock mode with the hotkey of **Enable Bedrock Breaking**, or select it with **Cycle Mode** and press Caps Lock. With a bedrock mod chosen, the printer turns that mod on while bedrock mode runs and restores it afterwards.
 
 </details>
 
@@ -223,7 +223,7 @@ Names are shown as they appear in game. The settings screen has an **All** tab a
 | Option | Default | What it does |
 |---|---|---|
 | Open Settings Menu | Z + Y | Opens this settings screen. |
-| Cycle Mode | not set | Switches to the next mode and turns the others off. Bedrock is skipped when no bedrock-breaking mod is installed. |
+| Cycle Mode | not set | Switches to the next mode and turns the others off. With a bedrock mod chosen as the backend, Bedrock is skipped when that mod isn't installed. |
 | Cycle Mode Turns Printer Off | on | Cycle Mode also turns the printer off, so a key pressed by accident never starts a mode. Off: the printer stays as it is. |
 | Close All Modes | Left Ctrl + G | Turns the printer and every mode off. |
 
@@ -295,9 +295,9 @@ The Printing tab ends with the placing settings, which Filling and Fluid Removal
 
 | Option | Default | What it does |
 |---|---|---|
-| Enable Bedrock Breaking | off | Sends blocks in the area selection to the bedrock-breaking mod. |
-| Bedrock Miner Backend | Auto | Which mod to use. Auto: Fabric-Bedrock-Miner (LXYan2333), then Bedrock Miner (bunnyi116), then BlockMiner. |
-| Targets at Once | 4 | Blocks handed to the bedrock mod at the same time, at least 5 blocks apart. 1 = one at a time. |
+| Enable Bedrock Breaking | off | Breaks the blocks of the block list in the area selection. |
+| Bedrock Backend | Auto | Auto / Built-in: the printer breaks it itself. Or a bedrock mod: Fabric-Bedrock-Miner (LXYan2333), Bedrock Miner (bunnyi116), BlockMiner. |
+| Targets at Once | 12 | Blocks broken at the same time (with a bedrock mod: at least 5 blocks apart). 1 = one at a time. |
 | Ignore Render Layers | on | Works on the whole selection regardless of Litematica's render layers. |
 | Bedrock Mode Block List | `minecraft:bedrock` | Blocks to break; also added to the allow list of Fabric-Bedrock-Miner or Bedrock Miner. |
 
@@ -335,7 +335,7 @@ Optional:
 - [Advanced Shulkerboxes](https://modrinth.com/mod/advanced-shulkerboxes) or QuickShulker (mod id `quickshulker`): shulker box restocking. Install it on your client and on the server. Advanced Shulkerboxes has no 26.3 version yet, and no Fabric version for 1.20.1.
 - AxShulkers (server plugin): shulker box restocking on servers that use it.
 - [Servux](https://modrinth.com/mod/servux) on the server: Easy Place protocol in multiplayer. Turn on Litematica's *Entity Data Sync* too: without it Litematica doesn't recognise Servux.
-- A bedrock-breaking mod for bedrock mode: [Fabric-Bedrock-Miner](https://modrinth.com/mod/fabric-bedrock-miner) (LXYan2333), [Bedrock Miner](https://modrinth.com/mod/next-fabric-bedrock-miner) (bunnyi116) or [BlockMiner](https://github.com/z7087/blockminer).
+- Optional for bedrock mode (the printer can break bedrock itself): [Fabric-Bedrock-Miner](https://modrinth.com/mod/fabric-bedrock-miner) (LXYan2333), [Bedrock Miner](https://modrinth.com/mod/next-fabric-bedrock-miner) (bunnyi116) or [BlockMiner](https://github.com/z7087/blockminer).
 
 **Side:** client only. The server does not need this mod; only the optional integrations above have server parts.
 
@@ -392,7 +392,7 @@ It uses the slots listed in Litematica's *pickBlockableSlots* setting (slots 1 t
 
 **Bedrock mode does nothing.**
 
-Bedrock mode works in survival only, needs a supported bedrock-breaking mod and uses Litematica's area selection, not the schematic. See also the Meteor note under Compatibility.
+Bedrock mode works in survival only and uses Litematica's area selection, not the schematic. The built-in breaker needs pistons, redstone torches and a pickaxe that breaks a piston in one hit while you stand on the ground; the message above the hotbar says what is missing. See also the Meteor note under Compatibility.
 
 Found a bug? Please open an issue: https://github.com/Autyism/litematica-printer-autyism/issues
 
@@ -441,7 +441,7 @@ GNU Affero General Public License v3.0 ([AGPL-3.0](LICENSE.md)), inherited from 
 
 详细说明都在下面折叠起来的部分（功能、使用方法、设置、常见问题），点标题就能展开。
 
-Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyism 版”）会自动把 [Litematica](https://modrinth.com/mod/litematica) 投影里的方块放到你身边。除了打印，它还能填充区域、排掉水和岩浆、挖空选区，以及把基岩交给破基岩模组去破。
+Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyism 版”）会自动把 [Litematica](https://modrinth.com/mod/litematica) 投影里的方块放到你身边。除了打印，它还能填充区域、排掉水和岩浆、挖空选区，以及破基岩。
 
 它是独立模组（不是插件），基于 BiliXWhite 和 water2004 两个 Litematica Printer 分支，重点改进了“放出来的东西和投影一致”，在有延迟的真实服务器上也一样。它会替代其他投影打印机，不要和它们一起装。
 
@@ -459,7 +459,7 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 - 关键操作等服务器确认，延迟或 Meteor 的 NoGhostBlocks 都不会导致同一格放两次；延迟检测在单人世界里也能正常工作。
 - 通过 Advanced Shulkerboxes 从潜影盒补货；投影里的潜影盒只用内容物一致的来放。
 - 内置自动换工具和工具耐久保护，挖掘支持秒破优先。
-- 破基岩模式支持 LXYan2333 的 Fabric-Bedrock-Miner，可选择使用哪个破基岩模组，方块列表可编辑。
+- 破基岩模式自己就能破（不用装破基岩模组），一次破很多格；也还能用 LXYan2333 的 Fabric-Bedrock-Miner 等破基岩模组。
 - 可选用桶打印水、岩浆和装满的炼药锅。
 - 自动导入旧版投影打印机的设置。
 
@@ -502,7 +502,7 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 - **填充。** 在 Litematica 选区内，把空气、流体和可覆盖的方块填成列表里的方块（默认圆石）或手上拿的方块。可以设置朝向，例如放上半砖。
 - **排流体。** 在选区内往水源和岩浆源里放方块（默认沙子），流动的液体随后自己消失。关掉“只填流体源头”就连流动的一起填。
 - **挖掘。** 挖掉选区内所有非液体方块，可以用白名单 / 黑名单，或者 Tweakeroo 的破坏限制列表。
-- **破基岩。** 把选区内的基岩交给破基岩模组处理：Fabric-Bedrock-Miner（LXYan2333）、Bedrock Miner（bunnyi116）或 BlockMiner。“自动”会优先用 LXYan2333 的。末地传送门框架、强化深板岩等方块可以加进方块列表；使用 Fabric-Bedrock-Miner 或 Bedrock Miner 时，这些方块还会自动同步到该模组自己的允许列表。默认忽略 Litematica 的渲染层，处理整个选区。一次最多同时交 4 格（“同时破几格”），同时在破的格子彼此相距至少 5 格，活塞和火把不会互相干扰；每一格都等服务器确认破掉、破基岩模组收拾完才算完；破基岩模组留下的活塞和火把（比如你中途走开了）也会拆掉，不会到处都是。
+- **破基岩。** 用活塞和红石火把把选区里的基岩破掉，原版的办法：先放一个背对基岩的活塞，用火把让它伸出，再一口气拆掉火把和活塞、放一个朝着基岩的活塞，活塞收回时就把基岩删掉了。火把没有东西可立时，先垫一块黏液块。同时破“同时破几格”格（默认 12），摆法保证一格的火把碰不到另一格的活塞。每一步都等服务器确认，活塞、火把、黏液块破完一定拆干净，中途关打印机、人走开也一样。需要活塞、红石火把（孤零零的基岩还要黏液块）和一把能一下挖掉活塞的镐（效率 III 以上），人要站在地上。一片基岩地面每秒大约 12–16 格。末地传送门框架、强化深板岩等方块可以加进方块列表。默认忽略 Litematica 的渲染层，处理整个选区。“破基岩方式”也可以改成交给 Fabric-Bedrock-Miner（LXYan2333）、Bedrock Miner（bunnyi116）或 BlockMiner：那时同时在破的格子彼此相距至少 5 格，方块列表会同步到那个模组的允许列表。
 
 ### 流体
 
@@ -610,10 +610,10 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 
 ### 破基岩
 
-1. 装一个受支持的破基岩模组，并在生存模式下使用（创造模式不能用破基岩模式）。
+1. 在生存模式下使用（创造模式不能用破基岩模式），带上活塞、红石火把、几块黏液块和一把效率 III 以上的镐。
 2. 用 Litematica 的选区工具框选区域。
-3. 在 **破基岩** 分页把“破基岩模组”保持“自动”，或者手动选择。
-4. 用 **启用破基岩** 的快捷键开始，或者用 **轮换模式** 选中破基岩再按 Caps Lock。破基岩模式运行期间打印机会打开破基岩模组，结束后恢复原状。
+3. 在 **破基岩** 分页把“破基岩方式”保持“自动”（打印机自己破），或者选一个破基岩模组。
+4. 用 **启用破基岩** 的快捷键开始，或者用 **轮换模式** 选中破基岩再按 Caps Lock。选了破基岩模组时，破基岩模式运行期间打印机会打开那个模组，结束后恢复原状。
 
 </details>
 
@@ -645,7 +645,7 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 | 选项 | 默认值 | 作用 |
 |---|---|---|
 | 打开设置菜单 | Z + Y | 打开这个设置界面。 |
-| 轮换模式 | 未设置 | 换成下一个模式，并关掉其他模式。没装破基岩模组时跳过破基岩。 |
+| 轮换模式 | 未设置 | 换成下一个模式，并关掉其他模式。“破基岩方式”选了某个模组而那个模组没装时，跳过破基岩。 |
 | 轮换模式时关闭打印机 | 开 | 轮换模式时顺便关掉打印机，误按也不会让新模式自己开始干活。关闭后打印机保持原样。 |
 | 关闭全部模式 | 左 Ctrl + G | 关闭打印机和所有模式。 |
 
@@ -717,9 +717,9 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 
 | 选项 | 默认值 | 作用 |
 |---|---|---|
-| 启用破基岩 | 关 | 把选区内的方块交给破基岩模组。 |
-| 破基岩模组 | 自动 | 使用哪个模组。自动：先 Fabric-Bedrock-Miner（LXYan2333），其次 Bedrock Miner（bunnyi116），再其次 BlockMiner。 |
-| 同时破几格 | 4 | 同时交给破基岩模组的格数，彼此相距至少 5 格。设成 1 就是一格一格地破。 |
+| 启用破基岩 | 关 | 破掉选区里方块列表中的方块。 |
+| 破基岩方式 | 自动 | 自动、内置：打印机自己破。也可以选破基岩模组：Fabric-Bedrock-Miner（LXYan2333）、Bedrock Miner（bunnyi116）、BlockMiner。 |
+| 同时破几格 | 12 | 同时破的格数（用破基岩模组时彼此相距至少 5 格）。设成 1 就是一格一格地破。 |
 | 忽略渲染层 | 开 | 处理整个选区，不受 Litematica 渲染层限制。 |
 | 破基岩方块列表 | `minecraft:bedrock` | 要破的方块，也会加入 Fabric-Bedrock-Miner 或 Bedrock Miner 的允许列表。 |
 
@@ -757,7 +757,7 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 - [Advanced Shulkerboxes](https://modrinth.com/mod/advanced-shulkerboxes) 或 QuickShulker（模组 ID `quickshulker`）：潜影盒补货。客户端和服务器都要装。Advanced Shulkerboxes 目前还没有 26.3 版，1.20.1 也没有 Fabric 版。
 - AxShulkers（服务器插件）：在使用它的服务器上补货。
 - 服务器装 [Servux](https://modrinth.com/mod/servux)：多人游戏也能用轻松放置协议。还要打开投影的“实体数据同步”（Entity Data Sync），不然投影认不出 Servux。
-- 破基岩模式需要一个破基岩模组：[Fabric-Bedrock-Miner](https://modrinth.com/mod/fabric-bedrock-miner)（LXYan2333）、[Bedrock Miner](https://modrinth.com/mod/next-fabric-bedrock-miner)（bunnyi116）或 [BlockMiner](https://github.com/z7087/blockminer)。
+- 破基岩模式可选（打印机自己也能破）：[Fabric-Bedrock-Miner](https://modrinth.com/mod/fabric-bedrock-miner)（LXYan2333）、[Bedrock Miner](https://modrinth.com/mod/next-fabric-bedrock-miner)（bunnyi116）或 [BlockMiner](https://github.com/z7087/blockminer)。
 
 **安装端：** 仅客户端。服务器不需要装本模组，只有上面的部分可选联动需要服务器端。
 
@@ -814,7 +814,7 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 
 **破基岩模式没反应。**
 
-破基岩模式只能在生存模式下用，需要装受支持的破基岩模组，并且使用 Litematica 的选区（不是投影）。另见“兼容性”里关于 Meteor 的说明。
+破基岩模式只能在生存模式下用，使用 Litematica 的选区（不是投影）。打印机自己破时需要活塞、红石火把和一把能一下挖掉活塞的镐，人要站在地上；缺什么，快捷栏上方会提示。另见“兼容性”里关于 Meteor 的说明。
 
 发现 bug？欢迎提交 issue：https://github.com/Autyism/litematica-printer-autyism/issues
 
