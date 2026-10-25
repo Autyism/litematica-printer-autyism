@@ -64,6 +64,8 @@ public final class ShulkerGameTest implements FabricClientGameTest {
             *///?} else {
             scenarioRestock(context, sp, false);
             scenarioRestock(context, sp, true);
+            scenarioFullBox(context, sp, false);
+            scenarioFullBox(context, sp, true);
             //?}
             GT.removeAllPlacements(context);
             scenarioContents(context, sp);
@@ -192,6 +194,115 @@ public final class ShulkerGameTest implements FabricClientGameTest {
         } else {
             GT.log("[shulker] restock OK: stone taken from the shulker via Advanced Shulkerboxes, 6 printed in " + ticks + " ticks, no screen, chest untouched");
         }
+    }
+
+    /** 潜影盒物品里某种物品的总数 */
+    private static int boxCount(ItemStack st, net.minecraft.world.item.Item item) {
+        int n = 0;
+        //? if >=26.1 {
+        /*for (ItemStack c : (Iterable<ItemStack>) st.get(DataComponents.CONTAINER).nonEmptyItemCopyStream()::iterator) if (c.is(item)) n += c.getCount();
+        *///?} elif <1.20.5 {
+        /*for (ItemStack c : legacyContents(st)) if (c.is(item)) n += c.getCount();
+        *///?} else {
+        for (ItemStack c : st.get(DataComponents.CONTAINER).nonEmptyItems()) if (c.is(item)) n += c.getCount();
+        //?}
+        return n;
+    }
+
+    /** 背包加上背包里潜影盒里某种物品的总数（服务端） */
+    private static int totalCount(TestSingleplayerContext sp, net.minecraft.world.item.Item item) {
+        return sp.getServer().computeOnServer(s -> {
+            var inv = s.getPlayerList().getPlayers().getFirst().getInventory();
+            int n = 0;
+            for (int i = 0; i < 36; i++) {
+                ItemStack st = inv.getItem(i);
+                if (st.is(item)) n += st.getCount();
+                else if (st.is(Items.WHITE_SHULKER_BOX)) n += boxCount(st, item);
+            }
+            return n;
+        });
+    }
+
+    /**
+     * 背包满、潜影盒也满（27 格都有东西）：回塞腾不出空位。noRoom=false 时背包里有杂物，拿一组杂物跟石头对换，照常打印、
+     * 什么都不丢；noRoom=true 时背包里全是潜影盒（换不进潜影盒），打印机不能去开潜影盒（以前几个潜影盒轮流拿到手上、什么都取不出来）。
+     */
+    private static void scenarioFullBox(ClientGameTestContext context, TestSingleplayerContext sp, boolean noRoom) {
+        String name = noRoom ? "[shulker] no room" : "[shulker] full box";
+        context.runOnClient(c -> GT.disableAll());
+        sp.getServer().runOnServer(s -> {
+            ServerLevel level = s.overworld();
+            for (BlockPos p : BlockPos.betweenClosed(ROW_MIN, ROW_MAX)) level.setBlockAndUpdate(p, Blocks.AIR.defaultBlockState());
+            var player = s.getPlayerList().getPlayers().getFirst();
+            player.getInventory().clearContent();
+            for (int i = 0; i < 36; i++) {
+                if (noRoom) {
+                    ItemStack[] full = new ItemStack[27];
+                    for (int k = 0; k < full.length; k++) full[k] = new ItemStack(Items.DIRT, 64);
+                    player.getInventory().setItem(i, shulkerWith(full));
+                } else {
+                    player.getInventory().setItem(i, new ItemStack(i % 2 == 0 ? Items.ANDESITE : Items.GRANITE, 64));
+                }
+            }
+            ItemStack[] withStone = new ItemStack[27];
+            withStone[0] = new ItemStack(Items.STONE, 64);
+            for (int k = 1; k < withStone.length; k++) withStone[k] = new ItemStack(Items.DIRT, 64);
+            player.getInventory().setItem(20, shulkerWith(withStone));
+            //? if <1.21 {
+            /*player.getInventory().selected = 0;
+            player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket(0));
+            *///?} else {
+            player.getInventory().setSelectedSlot(0);
+            player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetHeldSlotPacket(0));
+            //?}
+            player.inventoryMenu.sendAllDataToRemote();
+        });
+        context.waitFor(c -> c.player.getInventory().getItem(20).is(Items.WHITE_SHULKER_BOX)
+                && c.level.getBlockState(ROW_MIN).isAir(), 100);
+        context.waitTicks(5);
+        int stone0 = totalCount(sp, Items.STONE), dirt0 = totalCount(sp, Items.DIRT);
+        int andesite0 = totalCount(sp, Items.ANDESITE), granite0 = totalCount(sp, Items.GRANITE);
+        context.runOnClient(c -> GT.enablePrint());
+        if (noRoom) {
+            int opened = 0, handChanges = 0;
+            ItemStack lastHand = null;
+            for (int t = 0; t < 120; t++) {
+                context.waitTick();
+                boolean open = sp.getServer().computeOnServer(s -> {
+                    var pl = s.getPlayerList().getPlayers().getFirst();
+                    return pl.containerMenu != pl.inventoryMenu;
+                });
+                if (open) opened++;
+                ItemStack hand = context.computeOnClient(c -> c.player.getMainHandItem().copy());
+                if (lastHand != null && !ItemStack.matches(lastHand, hand)) handChanges++;
+                lastHand = hand;
+            }
+            context.runOnClient(c -> GT.disableAll());
+            int placed = GT.countPlaced(sp, ROW_MIN, ROW_MAX);
+            if (opened > 0 || handChanges > 0) throw new AssertionError(name + ": the printer kept opening shulker boxes (open ticks=" + opened + ", hand changes=" + handChanges + ")");
+            if (placed != 0) throw new AssertionError(name + ": placed " + placed + " without room in the inventory");
+            if (totalCount(sp, Items.STONE) != stone0 || totalCount(sp, Items.DIRT) != dirt0) throw new AssertionError(name + ": items changed");
+            GT.log(name + " OK: inventory full of shulker boxes, no box opened, hand never changed in 120 ticks");
+            return;
+        }
+        int ticks = GT.waitServer(context, () -> GT.countPlaced(sp, ROW_MIN, ROW_MAX) == 6, 400, name + ": row was not printed (inventory and shulker both full)");
+        context.waitTicks(10);
+        context.runOnClient(c -> GT.disableAll());
+        var wrong = GT.mismatches(sp, ROW_MIN, ROW_MAX, p -> Blocks.STONE.defaultBlockState());
+        if (!wrong.isEmpty()) throw new AssertionError(name + ": wrong blocks: " + wrong);
+        String menu = sp.getServer().computeOnServer(s -> {
+            var pl = s.getPlayerList().getPlayers().getFirst();
+            return pl.containerMenu == pl.inventoryMenu && pl.containerMenu.getCarried().isEmpty() ? null : pl.containerMenu.getClass().getName();
+        });
+        if (menu != null) throw new AssertionError(name + ": a container is still open or an item is on the cursor: " + menu);
+        int stone = totalCount(sp, Items.STONE), dirt = totalCount(sp, Items.DIRT);
+        int andesite = totalCount(sp, Items.ANDESITE), granite = totalCount(sp, Items.GRANITE);
+        int dropped = sp.getServer().computeOnServer(s -> s.overworld().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,
+                new net.minecraft.world.phys.AABB(ROW_MIN).inflate(16)).size());
+        if (stone != stone0 - 6 || dirt != dirt0 || andesite != andesite0 || granite != granite0 || dropped != 0)
+            throw new AssertionError(name + ": items lost or dropped: stone " + stone0 + "->" + stone + " dirt " + dirt0 + "->" + dirt
+                    + " andesite " + andesite0 + "->" + andesite + " granite " + granite0 + "->" + granite + " dropped=" + dropped);
+        GT.log(name + " OK: inventory and shulker full, swapped a stack for the stone, printed 6 in " + ticks + " ticks, nothing lost");
     }
 
     /** 需求 8：投影里的潜影盒有内容物，必须拿内容物一致的那个放 */

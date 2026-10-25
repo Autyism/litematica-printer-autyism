@@ -37,6 +37,7 @@ public class I18n {
     public static final I18n BLOCK_NO_SUPPORT = of("block.no_support");
     public static final I18n BLOCK_MISMATCH = of("block.mismatch");
     public static final I18n SHULKER_CONTENT_MISMATCH = of("shulker.content_mismatch");
+    public static final I18n SHULKER_NO_ROOM = of("shulker.no_room");
     public static final I18n LAYER_DONE_ALL = of("layer.done_all");
     public static final I18n LAYER_DONE_ISSUES = of("layer.done_issues");
     public static final I18n HUD_PRINT_PROGRESS = of("hud.print_progress");

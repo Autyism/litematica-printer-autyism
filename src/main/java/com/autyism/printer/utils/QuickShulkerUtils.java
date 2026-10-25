@@ -146,6 +146,13 @@ public class QuickShulkerUtils {
             }
         }
 
+        // 背包满了，也没有能跟潜影盒里的材料对换的东西（全是潜影盒、工具、食物、这次要用的）：打开也取不出来，不开。
+        // 以前每次都打开一个潜影盒（拿到手上）又什么都没取出来，几个潜影盒轮流在手上跳，打印机卡在那里
+        if (isInventoryFull(inventory) && !canMakeRoom(inventory, items)) {
+            MessageUtils.setOverlayMessage(com.autyism.printer.I18n.SHULKER_NO_ROOM.getName());
+            return false;
+        }
+
         for (Item item : items) {
             int shulkerSlot = findShulkerWithItem(player, item);
             if (shulkerSlot != -1) {
@@ -339,6 +346,8 @@ public class QuickShulkerUtils {
                             itemsToReturn.addLast(new ReturnRequest(returnItem, activeShulker));
                         }
                         finishShulkerOperation(null);
+                    } else if (mc.gameMode != null && exchange(player, container, ownSlots, inventory, slot)) {
+                        finishShulkerOperation(null);
                     } else {
                         finishShulkerOperation(player);
                     }
@@ -455,6 +464,59 @@ public class QuickShulkerUtils {
                 if (inventory.getItem(i).isEmpty()) empty++;
             }
         }
+    }
+
+    /**
+     * 背包满、潜影盒里也放不下别的东西（depositUnneeded 腾不出空位）：拿背包里一组暂时用不到的东西跟要取的这一组对换，
+     * 潜影盒里的格数不变。先挑主背包、没在用的，再挑快捷栏，最后才挑最近用过的。
+     *
+     * @return true 表示换了
+     */
+    private static boolean exchange(LocalPlayer player, AbstractContainerMenu container, int ownSlots, Inventory inventory, Slot shulkerSlot) {
+        int pick = -1;
+        for (int pass = 0; pass < 4 && pick == -1; pass++) {
+            boolean recent = pass >= 2;
+            int from = pass % 2 == 0 ? 9 : 0;
+            int to = pass % 2 == 0 ? 36 : 9;
+            for (int i = from; i < to; i++) {
+                ItemStack stack = inventory.getItem(i);
+                // 潜影盒里放不进的（潜影盒之类）不换：放不进去就会一直拿在光标上
+                if (isDepositCandidate(stack, recent) && shulkerSlot.mayPlace(stack)) {
+                    pick = i;
+                    break;
+                }
+            }
+        }
+        if (pick == -1) return false;
+        if (Boolean.getBoolean("ale.debuglook")) System.out.println("[qs] exchange " + shulkerSlot.getItem() + " with " + inventory.getItem(pick));
+        int target = pick < 9 ? ownSlots + 27 + pick : ownSlots + (pick - 9);
+        // 拿起潜影盒里的这一组 → 放到背包那一格（换出那一格的东西）→ 换出来的放进潜影盒刚空出的格子
+        mc.gameMode.handleInventoryMouseClick(container.containerId, shulkerSlot.index, 0, ClickType.PICKUP, player);
+        mc.gameMode.handleInventoryMouseClick(container.containerId, target, 0, ClickType.PICKUP, player);
+        mc.gameMode.handleInventoryMouseClick(container.containerId, shulkerSlot.index, 0, ClickType.PICKUP, player);
+        if (activeShulker != null) activeShulker.updateContents(getContainerContents(container, ownSlots));
+        return true;
+    }
+
+    /** 背包满时，有没有东西能跟潜影盒里的材料对换（见 exchange）；items 是这次要取的 */
+    private static boolean canMakeRoom(Inventory inventory, Item[] items) {
+        for (int i = 0; i < 36; i++) {
+            ItemStack stack = inventory.getItem(i);
+            if (stack.isEmpty() || stack.isDamageableItem() || ShulkerContentUtils.isShulkerItem(stack)) continue;
+            //? if <1.20.5 {
+            /*if (stack.isEdible()) continue;
+            *///?} else
+            if (stack.has(net.minecraft.core.component.DataComponents.FOOD)) continue;
+            if (stack.is(net.minecraft.world.item.Items.TOTEM_OF_UNDYING)) continue;
+            // 潜影盒（或别的盒子）里放不进的东西
+            if (!stack.getItem().canFitInsideContainerItems()) continue;
+            boolean needed = false;
+            for (Item item : items) {
+                if (item != null && stack.is(item)) needed = true;
+            }
+            if (!needed) return true;
+        }
+        return false;
     }
 
     private static boolean isDepositCandidate(ItemStack stack, boolean allowRecentlyUsed) {
