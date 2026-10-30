@@ -1,5 +1,8 @@
 package com.autyism.printer.gametest;
 
+import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
+import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
+//? if >=1.21.2 {
 import com.autyism.printer.config.Configs;
 import com.autyism.printer.enums.IterationOrderType;
 import com.autyism.printer.enums.MiningFilterType;
@@ -11,8 +14,6 @@ import fi.dy.masa.litematica.selection.AreaSelection;
 import fi.dy.masa.litematica.selection.Box;
 import fi.dy.masa.litematica.selection.SelectionMode;
 import fi.dy.masa.malilib.util.restrictions.UsageRestriction;
-import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
-import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -148,9 +149,10 @@ public final class BigFluidGameTest implements FabricClientGameTest {
                 var inv = s.getPlayerList().getPlayers().getFirst().getInventory();
                 int n = 0;
                 for (int i = 0; i < inv.getContainerSize(); i++) {
-                    var c = inv.getItem(i).get(net.minecraft.core.component.DataComponents.CONTAINER);
-                    if (c != null) for (ItemStack st : c.nonEmptyItemsCopy()) n += st.getCount();
-                    else if (inv.getItem(i).is(Items.NETHERRACK)) n += inv.getItem(i).getCount();
+                    ItemStack here = inv.getItem(i);
+                    if (com.autyism.printer.utils.ShulkerContentUtils.isShulkerItem(here)) {
+                        for (ItemStack st : com.autyism.printer.utils.ShulkerContentUtils.itemContents(here)) n += st.getCount();
+                    } else if (here.is(Items.NETHERRACK)) n += here.getCount();
                 }
                 return n;
             });
@@ -212,3 +214,12 @@ public final class BigFluidGameTest implements FabricClientGameTest {
         });
     }
 }
+//?} else {
+/*// 只在 1.21.2 以上（物品组件、注册表写法）：别的版本什么都不做
+@SuppressWarnings("UnstableApiUsage")
+public final class BigFluidGameTest implements FabricClientGameTest {
+    @Override
+    public void runTest(ClientGameTestContext context) {
+    }
+}
+*///?}
