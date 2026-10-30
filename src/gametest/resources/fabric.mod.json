@@ -26,6 +26,7 @@
       "com.autyism.printer.gametest.PerfGameTest",
       "com.autyism.printer.gametest.FluidGameTest",
       "com.autyism.printer.gametest.ModesGameTest",
+      "com.autyism.printer.gametest.BigFluidGameTest",
       "com.autyism.printer.gametest.ShowcaseGameTest",
       "com.autyism.printer.gametest.SwitchesGameTest",
       "com.autyism.printer.gametest.SettingsShotsGameTest",

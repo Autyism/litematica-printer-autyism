@@ -17,8 +17,9 @@ public class MixinMinecraft {
     //shit. In mapping-26.1.2-26.2.txt replaces setScreen to screen
     @Inject(method = "setScreen", at = @At("HEAD"), cancellable = true)
     private void onSetScreen(Screen screen, CallbackInfo ci) {
-        if (ModUtils.closeScreen > 0 && screen instanceof AbstractContainerScreen<?>) {
+        if (ModUtils.closeScreen > 0 && screen instanceof AbstractContainerScreen<?> containerScreen) {
             ModUtils.closeScreen--;
+            com.autyism.printer.utils.QuickShulkerUtils.noteHiddenMenu(containerScreen.getMenu().containerId);
             ci.cancel();
         }
     }

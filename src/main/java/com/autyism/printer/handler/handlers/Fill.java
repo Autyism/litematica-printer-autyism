@@ -145,7 +145,9 @@ public class Fill extends Module {
                 || (currentState.getBlock() instanceof LiquidBlock)
                 || isReplaceable(currentState)
         ) {
-            if (!InventoryUtils.switchToItems(player, this.fillModeItemList)) {
+            var itemResult = prepareItem(blockPos, this.fillModeItemList, skipIteration);
+            if (itemResult == InventoryUtils.ItemSwitchResult.WAITING) return;
+            if (itemResult != InventoryUtils.ItemSwitchResult.READY) {
                 if (this.fillModeItemList != null && this.fillModeItemList.length > 0 && this.fillModeItemList[0] != null) {
                     MissingMaterialTracker.getInstance().recordMissing(this, this.fillModeItemList[0],
                             //? if >=26.1 {

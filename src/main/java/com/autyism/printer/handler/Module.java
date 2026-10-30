@@ -970,6 +970,44 @@ public abstract class Module extends ConfigUtils {
             && Math.floor(pz - r) <= selectBounds.maxZ && Math.ceil(pz + r) >= selectBounds.minZ;
     }
 
+    /** 填充 / 填流体换物品时同一格最多等几 tick（和打印一样） */
+    private static final int MAX_ITEM_WAIT_TICKS = 5;
+    @Nullable
+    private BlockPos itemWaitPos;
+    private int itemWaitCount;
+
+    /**
+     * 填充 / 填流体：把要放的物品拿到手上，和打印用同一套（等服务端确认交换、潜影盒关好以后才动背包、
+     * 服务端可能已经用完的那一组不用）。以前这两个模式一发出交换就接着放，一 tick 不限个数时
+     * 拿着服务端那边已经空了的格子连放几千次，还在潜影盒没关好时又去开下一个，两边的背包对不上以后就一块也放不下了。
+     * READY 才放；WAITING 时这一格留到下一 tick 先处理（同一格最多等 MAX_ITEM_WAIT_TICKS tick，之后先冷却）；
+     * UNAVAILABLE 时调用方记缺材料
+     */
+    protected final com.autyism.printer.utils.InventoryUtils.ItemSwitchResult prepareItem(BlockPos pos, Item[] items,
+                                                                                         AtomicReference<Boolean> skipIteration) {
+        var result = com.autyism.printer.utils.InventoryUtils.switchToItemsResult(player, items);
+        if (result != com.autyism.printer.utils.InventoryUtils.ItemSwitchResult.WAITING) {
+            itemWaitPos = null;
+            itemWaitCount = 0;
+            return result;
+        }
+        if (pos.equals(itemWaitPos)) {
+            itemWaitCount++;
+        } else {
+            itemWaitPos = pos.immutable();
+            itemWaitCount = 1;
+        }
+        if (itemWaitCount <= MAX_ITEM_WAIT_TICKS) {
+            enterWaiting(pos.immutable());
+            skipIteration.set(true);
+        } else {
+            itemWaitPos = null;
+            itemWaitCount = 0;
+            setCooldown(pos, ConfigUtils.getPlaceCooldown());
+        }
+        return result;
+    }
+
     protected void enterWaiting(@Nullable BlockPos pos) {
         scanState = ScanState.WAITING;
         waitingPos = pos;

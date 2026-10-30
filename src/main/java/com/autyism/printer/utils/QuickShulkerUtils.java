@@ -52,6 +52,11 @@ public class QuickShulkerUtils {
     /** 发出打开潜影盒之后，界面一直没打开就放弃这一次（以后再取）：以前会一直“忙”，打印机就一直停在等这个潜影盒 */
     private static final int OPEN_TIMEOUT_TICKS = 60;
     private static int openWaitTicks;
+    /** 打印机拦下没显示的那个容器界面（潜影盒）的编号；-1 = 没有 */
+    private static int hiddenMenuId = -1;
+    private static int hiddenIdleTicks;
+    /** 拦下没显示的潜影盒界面没人在处理、这么多 tick 还开着，就关掉 */
+    private static final int HIDDEN_MENU_TIMEOUT_TICKS = 20;
 
     private QuickShulkerUtils() {}
 
@@ -70,6 +75,7 @@ public class QuickShulkerUtils {
         } else {
             openWaitTicks = 0;
         }
+        closeForgottenHiddenMenu(self);
         if (deferredCloseTicks > 0 && --deferredCloseTicks == 0) {
             LocalPlayer player = mc.player;
             if (player == null || player.containerMenu.equals(player.inventoryMenu)) {
@@ -81,6 +87,39 @@ public class QuickShulkerUtils {
             } else {
                 deferredCloseTicks = 1;
             }
+        }
+    }
+
+    /** MixinMinecraft 拦下潜影盒界面时记下它的编号 */
+    public static void noteHiddenMenu(int containerId) {
+        hiddenMenuId = containerId;
+        hiddenIdleTicks = 0;
+    }
+
+    /**
+     * 保险：打印机拦下没显示的潜影盒界面还开着，可是已经没有在处理它（不在取物、不在等关闭、不在等打开）。
+     * 例如服务端回包晚到、打开已经算超时放弃了。玩家看不见这个界面，也关不掉；它开着时打印机对背包的每一次点击都会被忽略，
+     * 以前就一直卡在那里（玩家手动拿出材料也没用），只能重进
+     */
+    private static void closeForgottenHiddenMenu(@org.jetbrains.annotations.Nullable LocalPlayer player) {
+        if (hiddenMenuId == -1) return;
+        //? if >=26.2 {
+        /*net.minecraft.client.gui.screens.Screen screen = mc.gui.screen();
+        *///?} else
+        net.minecraft.client.gui.screens.Screen screen = mc.screen;
+        if (player == null || player.containerMenu == player.inventoryMenu || player.containerMenu.containerId != hiddenMenuId
+                || screen != null) {
+            hiddenMenuId = -1;
+            return;
+        }
+        if (isBusy()) {
+            hiddenIdleTicks = 0;
+            return;
+        }
+        if (++hiddenIdleTicks > HIDDEN_MENU_TIMEOUT_TICKS) {
+            if (Boolean.getBoolean("ale.debuglook")) System.out.println("[qs] closing a forgotten hidden menu id=" + hiddenMenuId);
+            player.closeContainer();
+            hiddenMenuId = -1;
         }
     }
 
@@ -116,7 +155,9 @@ public class QuickShulkerUtils {
             return false;
         }
 
-        if (isOpenHandler || shulkerCooldown > 0) return false;
+        // 上一个潜影盒还没关好（延迟关闭、等着打开）或者开着别的容器：不开下一个。以前延迟关闭的那两 tick 里又开了一个，
+        // 服务端还开着上一个，两边的界面和背包对不上，打印机从此一块也放不下（拿出一两组就不动了）
+        if (isBusy() || shulkerCooldown > 0 || player.containerMenu != player.inventoryMenu) return false;
 
         Inventory inventory = player.getInventory();
 

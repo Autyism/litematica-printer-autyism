@@ -98,7 +98,9 @@ public class FluidRemoval extends Module {
     protected void executeIteration(BlockPos blockPos, AtomicReference<Boolean> skipIteration) {
         FluidState fluidState = level.getBlockState(blockPos).getFluidState();
         if (isTarget(fluidState)) {
-            if (!InventoryUtils.switchToItems(player, fillItems.toArray(new Item[0]))) {
+            var item = prepareItem(blockPos, fillItems.toArray(new Item[0]), skipIteration);
+            if (item == InventoryUtils.ItemSwitchResult.WAITING) return;
+            if (item != InventoryUtils.ItemSwitchResult.READY) {
                 if (!fillItems.isEmpty() && fillItems.get(0) != null) {
                     MissingMaterialTracker.getInstance().recordMissing(this, fillItems.get(0),
                             //? if >=26.1 {
