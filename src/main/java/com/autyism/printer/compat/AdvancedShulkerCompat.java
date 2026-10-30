@@ -3,6 +3,7 @@ package com.autyism.printer.compat;
 import com.autyism.printer.printer.ContainerGuard;
 import com.autyism.printer.utils.InventoryUtils;
 import com.autyism.printer.utils.ModUtils;
+import com.autyism.printer.utils.PrinterTrace;
 import com.autyism.printer.utils.ShulkerContentUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -79,9 +80,11 @@ public final class AdvancedShulkerCompat {
                 && ShulkerContentUtils.sameContents(ShulkerContentUtils.itemContents(hand), pendingContents)) {
             pendingSlot = -1;
             //? if <1.21.5 {
-            /*if (Boolean.getBoolean("ale.debuglook")) System.out.println("[qs] useItem with " + hand + " selected=" + player.getInventory().selected);
+            /*PrinterTrace.log("qs useItem with " + hand + " selected=" + player.getInventory().selected);
             *///?} else
-            if (Boolean.getBoolean("ale.debuglook")) System.out.println("[qs] useItem with " + hand + " selected=" + player.getInventory().getSelectedSlot());
+            PrinterTrace.log("qs useItem with " + hand + " selected=" + player.getInventory().getSelectedSlot());
+            PrinterTrace.log("qs use box: sneaking=" + player.isShiftKeyDown() + " flying=" + player.getAbilities().flying
+                    + " menu=" + player.containerMenu.getClass().getSimpleName() + " hit=" + (mc.hitResult == null ? null : mc.hitResult.getType()));
             ContainerGuard.beginPrinterInteraction();
             try {
                 mc.gameMode.useItem(player, InteractionHand.MAIN_HAND);
@@ -90,7 +93,7 @@ public final class AdvancedShulkerCompat {
             }
             return;
         }
-        if (Boolean.getBoolean("ale.debuglook")) System.out.println("[qs] waiting hand=" + hand + " contents match=" + ShulkerContentUtils.sameContents(ShulkerContentUtils.itemContents(hand), pendingContents));
+        PrinterTrace.log("qs waiting hand=" + hand + " contents match=" + ShulkerContentUtils.sameContents(ShulkerContentUtils.itemContents(hand), pendingContents));
         if (++waitTicks > MAX_WAIT_TICKS) {
             cancel(true);
         }
@@ -98,6 +101,7 @@ public final class AdvancedShulkerCompat {
 
     public static void cancel(boolean notify) {
         if (pendingSlot == -1) return;
+        PrinterTrace.log("qs gave up getting the box into the hand (slot " + pendingSlot + ")");
         pendingSlot = -1;
         if (notify) onFail.run();
     }

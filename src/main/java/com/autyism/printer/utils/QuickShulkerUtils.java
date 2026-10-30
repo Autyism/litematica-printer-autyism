@@ -69,7 +69,7 @@ public class QuickShulkerUtils {
         if (isOpenHandler && self != null && self.containerMenu == self.inventoryMenu
                 && !com.autyism.printer.compat.AdvancedShulkerCompat.isPending()) {
             if (++openWaitTicks > OPEN_TIMEOUT_TICKS) {
-                if (Boolean.getBoolean("ale.debuglook")) System.out.println("[qs] open timed out");
+                PrinterTrace.log("qs open timed out");
                 abortOpen();
             }
         } else {
@@ -82,12 +82,24 @@ public class QuickShulkerUtils {
                 deferredCloseRetries = 0;
             } else if (player.containerMenu.getCarried().isEmpty()
                     || ++deferredCloseRetries >= MAX_DEFERRED_CLOSE_RETRIES) {
-                player.closeContainer();
+                closeAndResync(player);
                 deferredCloseRetries = 0;
             } else {
                 deferredCloseTicks = 1;
             }
         }
+    }
+
+    /**
+     * 关掉打印机开的潜影盒，再请服务端把整个背包重发一次。
+     * 盒子开着时打印机还在放方块，服务端把手上数量的变化发给那个潜影盒界面；客户端先关了盒子，
+     * 晚到的这几条就被丢掉，服务端却以为客户端收到了、以后不再发：手上那一组成了幽灵物品（看着还有，其实没了），
+     * 打印机拿着它一直白放，也不去潜影盒拿新的。服务端按顺序先关盒子、再处理重发请求，所以重发的一定是关盒之后的样子
+     */
+    private static void closeAndResync(LocalPlayer player) {
+        player.closeContainer();
+        InventoryUtils.requestInventoryResync(player);
+        PrinterTrace.log("qs closed the box and asked for the inventory");
     }
 
     /** MixinMinecraft 拦下潜影盒界面时记下它的编号 */
@@ -117,8 +129,8 @@ public class QuickShulkerUtils {
             return;
         }
         if (++hiddenIdleTicks > HIDDEN_MENU_TIMEOUT_TICKS) {
-            if (Boolean.getBoolean("ale.debuglook")) System.out.println("[qs] closing a forgotten hidden menu id=" + hiddenMenuId);
-            player.closeContainer();
+            PrinterTrace.log("qs closing a forgotten hidden menu id=" + hiddenMenuId);
+            closeAndResync(player);
             hiddenMenuId = -1;
         }
     }
@@ -157,7 +169,12 @@ public class QuickShulkerUtils {
 
         // 上一个潜影盒还没关好（延迟关闭、等着打开）或者开着别的容器：不开下一个。以前延迟关闭的那两 tick 里又开了一个，
         // 服务端还开着上一个，两边的界面和背包对不上，打印机从此一块也放不下（拿出一两组就不动了）
-        if (isBusy() || shulkerCooldown > 0 || player.containerMenu != player.inventoryMenu) return false;
+        if (isBusy() || shulkerCooldown > 0 || player.containerMenu != player.inventoryMenu) {
+            if (PrinterTrace.on()) traceRefuse("busy open=" + isOpenHandler + " deferredClose=" + deferredCloseTicks
+                    + " pending=" + com.autyism.printer.compat.AdvancedShulkerCompat.isPending() + " cooldown=" + shulkerCooldown
+                    + " menu=" + player.containerMenu.getClass().getSimpleName() + "#" + player.containerMenu.containerId);
+            return false;
+        }
 
         Inventory inventory = player.getInventory();
 
@@ -191,6 +208,7 @@ public class QuickShulkerUtils {
         // 以前每次都打开一个潜影盒（拿到手上）又什么都没取出来，几个潜影盒轮流在手上跳，打印机卡在那里
         if (isInventoryFull(inventory) && !canMakeRoom(inventory, items)) {
             MessageUtils.setOverlayMessage(com.autyism.printer.I18n.SHULKER_NO_ROOM.getName());
+            if (PrinterTrace.on()) traceRefuse("inventory full, nothing to swap out");
             return false;
         }
 
@@ -210,7 +228,20 @@ public class QuickShulkerUtils {
                 return openSelectedShulker(inventory, shulkerSlot, source);
             }
         }
+        if (PrinterTrace.on()) traceRefuse("no box with " + Arrays.toString(items));
         return false;
+    }
+
+    private static String lastRefuse;
+    private static long lastRefuseAt;
+
+    /** 记录这次为什么没开潜影盒：同样的原因一秒最多记一次（每放一格都会来问一次） */
+    private static void traceRefuse(String why) {
+        long now = System.currentTimeMillis();
+        if (why.equals(lastRefuse) && now - lastRefuseAt < 1000) return;
+        lastRefuse = why;
+        lastRefuseAt = now;
+        PrinterTrace.log("qs not opening: " + why);
     }
 
     private static boolean inventoryHas(Inventory inventory, Item item) {
@@ -222,8 +253,8 @@ public class QuickShulkerUtils {
 
     private static boolean openSelectedShulker(Inventory inventory, int shulkerSlot, ShulkerSource source) {
         ItemStack shulkerStack = inventory.getItem(shulkerSlot);
-        if (Boolean.getBoolean("ale.debuglook")) {
-            System.out.println("[qs] open slot=" + shulkerSlot + " stack=" + shulkerStack + " closeScreen=" + ModUtils.closeScreen
+        if (PrinterTrace.on()) {
+            System.out.println("[printer-trace] qs open slot=" + shulkerSlot + " stack=" + shulkerStack + " closeScreen=" + ModUtils.closeScreen
                     + " menu=" + (mc.player == null ? null : mc.player.containerMenu.getClass().getSimpleName()));
         }
         // 客户端此时没有打开任何容器：如果服务端那边还挂着一个（上一次打开的回包丢了 / 被打断），先关掉让两边同步，
@@ -233,6 +264,7 @@ public class QuickShulkerUtils {
             self.connection.send(new net.minecraft.network.protocol.game.ServerboundContainerClosePacket(0));
         }
         setShulkerBoxSlot(shulkerSlot);
+        activeBulk = bulkRequest;
         ModUtils.closeScreen++;
         setOpenHandler(true);
         openWaitTicks = 0;
@@ -339,10 +371,10 @@ public class QuickShulkerUtils {
 
         AbstractContainerMenu container = player.containerMenu;
         Inventory inventory = player.getInventory();
-        if (Boolean.getBoolean("ale.debuglook")) {
+        if (PrinterTrace.on()) {
             int empty = 0;
             for (int i = 0; i < 36; i++) if (inventory.getItem(i).isEmpty()) empty++;
-            System.out.println("[qs] switchFromShulker menu=" + container.getClass().getSimpleName() + " slots=" + container.slots.size()
+            System.out.println("[printer-trace] qs switchFromShulker menu=" + container.getClass().getSimpleName() + " slots=" + container.slots.size()
                     + " return=" + activeReturnRequest + " need=" + lastNeedItemList + " emptyInv=" + empty + " returns=" + itemsToReturn.size());
         }
 
@@ -382,6 +414,7 @@ public class QuickShulkerUtils {
                         // 先拾取潜影盒槽位，再放到目标槽位
                         mc.gameMode.handleInventoryMouseClick(container.containerId, slot.index, 0, ClickType.PICKUP, player);
                         mc.gameMode.handleInventoryMouseClick(container.containerId, containerTarget, 0, ClickType.PICKUP, player);
+                        if (activeBulk) takeMore(player, container, ownSlots, inventory, item);
                         if (activeShulker != null) {
                             activeShulker.updateContents(getContainerContents(container, ownSlots));
                             itemsToReturn.addLast(new ReturnRequest(returnItem, activeShulker));
@@ -398,6 +431,38 @@ public class QuickShulkerUtils {
         }
 
         finishShulkerOperation(player);
+    }
+
+    /** 这次是填流体 / 填充要的（只用一两种方块、一次要很多）：一次开盒多拿几组，不用每 64 个就开一次潜影盒 */
+    private static boolean bulkRequest;
+    private static boolean activeBulk;
+    /** 一次开盒最多拿几组；背包至少留一格空的 */
+    private static final int BULK_STACKS = 8;
+
+    public static void setBulkRequest(boolean bulk) {
+        bulkRequest = bulk;
+    }
+
+    /** 刚拿出第一组以后，同一种物品再拿几组到背包的空格里（快捷栏优先） */
+    private static void takeMore(LocalPlayer player, AbstractContainerMenu container, int ownSlots, Inventory inventory, Item item) {
+        int taken = 1;
+        for (int slotIndex = 0; slotIndex < ownSlots && taken < BULK_STACKS; slotIndex++) {
+            Slot slot = container.slots.get(slotIndex);
+            if (!slot.hasItem() || !slot.getItem().is(item)) continue;
+            int empty = -1, emptyCount = 0;
+            for (int i = 0; i < Math.min(inventory.getContainerSize(), 36); i++) {
+                if (inventory.getItem(i).isEmpty()) {
+                    if (empty == -1) empty = i;
+                    emptyCount++;
+                }
+            }
+            if (emptyCount < 2) break;
+            int target = empty < 9 ? ownSlots + 27 + empty : ownSlots + (empty - 9);
+            mc.gameMode.handleInventoryMouseClick(container.containerId, slot.index, 0, ClickType.PICKUP, player);
+            mc.gameMode.handleInventoryMouseClick(container.containerId, target, 0, ClickType.PICKUP, player);
+            taken++;
+        }
+        PrinterTrace.log("qs took " + taken + " stacks of " + item);
     }
 
     private static void returnItemToShulker(LocalPlayer player, AbstractContainerMenu container,
@@ -441,7 +506,7 @@ public class QuickShulkerUtils {
             deferredCloseTicks = 2;
             deferredCloseRetries = 0;
         } else {
-            player.closeContainer();
+            closeAndResync(player);
             deferredCloseTicks = 0;
             deferredCloseRetries = 0;
         }
@@ -457,7 +522,7 @@ public class QuickShulkerUtils {
 
     /** 打开失败（例如潜影盒拿不到手上）时恢复状态 */
     private static void abortOpen() {
-        if (Boolean.getBoolean("ale.debuglook")) System.out.println("[qs] abortOpen closeScreen=" + ModUtils.closeScreen);
+        PrinterTrace.log("qs abortOpen closeScreen=" + ModUtils.closeScreen);
         if (ModUtils.closeScreen > 0) ModUtils.closeScreen--;
         isOpenHandler = false;
         shulkerBoxSlot = -1;
@@ -498,7 +563,7 @@ public class QuickShulkerUtils {
                     }
                 }
                 if (!hasRoom || (pass == 0 && !inShulker)) continue;
-                if (Boolean.getBoolean("ale.debuglook")) System.out.println("[qs] deposit " + stack + " pass=" + pass);
+                PrinterTrace.log("qs deposit " + stack + " pass=" + pass);
                 int containerSlot = ownSlots + (i - 9);
                 mc.gameMode.handleInventoryMouseClick(container.containerId, containerSlot, 0, ClickType.QUICK_MOVE, player);
                 moved++;
@@ -529,7 +594,7 @@ public class QuickShulkerUtils {
             }
         }
         if (pick == -1) return false;
-        if (Boolean.getBoolean("ale.debuglook")) System.out.println("[qs] exchange " + shulkerSlot.getItem() + " with " + inventory.getItem(pick));
+        PrinterTrace.log("qs exchange " + shulkerSlot.getItem() + " with " + inventory.getItem(pick));
         int target = pick < 9 ? ownSlots + 27 + pick : ownSlots + (pick - 9);
         // 拿起潜影盒里的这一组 → 放到背包那一格（换出那一格的东西）→ 换出来的放进潜影盒刚空出的格子
         mc.gameMode.handleInventoryMouseClick(container.containerId, shulkerSlot.index, 0, ClickType.PICKUP, player);

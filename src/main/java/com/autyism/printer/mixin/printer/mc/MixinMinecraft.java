@@ -20,6 +20,7 @@ public class MixinMinecraft {
         if (ModUtils.closeScreen > 0 && screen instanceof AbstractContainerScreen<?> containerScreen) {
             ModUtils.closeScreen--;
             com.autyism.printer.utils.QuickShulkerUtils.noteHiddenMenu(containerScreen.getMenu().containerId);
+            com.autyism.printer.utils.PrinterTrace.log("qs screen hidden: " + containerScreen.getClass().getSimpleName() + " #" + containerScreen.getMenu().containerId);
             ci.cancel();
         }
     }

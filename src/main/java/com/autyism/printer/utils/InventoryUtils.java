@@ -227,6 +227,21 @@ public class InventoryUtils {
         }
     }
 
+    /**
+     * 让服务端把整个背包重发一次：一个什么都不做的点击（点在界面外、光标是空的），带一个对不上的同步编号；
+     * 原版服务端发现编号对不上，处理完就把完整的背包发回来。用来清掉客户端以为还有、服务端早就没有的“幽灵”物品
+     */
+    public static void requestInventoryResync(LocalPlayer player) {
+        ClientPacketListener connection = client.getConnection();
+        if (connection == null || player.containerMenu != player.inventoryMenu || !player.inventoryMenu.getCarried().isEmpty()) return;
+        //? if <1.21.5 {
+        /*connection.send(new ServerboundContainerClickPacket(player.inventoryMenu.containerId, -1, -999, 0, ClickType.PICKUP,
+                ItemStack.EMPTY, new Int2ObjectOpenHashMap<>()));
+        *///?} else
+        connection.send(new ServerboundContainerClickPacket(player.inventoryMenu.containerId, -1, Shorts.checkedCast(-999), SignedBytes.checkedCast(0),
+                ClickType.PICKUP, new Int2ObjectOpenHashMap<>(), HashedStack.EMPTY));
+    }
+
     public static boolean swapItemToMainHand(ItemStack stackReference, Minecraft mc) {
         Player player = mc.player;
         if (player == null) return false;
@@ -490,6 +505,13 @@ public class InventoryUtils {
     public static ItemSwitchResult switchToItemsResult(LocalPlayer player, Item[] items) {
         if (items == null || items.length == 0) {
             return ItemSwitchResult.READY;
+        }
+        // 正在从潜影盒取物（开盒到关盒）：先不放。盒子开着时服务端把手上数量的变化发给盒子的界面，
+        // 客户端关盒以后才到的那几条会被丢掉，可放置的确认照样回来，打印机就以为数量已经对上，
+        // 拿着服务端早就没有的一组接着放（幽灵物品：看着还有，放下去什么都没有）
+        if (QuickShulkerUtils.isBusy() && !PlayerUtils.getAbilities(player).instabuild) {
+            com.autyism.printer.printer.TickTrace.detail("item-wait: shulker box open");
+            return ItemSwitchResult.WAITING;
         }
         ItemStack mainHand = player.getMainHandItem();
         Inventory inventory = player.getInventory();

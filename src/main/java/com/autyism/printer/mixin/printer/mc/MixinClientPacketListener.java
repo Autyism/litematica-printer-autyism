@@ -95,6 +95,14 @@ public abstract class MixinClientPacketListener {
     private void onContainerContent(ClientboundContainerSetContentPacket packet, CallbackInfo ci) {
         com.autyism.printer.printer.ActionConfirm.onInventorySync(Minecraft.getInstance().level);
         LocalPlayer player = Minecraft.getInstance().player;
+        if (com.autyism.printer.utils.PrinterTrace.on() && player != null && QuickShulkerUtils.isOpenHandler()) {
+            //? if <1.21.5 {
+            /*int id = packet.getContainerId();
+            *///?} else
+            int id = packet.containerId();
+            com.autyism.printer.utils.PrinterTrace.log("qs content for container " + id + " (client menu " + player.containerMenu.containerId + " "
+                    + player.containerMenu.getClass().getSimpleName() + ")");
+        }
         if (QuickShulkerUtils.isOpenHandler() && player != null
                 //? if <1.21.5 {
                 /*&& packet.getContainerId() == player.containerMenu.containerId

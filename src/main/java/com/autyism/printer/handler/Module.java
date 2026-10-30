@@ -985,7 +985,15 @@ public abstract class Module extends ConfigUtils {
      */
     protected final com.autyism.printer.utils.InventoryUtils.ItemSwitchResult prepareItem(BlockPos pos, Item[] items,
                                                                                          AtomicReference<Boolean> skipIteration) {
-        var result = com.autyism.printer.utils.InventoryUtils.switchToItemsResult(player, items);
+        com.autyism.printer.utils.QuickShulkerUtils.setBulkRequest(true);
+        com.autyism.printer.utils.InventoryUtils.ItemSwitchResult result;
+        try {
+            result = com.autyism.printer.utils.InventoryUtils.switchToItemsResult(player, items);
+        } finally {
+            com.autyism.printer.utils.QuickShulkerUtils.setBulkRequest(false);
+        }
+        traceItem(result);
+        if (result == com.autyism.printer.utils.InventoryUtils.ItemSwitchResult.READY) checkGhostStack();
         if (result != com.autyism.printer.utils.InventoryUtils.ItemSwitchResult.WAITING) {
             itemWaitPos = null;
             itemWaitCount = 0;
@@ -1006,6 +1014,61 @@ public abstract class Module extends ConfigUtils {
             setCooldown(pos, ConfigUtils.getPlaceCooldown());
         }
         return result;
+    }
+
+    // ---- 幽灵物品：客户端以为手上还有一组，服务端那边早就用完了 ----
+    @Nullable
+    private Item ghostItem;
+    private int ghostSlot = -1, ghostCount = -1, ghostUses, ghostSinceTick, lastResyncTick = Integer.MIN_VALUE;
+
+    /**
+     * 手上这一组拿去放了远多于它本身数量的次数，数量却一直没变（服务端一次都没改过它），这组就是幽灵物品：
+     * 服务端没有，放置全都白放，打印机还以为有材料、不会去潜影盒拿（玩家看到的就是“拿着一组沙子不动”）。
+     * 这时请服务端重发整个背包，对上以后照常从潜影盒补
+     */
+    private void checkGhostStack() {
+        if (player == null || PlayerUtils.getAbilities(player).instabuild) return;
+        net.minecraft.world.item.ItemStack hand = player.getMainHandItem();
+        //? if <1.21.5 {
+        /*int slot = player.getInventory().selected;
+        *///?} else
+        int slot = player.getInventory().getSelectedSlot();
+        int now = player.tickCount;
+        if (hand.isEmpty() || hand.getItem() != ghostItem || hand.getCount() != ghostCount || slot != ghostSlot || now < ghostSinceTick) {
+            ghostItem = hand.isEmpty() ? null : hand.getItem();
+            ghostCount = hand.getCount();
+            ghostSlot = slot;
+            ghostUses = 0;
+            ghostSinceTick = now;
+            return;
+        }
+        ghostUses++;
+        if (ghostUses > ghostCount * 2 + 16 && now - ghostSinceTick >= 20 && now - lastResyncTick >= 40) {
+            com.autyism.printer.utils.PrinterTrace.log(id + " ghost stack " + hand + " in slot " + slot + ": " + ghostUses + " uses in "
+                    + (now - ghostSinceTick) + " ticks without a change, asking the server for the inventory");
+            com.autyism.printer.utils.InventoryUtils.requestInventoryResync(player);
+            lastResyncTick = now;
+            ghostUses = 0;
+            ghostSinceTick = now;
+        }
+    }
+
+    private int traceReady, traceWaiting, traceMissing, traceTick;
+
+    /** 排查用（见 PrinterTrace）：每秒记一次这一秒里拿物品的结果 */
+    private void traceItem(com.autyism.printer.utils.InventoryUtils.ItemSwitchResult result) {
+        if (!com.autyism.printer.utils.PrinterTrace.on() || player == null) return;
+        switch (result) {
+            case READY -> traceReady++;
+            case WAITING -> traceWaiting++;
+            default -> traceMissing++;
+        }
+        if (player.tickCount - traceTick >= 20 || player.tickCount < traceTick) {
+            com.autyism.printer.utils.PrinterTrace.log(id + " items last second: ready=" + traceReady + " waiting=" + traceWaiting
+                    + " missing=" + traceMissing + " hand=" + player.getMainHandItem());
+            traceReady = traceWaiting = traceMissing = 0;
+            traceTick = player.tickCount;
+        }
     }
 
     protected void enterWaiting(@Nullable BlockPos pos) {
