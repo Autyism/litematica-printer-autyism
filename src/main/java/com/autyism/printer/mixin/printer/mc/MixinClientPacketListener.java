@@ -103,7 +103,9 @@ public abstract class MixinClientPacketListener {
             com.autyism.printer.utils.PrinterTrace.log("qs content for container " + id + " (client menu " + player.containerMenu.containerId + " "
                     + player.containerMenu.getClass().getSimpleName() + ")");
         }
-        if (QuickShulkerUtils.isOpenHandler() && player != null
+        // 背包本身（id 0）的内容不是潜影盒开好了：关盒后请服务端重发的背包，可能正好在打开下一个潜影盒的路上到，
+        // 以前把它当成盒子开好了去取物，这次打开就被当成失败丢掉，真开出来的盒子没人管，手上拿着潜影盒一直白放
+        if (QuickShulkerUtils.isOpenHandler() && player != null && player.containerMenu != player.inventoryMenu
                 //? if <1.21.5 {
                 /*&& packet.getContainerId() == player.containerMenu.containerId
                 *///?} else

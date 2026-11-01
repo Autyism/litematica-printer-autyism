@@ -237,9 +237,10 @@ public class InventoryUtils {
         //? if <1.21.5 {
         /*connection.send(new ServerboundContainerClickPacket(player.inventoryMenu.containerId, -1, -999, 0, ClickType.PICKUP,
                 ItemStack.EMPTY, new Int2ObjectOpenHashMap<>()));
-        *///?} else
+        *///?} else {
         connection.send(new ServerboundContainerClickPacket(player.inventoryMenu.containerId, -1, Shorts.checkedCast(-999), SignedBytes.checkedCast(0),
                 ClickType.PICKUP, new Int2ObjectOpenHashMap<>(), HashedStack.EMPTY));
+        //?}
     }
 
     public static boolean swapItemToMainHand(ItemStack stackReference, Minecraft mc) {
