@@ -19,6 +19,7 @@
   "client": [
     "litematica.gui.MixinLitematicaGuiMainMenu",
     "malilib.MixinAbstractCraftingMenu",
+    "malilib.MixinGuiBaseButtonOverlap",
     "malilib.MixinGuiStringListEdit",
     "mc.MixinClientCommonPacketListener",
     "mc.MixinClientLevel",

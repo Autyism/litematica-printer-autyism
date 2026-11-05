@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.2 — 2026-11-05
+
+- Fix: in Litematica's main menu (M), buttons that other mods add to the right column (for example Litematica Container Filler's configs and QuickCraft's schematic folder button) could land on the same spot as another button and could not be clicked. A button that overlaps another one now moves down to the next free spot.
+
+### 中文
+
+- 修复：投影主菜单（M）右边一列里，别的模组加的按钮（比如 Litematica Container Filler 的配置、QuickCraft 的打开投影文件夹）可能和另一个按钮叠在同一个位置，点不到。现在叠在一起的按钮会自动挪到下面的空位。
+
 ## 1.2.1 — 2026-10-25
 
 - Bedrock mode breaks bedrock itself now, no bedrock mod needed (**Bedrock Backend**: *Auto* / *Built-in*; the bedrock mods can still be picked). It works with pistons and redstone torches like the mods, and a slime block under the torch where nothing else can hold it. **Targets at Once** (default 12) blocks go at the same time, laid out so no torch can power another block's piston. Every step waits for the server, so lag doesn't break it, and pistons, torches and slime blocks are always cleaned up, also when you turn the printer off halfway or walk away. A real bedrock floor goes at about 12–16 blocks per second (it was 1–3). Needs a pickaxe that breaks a piston in one hit (Efficiency III or more) while standing on the ground.
