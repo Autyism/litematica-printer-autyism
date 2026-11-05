@@ -306,13 +306,6 @@ public abstract class MixinGui {
         String progressText = Configs.Print.ENABLED.getBooleanValue()
                 ? progressKey.getName((int) Math.floor(progress * 100), shown.getShownFinished(), shown.getShownTotal()).getString()
                 : (int) Math.floor(progress * 100) + "%";
-        // 还要多久：按最近一分钟打印的速度估计
-        if (Configs.Print.ENABLED.getBooleanValue()) {
-            long left = com.autyism.printer.printer.PrintEta.secondsLeft(shown.getShownFinished(), shown.getShownTotal());
-            if (left > 0) {
-                progressText += com.autyism.printer.I18n.HUD_PRINT_ETA.getName(com.autyism.printer.printer.PrintEta.format(left)).getString();
-            }
-        }
         RenderUtils.drawString(progressText, centerX, centerY + 22, Color.WHITE, true, true);
         drawProgressBar(centerX, centerY + 36, 80, 6, progress, new Color(0, 0, 0, 150), new Color(0, 255, 0, 255));
         int extraY = centerY + 46;

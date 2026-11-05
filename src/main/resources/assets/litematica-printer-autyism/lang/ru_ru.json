@@ -323,7 +323,6 @@
   "litematica-printer-autyism.message.printer_off": "Принтер §cвыключен",
   "litematica-printer-autyism.message.cycle_on": "Режим: %s (принтер §aвключён§r)",
   "litematica-printer-autyism.message.cycle_off": "Режим: %s (принтер §cвыключен§r)",
-  "litematica-printer-autyism.hud.print_eta": ", about %s left",
   "litematica-printer-autyism.report.title": "§ePrint report: §f%s§e blocks of the schematic are not right yet (loaded area, render layers):",
   "litematica-printer-autyism.report.all_done": "§aPrint report: everything is right (%s blocks checked in the loaded area).",
   "litematica-printer-autyism.report.line": "§7 - §f%s§7: §e%s",
@@ -351,5 +350,10 @@
   "litematica-printer-autyism.config.printReportLocate": "Locate Unfinished Blocks",
   "litematica-printer-autyism.config.printReportLocate.desc": "Hotkey: takes you to the unfinished blocks one by one, nearest first. The block gets a box you can see through walls, and a line above the crosshair shows the reason, the distance and the direction. Press again for the next one. Works with the printer off too.",
   "litematica-printer-autyism.report.reason.player_in_way": "You are standing there",
-  "litematica-printer-autyism.report.hint_unbound": "§7To find them one by one (nearest first), give \"Locate Unfinished Blocks\" a key on the Hotkeys page of the printer settings."
+  "litematica-printer-autyism.report.hint_unbound": "§7To find them one by one (nearest first), give \"Locate Unfinished Blocks\" a key on the Hotkeys page of the printer settings.",
+  "litematica-printer-autyism.report.verifier_button": "Print Report",
+  "litematica-printer-autyism.report.verifier_hover": "The printer's report for this placement: what is still not right and why, in chat.\nIt follows the verifier's range (all, or the render layers).",
+  "litematica-printer-autyism.report.verifier_started": "Print report: checking, the result goes to chat",
+  "litematica-printer-autyism.config.printCrafterSlots": "Crafter Slots",
+  "litematica-printer-autyism.config.printCrafterSlots.desc": "(On by default) Crafters in the schematic with switched-off slots: the printer opens the crafter (the screen is not shown), switches the same slots off, waits for the server and closes it. A slot with an item in it cannot be switched off."
 }

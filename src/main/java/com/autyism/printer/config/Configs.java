@@ -349,6 +349,11 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 .defaultValue(true)
                 .build();
 
+        // 合成器：投影里关掉的槽位，打印机打开合成器（界面不显示）照着关掉
+        public static final ConfigBoolean CRAFTER_SLOTS = booleanValue("printCrafterSlots")
+                .defaultValue(true)
+                .build();
+
         // 打完了（范围内没事可做、剩下的走过去也没用）在聊天栏出一份报告：还有哪些没打好、为什么
         public static final ConfigBoolean REPORT_WHEN_DONE = booleanValue("printReportWhenDone")
                 .defaultValue(true)
@@ -542,6 +547,7 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 HIDE_LAYER_MESSAGES,
                 ADJUST_FIRST,
                 REPORT_WHEN_DONE,
+                CRAFTER_SLOTS,
                 PRINT_SELECTION_TYPE,
                 EASY_PLACE_PROTOCOL,
                 PLACE_IN_AIR,

@@ -67,7 +67,11 @@ public final class PrintReport {
 
     private final Long2ObjectOpenHashMap<Reason> noted = new Long2ObjectOpenHashMap<>();
 
+    /** Which positions of the boxes count: the printer's own (render layers + selection type), all, or the render layers. */
+    private enum Scope { PRINTER, ALL, RENDER_LAYERS }
+
     // scan in progress
+    private Scope scope = Scope.PRINTER;
     private boolean scanning;
     private boolean announce;
     private boolean locateWhenDone;
@@ -141,6 +145,23 @@ public final class PrintReport {
             return;
         }
         boxes = LitematicaUtils.getSchematicWorkBoxes();
+        scope = Scope.PRINTER;
+        startScan(announce, locate);
+    }
+
+    /**
+     * From the Schematic Verifier: one placement, all of it or only the render layers (the verifier's own range
+     * setting). Posted in chat.
+     */
+    public void requestFor(fi.dy.masa.litematica.schematic.placement.SchematicPlacement placement, boolean renderLayersOnly) {
+        clearLocate();
+        boxes = LitematicaUtils.getPlacementBoxes(placement);
+        scope = renderLayersOnly ? Scope.RENDER_LAYERS : Scope.ALL;
+        scanning = false;
+        startScan(true, false);
+    }
+
+    private void startScan(boolean announce, boolean locate) {
         boxIndex = 0;
         startBox();
         found.clear();
@@ -226,7 +247,7 @@ public final class PrintReport {
         while (boxIndex < boxes.size()) {
             PrinterBox b = boxes.get(boxIndex);
             pos.set(cx, cy, cz);
-            if (level.hasChunk(cx >> 4, cz >> 4) && ModuleManager.PRINT.inPrintSelection(pos)) {
+            if (level.hasChunk(cx >> 4, cz >> 4) && inScope(pos)) {
                 Reason r = classify(level, player, pos);
                 scanned++;
                 if (r != null) add(r, pos, schematic);
@@ -255,6 +276,14 @@ public final class PrintReport {
             buildOrder(player);
             advance(level, player, true);
         }
+    }
+
+    private boolean inScope(BlockPos pos) {
+        return switch (scope) {
+            case PRINTER -> ModuleManager.PRINT.inPrintSelection(pos);
+            case RENDER_LAYERS -> LitematicaUtils.isPositionWithinRange(pos);
+            case ALL -> true;
+        };
     }
 
     private void add(Reason r, BlockPos pos, WorldSchematic schematic) {

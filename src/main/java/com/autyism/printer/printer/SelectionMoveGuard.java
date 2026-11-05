@@ -25,6 +25,17 @@ public final class SelectionMoveGuard {
     /** 上一次看的时候打印机开着：框选变了而打印机是之后才打开的（同一 tick 里先改框选再开），不算 */
     private static boolean wasOn;
 
+    /**
+     * The printer was just switched on: the selection now is the one it works with. Before, a change made right before
+     * switching on could count as a change while on when this was checked late (1.20.1: from the player's tick).
+     */
+    public static void switchedOn() {
+        Object level = Minecraft.getInstance().level;
+        last = level == null ? List.of() : LitematicaUtils.getSelectionWorkBoxes();
+        lastLevel = level;
+        wasOn = true;
+    }
+
     public static void tick() {
         Object level = Minecraft.getInstance().level;
         List<PrinterBox> now = level == null ? List.of() : LitematicaUtils.getSelectionWorkBoxes();

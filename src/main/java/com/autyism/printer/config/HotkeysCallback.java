@@ -87,6 +87,9 @@ public class HotkeysCallback {
 
         // 打印机开关：关掉时清掉还没做完的操作；打开时一个模式都没开，就开“打印”（否则打开了也什么都不做）
         Configs.Core.WORK_SWITCH.setValueChangeCallback(b -> {
+            if (!b.getBooleanValue() && Boolean.getBoolean("ale.debugswitch")) new Throwable("[printer] switched off").printStackTrace(System.out);
+            // the selection as it is now is what the printer was switched on with (a change made before does not count)
+            if (b.getBooleanValue()) com.autyism.printer.printer.SelectionMoveGuard.switchedOn();
             if (!b.getBooleanValue()) {
                 clearPendingActions();
                 if (BedrockCompat.isAvailable()) {

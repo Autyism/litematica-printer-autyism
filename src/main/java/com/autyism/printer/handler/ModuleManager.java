@@ -41,6 +41,7 @@ public class ModuleManager {
 
     public static void tick() {
         com.autyism.printer.printer.PrintReport.INSTANCE.tick();
+        com.autyism.printer.printer.CrafterSlots.tick();
         // 框选范围变了就先关打印机（投影的移动由 PlacementMoveGuard 当场处理）
         com.autyism.printer.printer.SelectionMoveGuard.tick();
         // If TakeItOut is waiting for a server-side shulker extraction, skip

@@ -392,6 +392,7 @@ public class Print extends Module {
     public void onClientBlockChanged(BlockPos pos) {
         layerIndex.blockChanged(pos);
         com.autyism.printer.printer.PrintReport.INSTANCE.blockChanged(pos);
+        com.autyism.printer.printer.CrafterSlots.blockChanged(pos);
         // 打印机关着也记：下次开机时统计还是对的
         loadedIndex.blockChanged(pos);
         noteClientBlockChange(pos);

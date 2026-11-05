@@ -49,7 +49,7 @@ public final class MainMenuButtonOverlap {
     }
 
     /** GuiBase keeps its buttons in a private list (older malilib: wrappers holding the button). */
-    private static List<ButtonBase> buttons(GuiBase gui) {
+    public static List<ButtonBase> buttons(GuiBase gui) {
         List<ButtonBase> out = new ArrayList<>();
         try {
             if (buttonsField == null) {

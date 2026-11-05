@@ -107,6 +107,16 @@ public class LitematicaUtils {
         return result;
     }
 
+    /** 一个投影放置里启用的子区域的方块框（打印报告：验证器里的那个放置） */
+    public static List<PrinterBox> getPlacementBoxes(fi.dy.masa.litematica.schematic.placement.SchematicPlacement placement) {
+        List<PrinterBox> result = new java.util.ArrayList<>();
+        for (Box box : placement.getSubRegionBoxes(fi.dy.masa.litematica.schematic.placement.SubRegionPlacement.RequiredEnabled.PLACEMENT_ENABLED).values()) {
+            PrinterBox pb = toPrinterBox(box);
+            if (pb != null) result.add(pb);
+        }
+        return result;
+    }
+
     /** 当前 Litematica 选区的方块框 */
     public static List<PrinterBox> getSelectionWorkBoxes() {
         AreaSelection selection = DataManager.getSelectionManager().getCurrentSelection();

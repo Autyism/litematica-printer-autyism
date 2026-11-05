@@ -20,6 +20,7 @@
     "litematica.gui.MixinLitematicaGuiMainMenu",
     "malilib.MixinAbstractCraftingMenu",
     "malilib.MixinGuiBaseButtonOverlap",
+    "litematica.MixinGuiSchematicVerifier",
     "malilib.MixinGuiStringListEdit",
     "mc.MixinClientCommonPacketListener",
     "mc.MixinClientLevel",
