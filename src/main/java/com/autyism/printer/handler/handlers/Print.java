@@ -391,6 +391,7 @@ public class Print extends Module {
     /** 客户端世界里的方块变了（BlockChangeHub） */
     public void onClientBlockChanged(BlockPos pos) {
         layerIndex.blockChanged(pos);
+        com.autyism.printer.printer.PrintReport.INSTANCE.blockChanged(pos);
         // 打印机关着也记：下次开机时统计还是对的
         loadedIndex.blockChanged(pos);
         noteClientBlockChange(pos);
@@ -516,7 +517,7 @@ public class Print extends Module {
     private final java.util.Set<Item> missingItemsCache = new java.util.HashSet<>();
     private int missingItemsTick = Integer.MIN_VALUE;
 
-    private boolean skipListed(BlockState required) {
+    public boolean skipListed(BlockState required) {
         if (!Configs.Print.PRINT_SKIP.getBooleanValue()) return false;
         List<String> list = Configs.Print.PRINT_SKIP_LIST.getStrings();
         if (!list.equals(skipListCacheKey)) {
@@ -539,6 +540,25 @@ public class Print extends Module {
             for (MissingMaterialTracker.Entry e : MissingMaterialTracker.getInstance().getMissing()) missingItemsCache.add(e.item);
         }
         return missingItemsCache.contains(item);
+    }
+
+    /** 要放的方块会和玩家自己的身体重叠（服务端不让放）：玩家站在那里 */
+    public static boolean playerInTheWay(net.minecraft.world.level.Level level, net.minecraft.world.entity.player.Player player, BlockPos pos, BlockState required) {
+        if (player == null || level == null) return false;
+        net.minecraft.world.phys.shapes.VoxelShape shape = required.getCollisionShape(level, pos);
+        if (shape.isEmpty()) return false;
+        return player.getBoundingBox().intersects(shape.bounds().move(pos.getX(), pos.getY(), pos.getZ()));
+    }
+
+    /** 打印报告：这种方块是自己放下的（不是跟着另一半一起出现的上半门、床头……） */
+    public boolean placedOnItsOwn(BlockState required) {
+        Block block = required.getBlock();
+        if ((block instanceof DoublePlantBlock || block instanceof DoorBlock)
+                && required.getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.DOUBLE_BLOCK_HALF)
+                == net.minecraft.world.level.block.state.properties.DoubleBlockHalf.UPPER) {
+            return false;
+        }
+        return !(block instanceof BedBlock && required.getValue(BedBlock.PART) == net.minecraft.world.level.block.state.properties.BedPart.HEAD);
     }
 
     /** 范围外缺的方块打印机走近以后能不能放（只看方块本身；和 PlacementGuide 里直接放弃的情况一致） */
@@ -614,6 +634,12 @@ public class Print extends Module {
             if (lastSkipResult) return false;
         }
 
+        // 玩家自己站在要放方块的地方：放不下（以前每次冷却完都点一下，一直发包），走开了再放
+        if (BlockMatchingType.get(required, current) == BlockMatchingType.MISSING_BLOCK && playerInTheWay(level, player, blockPos, required)) {
+            com.autyism.printer.printer.PrintReport.INSTANCE.note(blockPos, com.autyism.printer.printer.PrintReport.Reason.PLAYER_IN_WAY);
+            return false;
+        }
+
         // 打印含水方块：除了含水以外都对了的方块单独处理（不走下面“状态不对”的逻辑，不会被拆掉重放）
         WaterlogPlacer.Verdict waterlog = WaterlogPlacer.verdict(level, schematic, player, blockPos, required, current);
         if (waterlog != WaterlogPlacer.Verdict.NONE) {
@@ -637,6 +663,10 @@ public class Print extends Module {
                     && (required.getBlock() instanceof net.minecraft.world.level.block.ObserverBlock
                     || required.getBlock() instanceof net.minecraft.world.level.block.piston.PistonBaseBlock)) {
                 deferToUpperLayer(blockPos);
+                com.autyism.printer.printer.PrintReport.INSTANCE.note(blockPos, com.autyism.printer.printer.PrintReport.Reason.SAFE_OBSERVER);
+            } else {
+                com.autyism.printer.printer.PrintReport.INSTANCE.note(blockPos, required.getBlock() instanceof net.minecraft.world.level.block.BaseRailBlock
+                        ? com.autyism.printer.printer.PrintReport.Reason.RAIL : com.autyism.printer.printer.PrintReport.Reason.WAITING);
             }
             return false;
         }
@@ -644,18 +674,21 @@ public class Print extends Module {
         // 以前空着手对这一格点 6 次（每次隔 3 tick）才算这一层完成，每到这一层都要白等
         if (!hasPlacementItem(action, required) && BlockMatchingType.get(required, current) == BlockMatchingType.MISSING_BLOCK) {
             deferToUpperLayer(blockPos);
+            com.autyism.printer.printer.PrintReport.INSTANCE.note(blockPos, com.autyism.printer.printer.PrintReport.Reason.NO_ITEM);
             return false;
         }
         // 有侦测器正盯着这一格（先于依附它的方块放下的；开着影响检测时任何一个）：这一格放上方块、或者点一下改状态，它都会亮一下。
         // 动手之前再确认一次没影响（侦测器放下以后，周围可能又放了别的东西）；有影响就先不放
         if (observerPulseWouldHurt(blockPos)) {
             deferToUpperLayer(blockPos);
+            com.autyism.printer.printer.PrintReport.INSTANCE.note(blockPos, com.autyism.printer.printer.PrintReport.Reason.OBSERVER_PULSE);
             return false;
         }
         // 要用的材料已经缺了很久（见 longShortage），现在还是哪里都没有：先不算要做的事。以前每 3 tick 空试一次，
         // 机器别的地方都打完了，打印机还是从底层到顶层一圈一圈地转、一直占着 CPU。材料一有就照常放
         if (stillShort(action, required)) {
             deferToUpperLayer(blockPos);
+            com.autyism.printer.printer.PrintReport.INSTANCE.note(blockPos, com.autyism.printer.printer.PrintReport.Reason.MATERIAL);
             return false;
         }
         this.action = action;
@@ -983,6 +1016,7 @@ public class Print extends Module {
             }
             setCooldown(blockPos, ConfigUtils.getPlaceCooldown());
             recordMissingMaterial(reqItems);
+            com.autyism.printer.printer.PrintReport.INSTANCE.note(blockPos, com.autyism.printer.printer.PrintReport.Reason.MATERIAL);
             if (reqItems != null && reqItems.length > 0 && reqItems[0] != null
                     && !QuickShulkerUtils.isOpenHandler()
                     && Configs.Print.USE_REMOTE_CONTAINER.getBooleanValue()) {

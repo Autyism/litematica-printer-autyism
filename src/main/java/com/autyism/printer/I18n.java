@@ -44,6 +44,15 @@ public class I18n {
     public static final I18n LAYER_DONE_ALL = of("layer.done_all");
     public static final I18n LAYER_DONE_ISSUES = of("layer.done_issues");
     public static final I18n HUD_PRINT_PROGRESS = of("hud.print_progress");
+    public static final I18n HUD_PRINT_ETA = of("hud.print_eta");
+    public static final I18n REPORT_TITLE = of("report.title");
+    public static final I18n REPORT_ALL_DONE = of("report.all_done");
+    public static final I18n REPORT_LINE = of("report.line");
+    public static final I18n REPORT_HINT = of("report.hint");
+    public static final I18n REPORT_HINT_UNBOUND = of("report.hint_unbound");
+    public static final I18n REPORT_HUD = of("report.hud");
+    public static final I18n REPORT_NOTHING_TO_LOCATE = of("report.nothing_to_locate");
+    public static final I18n REPORT_LOCATE_END = of("report.locate_end");
     public static final I18n HUD_PRINT_PROGRESS_LOADED = of("hud.print_progress_loaded");
     public static final I18n HUD_PRINT_ERRORS = of("hud.print_errors");
     public static final I18n HUD_LAYER = of("hud.layer");

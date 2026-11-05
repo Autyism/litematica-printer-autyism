@@ -526,9 +526,9 @@ public abstract class Module extends ConfigUtils {
         }
     }
 
-    private void enterIdle(int recheckTicks) {
+    private boolean enterIdle(int recheckTicks) {
         // 自己的动作还在等服务端回应、或者还有格子在冷却：结果回来之前随时可能又有事做，不歇
-        if (level == null || BlockPosCooldownManager.INSTANCE.hasAny() || ActionConfirm.anyPending(level, nowTick())) return;
+        if (level == null || BlockPosCooldownManager.INSTANCE.hasAny() || ActionConfirm.anyPending(level, nowTick())) return false;
         idle = true;
         idleRecheckTicks = recheckTicks;
         changedSinceIdle = false;
@@ -539,6 +539,7 @@ public abstract class Module extends ConfigUtils {
             idleEyeY = player.getY();
             idleEyeZ = player.getZ();
         }
+        return true;
     }
 
     /** 没事做的时候，要不要现在重新扫一遍 */
@@ -789,7 +790,9 @@ public abstract class Module extends ConfigUtils {
         consumeAreaNotReady();
         if (layerY == null) {
             // 不分层：这一轮整个范围都没事做
-            if (throttleWhenIdle() && !didWork) enterIdle(IDLE_RECHECK_TICKS);
+            if (throttleWhenIdle() && !didWork) {
+                enterIdle(IDLE_RECHECK_TICKS);
+            }
             return;
         }
         boolean wholeLayer = isWholeLayerRule();
@@ -831,7 +834,9 @@ public abstract class Module extends ConfigUtils {
                 if (wrap) cycleDidWork = false;
                 layerY = wrap ? bounds[0] : layerY + 1;
                 // 所有层都看过一遍、一件事都没做：先歇一会儿（换层之后再记，免得马上又被“层变了”叫醒）
-                if (idleCycle) enterIdle(IDLE_CYCLE_RECHECK_TICKS);
+                if (idleCycle) {
+                    enterIdle(IDLE_CYCLE_RECHECK_TICKS);
+                }
                 layerAttempts.clear();
                 layerAttemptRemaining.clear();
                 layerDeferred.clear();

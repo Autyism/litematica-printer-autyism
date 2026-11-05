@@ -40,6 +40,7 @@ public class ModuleManager {
     private static boolean lastRunning = false;
 
     public static void tick() {
+        com.autyism.printer.printer.PrintReport.INSTANCE.tick();
         // 框选范围变了就先关打印机（投影的移动由 PlacementMoveGuard 当场处理）
         com.autyism.printer.printer.SelectionMoveGuard.tick();
         // If TakeItOut is waiting for a server-side shulker extraction, skip
@@ -91,6 +92,7 @@ public class ModuleManager {
             com.autyism.printer.utils.InventoryUtils.clearRecentlyUsed();
             com.autyism.printer.printer.RailSim.reset();
             MissingMaterialTracker.getInstance().reset();
+            com.autyism.printer.printer.PrintReport.INSTANCE.clearNoted();
             for (Module module : VALUES) {
                 module.resetScanState();
             }

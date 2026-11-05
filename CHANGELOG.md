@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.3.0 — 2026-11-05
+
+- New: **print report**. When the printer has nothing left to do (and walking closer wouldn't help), it says in chat what is still not right in the schematic and why: missing material (with the items), held back by the safe observer rules, no support, a wrong block in the way, on the skip list, you standing there... Or that everything is right. **Print Report** (hotkey) asks for one at any time. Turn the automatic one off with **Report When Done**.
+- New: **Locate Unfinished Blocks** (hotkey, not bound by default). Takes you to the unfinished blocks one by one, nearest first: a box you can see through walls and a line above the crosshair with the reason, the distance and the direction. Works with the printer off too.
+- The progress line shows about how long the rest will take, from the speed of the last minute.
+- Fix: when you stood where a block had to go, the printer clicked there again every few ticks for as long as you stood there. It now waits until you move.
+
+### 中文
+
+- 新功能：**打印报告**。打印机没事可做了（走近也没用）时，在聊天栏告诉你投影里还有哪些没打好、为什么：缺材料（列出缺什么）、侦测器安全规则先不放、没有支撑、有别的方块挡着、在跳过列表里、你站在那里……全部打好了也会说一声。随时想看就按 **打印报告** 快捷键。不想要自动的可以关掉 **打完出报告**。
+- 新功能：**定位没打好的方块**（快捷键，默认没设）。由近到远一个个带你过去：那一格有透墙的框，准星上方写着原因、距离和方向。打印机关着也能用。
+- 进度那一行会显示大概还要多久（按最近一分钟的速度算）。
+- 修复：你站在要放方块的地方时，打印机会每隔几 tick 就对那里点一下，一直点到你走开。现在等你走开再放。
+
 ## 1.2.2 — 2026-11-05
 
 - Fix: in Litematica's main menu (M), buttons that other mods add to the right column (for example Litematica Container Filler's configs and QuickCraft's schematic folder button) could land on the same spot as another button and could not be clicked. A button that overlaps another one now moves down to the next free spot.

@@ -105,7 +105,8 @@ public final class SwitchesGameTest implements FabricClientGameTest {
         expect("fluid key while printer off", "P:l");
 
         // 轮换（默认关打印机）
-        boolean bedrock = BedrockCompat.isAvailable();
+        // 自带破基岩（默认）时破基岩模式总在轮换里；改用破基岩模组时要装了才在
+        boolean bedrock = BedrockCompat.usesBuiltin() || BedrockCompat.isAvailable();
         Configs.Hotkeys.CYCLE_TURNS_OFF.setBooleanValue(true);
         GT.disableAll();
         Configs.Print.ENABLED.setBooleanValue(true);

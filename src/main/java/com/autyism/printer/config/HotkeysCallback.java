@@ -45,6 +45,16 @@ public class HotkeysCallback {
             return true;
         });
 
+        // 打印报告 / 逐个定位没打好的方块
+        Configs.Hotkeys.REPORT.getKeybind().setCallback((action, keybind) -> {
+            if (client.player != null && client.level != null) com.autyism.printer.printer.PrintReport.INSTANCE.report();
+            return true;
+        });
+        Configs.Hotkeys.REPORT_LOCATE.getKeybind().setCallback((action, keybind) -> {
+            if (client.player != null && client.level != null) com.autyism.printer.printer.PrintReport.INSTANCE.locateNext();
+            return true;
+        });
+
         // 打印机开关
         Configs.Core.WORK_SWITCH.getKeybind().setCallback((action, keybind) -> {
             togglePrinter();

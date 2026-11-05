@@ -71,6 +71,10 @@ public class MissingMaterialTracker {
         return new ArrayList<>(missingMap.values());
     }
 
+    public boolean has(Item item) {
+        return missingMap.containsKey(item);
+    }
+
     public boolean hasMissing() {
         return !missingMap.isEmpty();
     }

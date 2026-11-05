@@ -31,6 +31,7 @@ It is a standalone mod (not an add-on), based on the BiliXWhite and water2004 fo
 Compared with the 1.21.11 printer builds it is based on, this edition adds or reworks:
 
 - Layered printing from the bottom up, a work radius of up to 4096 and automatic reach in singleplayer.
+- A print report when it is done: what is still not right and why (missing material, safe observer rules, wrong blocks...), and a hotkey that takes you to those blocks one by one; the progress line shows the time left.
 - A pause while you use containers, so taking materials from a chest no longer causes wrong blocks.
 - Fixed placement of doors (hinge side), vines, levers, buttons and double chests, signs that can be placed against other signs, and server-confirmed head turns for pistons, observers and other direction-sensitive blocks.
 - Safe rail placement, and redstone adjustments (note blocks, repeaters and more) that wait for the server between clicks.
@@ -453,6 +454,7 @@ Litematica Printer Autyism Edition（游戏内中文名“投影打印机 Autyis
 和它所基于的 1.21.11 版打印机相比，本版本新增或重做了：
 
 - 从下往上的分层打印、最大 4096 的工作半径，以及单人世界自动调高触及距离。
+- 打完给一份报告：还有哪些没打好、为什么（缺材料、侦测器安全规则、方块不对……），还有一个快捷键能一个个带你找到它们；进度那一行显示还要多久。
 - 使用容器时暂停，去箱子里拿材料不会再导致放错方块。
 - 修正门（门轴）、藤蔓、拉杆、按钮和大箱子的放置，告示牌可以贴着告示牌放；活塞、侦测器等对朝向敏感的方块会等服务器确认转头后再放。
 - 铁轨安全放置；音符盒、中继器等红石元件的调整每点一下都等服务器确认。

@@ -35,7 +35,10 @@ public class LegacyBlockHighlightRenderer implements IRenderer {
     }
 
     private void renderInternal(Vec3 cameraPos) {
-        if (!Configs.Highlight.HIGHLIGHT_ENABLED.getBooleanValue()) return;
+        // 打印报告的定位目标：总是画（透墙），打印机自己的高亮关着也画
+        BlockPos locateTarget = com.autyism.printer.printer.PrintReport.INSTANCE.target();
+        boolean ownHighlight = Configs.Highlight.HIGHLIGHT_ENABLED.getBooleanValue();
+        if (!ownHighlight && locateTarget == null) return;
 
         LocalPlayer player = Minecraft.getInstance().player;
         if (player == null) return;
@@ -53,7 +56,7 @@ public class LegacyBlockHighlightRenderer implements IRenderer {
 
         List<HighlightEntry> entries = new ArrayList<>();
 
-        for (Module module : ModuleManager.VALUES) {
+        for (Module module : ownHighlight ? ModuleManager.VALUES : java.util.List.<Module>of()) {
             Queue<Module.PendingHighlight> pending = module.getPendingHighlights();
             if (pending.isEmpty()) continue;
             for (Module.PendingHighlight ph : pending) {
@@ -74,6 +77,14 @@ public class LegacyBlockHighlightRenderer implements IRenderer {
             }
         }
 
+        if (locateTarget != null) {
+            float ldx = (float) (locateTarget.getX() + 0.5 - cameraPos.x);
+            float ldy = (float) (locateTarget.getY() + 0.5 - cameraPos.y);
+            float ldz = (float) (locateTarget.getZ() + 0.5 - cameraPos.z);
+            float pulse = 0.55f + 0.45f * (float) Math.sin(now / 180.0);
+            entries.add(new HighlightEntry(locateTarget, pulse, ldx * ldx + ldy * ldy + ldz * ldz, 80, 220, 255, HighlightStyleType.BOTH));
+            seeThrough = true;
+        }
         if (entries.isEmpty()) return;
 
         boolean hasOutline = false;

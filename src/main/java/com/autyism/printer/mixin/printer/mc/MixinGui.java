@@ -115,7 +115,12 @@ public abstract class MixinGui {
     *///?} else
     private void hookRenderItemHotbar(GuiGraphics guiGraphics, DeltaTracker deltaTracker, CallbackInfo ci) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.level == null || mc.player.isSpectator() || !ConfigUtils.isPrinterEnable()) {
+        if (mc.player == null || mc.level == null || mc.player.isSpectator()) {
+            return;
+        }
+        // 打印报告的定位：打印机关着也显示
+        String locate = com.autyism.printer.printer.PrintReport.INSTANCE.hudLine();
+        if (!ConfigUtils.isPrinterEnable() && locate == null) {
             return;
         }
 
@@ -123,6 +128,12 @@ public abstract class MixinGui {
         float scaledHeight = mc.getWindow().getGuiScaledHeight();
 
         RenderUtils.initGuiGraphics(guiGraphics);
+        if (locate != null) {
+            RenderUtils.drawString(locate, (int) (scaledWidth / 2), (int) (scaledHeight / 2) - 34, new Color(80, 220, 255, 255), true, true);
+        }
+        if (!ConfigUtils.isPrinterEnable()) {
+            return;
+        }
 
         if (Configs.Core.DEBUG_OUTPUT.getBooleanValue()) {
             drawDebugInfo(scaledWidth, scaledHeight);
@@ -295,6 +306,13 @@ public abstract class MixinGui {
         String progressText = Configs.Print.ENABLED.getBooleanValue()
                 ? progressKey.getName((int) Math.floor(progress * 100), shown.getShownFinished(), shown.getShownTotal()).getString()
                 : (int) Math.floor(progress * 100) + "%";
+        // 还要多久：按最近一分钟打印的速度估计
+        if (Configs.Print.ENABLED.getBooleanValue()) {
+            long left = com.autyism.printer.printer.PrintEta.secondsLeft(shown.getShownFinished(), shown.getShownTotal());
+            if (left > 0) {
+                progressText += com.autyism.printer.I18n.HUD_PRINT_ETA.getName(com.autyism.printer.printer.PrintEta.format(left)).getString();
+            }
+        }
         RenderUtils.drawString(progressText, centerX, centerY + 22, Color.WHITE, true, true);
         drawProgressBar(centerX, centerY + 36, 80, 6, progress, new Color(0, 0, 0, 150), new Color(0, 255, 0, 255));
         int extraY = centerY + 46;

@@ -35,6 +35,7 @@
       "com.autyism.printer.gametest.AdjustFirstGameTest",
       "com.autyism.printer.gametest.ProgressScopeGameTest",
       "com.autyism.printer.gametest.LayerDoneGameTest",
+      "com.autyism.printer.gametest.ReportGameTest",
       "com.autyism.printer.gametest.LayerRevisitGameTest",
       "com.autyism.printer.gametest.LayerStartGameTest",
       "com.autyism.printer.gametest.MachineGameTest",

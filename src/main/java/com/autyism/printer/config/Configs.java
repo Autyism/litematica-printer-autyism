@@ -349,6 +349,11 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 .defaultValue(true)
                 .build();
 
+        // 打完了（范围内没事可做、剩下的走过去也没用）在聊天栏出一份报告：还有哪些没打好、为什么
+        public static final ConfigBoolean REPORT_WHEN_DONE = booleanValue("printReportWhenDone")
+                .defaultValue(true)
+                .build();
+
         // 启用打印
         public static final ConfigBooleanHotkeyed ENABLED = booleanHotkey("printEnabled")
                 .defaultValue(false)
@@ -536,6 +541,7 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 LAYER_DONE_SCOPE,
                 HIDE_LAYER_MESSAGES,
                 ADJUST_FIRST,
+                REPORT_WHEN_DONE,
                 PRINT_SELECTION_TYPE,
                 EASY_PLACE_PROTOCOL,
                 PLACE_IN_AIR,
@@ -804,6 +810,14 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
         public static final ConfigHotkey CYCLE_MODE = hotkeyValue("cycleMode")
                 .build();
 
+        // 打印报告：投影里还没打好的方块按原因分组，发在聊天栏
+        public static final ConfigHotkey REPORT = hotkeyValue("printReport")
+                .build();
+
+        // 逐个定位没打好的方块（由近到远）
+        public static final ConfigHotkey REPORT_LOCATE = hotkeyValue("printReportLocate")
+                .build();
+
         // 轮换模式时顺便关掉打印机：工作中误按也不会让新模式自己开始干活
         public static final ConfigBoolean CYCLE_TURNS_OFF = booleanValue("cycleModeTurnsOff")
                 .defaultValue(true)
@@ -813,7 +827,9 @@ public class Configs extends ConfigBuilders implements IConfigHandler {
                 OPEN_SCREEN,
                 CYCLE_MODE,
                 CYCLE_TURNS_OFF,
-                CLOSE_ALL_MODE
+                CLOSE_ALL_MODE,
+                REPORT,
+                REPORT_LOCATE
         );
     }
 
