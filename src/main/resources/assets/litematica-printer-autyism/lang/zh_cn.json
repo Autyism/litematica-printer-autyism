@@ -370,5 +370,8 @@
   "litematica-printer-autyism.report.verifier_hover": "打印机对这个投影的报告：还有哪些没打好、为什么，发在聊天栏。\n范围跟着验证器的范围设置（全部，或当前渲染层）。",
   "litematica-printer-autyism.report.verifier_started": "打印报告：正在检查，结果会发到聊天栏",
   "litematica-printer-autyism.config.printCrafterSlots": "合成器槽位",
-  "litematica-printer-autyism.config.printCrafterSlots.desc": "（默认开）投影里的合成器有关掉的槽位时，打印机会打开合成器（界面不显示），把同样的槽位关掉，等服务器确认后关上。里面有东西的槽位关不了。"
+  "litematica-printer-autyism.config.printCrafterSlots.desc": "（默认开）投影里的合成器有关掉的槽位时，打印机会打开合成器（界面不显示），把同样的槽位关掉，等服务器确认后关上。里面有东西的槽位关不了。",
+  "litematica-printer-autyism.manual.title": "打印机说明书",
+  "litematica-printer-autyism.manual.search": "搜索说明书……",
+  "litematica-printer-autyism.manual.button": "说明书"
 }

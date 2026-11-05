@@ -85,6 +85,19 @@ public class ConfigUi extends GuiConfigsBase {
             }
             x += button.getWidth() + 2;
         }
+        // the manual: after the tabs, in gold so it does not read as one of them
+        ButtonGeneric manual = new ButtonGeneric(x + 6, y, -1, 20, "§6" + fi.dy.masa.malilib.util.StringUtils.translate("litematica-printer-autyism.manual.button"));
+        //? if <1.21 {
+        /*if (x > 10 && x + 6 + manual.getWidth() > this.width - 10) {
+        *///?} else
+        if (x > 10 && x + 6 + manual.getWidth() > this.getScreenWidth() - 10) {
+            y += 22;
+            rows++;
+            manual.setPosition(10, y);
+        }
+        if (create) {
+            this.addButton(manual, (b, mouseButton) -> fi.dy.masa.malilib.gui.GuiBase.openGui(new ManualScreen(this)));
+        }
         return rows;
     }
 

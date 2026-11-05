@@ -370,5 +370,8 @@
   "litematica-printer-autyism.report.verifier_hover": "The printer's report for this placement: what is still not right and why, in chat.\nIt follows the verifier's range (all, or the render layers).",
   "litematica-printer-autyism.report.verifier_started": "Print report: checking, the result goes to chat",
   "litematica-printer-autyism.config.printCrafterSlots": "Crafter Slots",
-  "litematica-printer-autyism.config.printCrafterSlots.desc": "(On by default) Crafters in the schematic with switched-off slots: the printer opens the crafter (the screen is not shown), switches the same slots off, waits for the server and closes it. A slot with an item in it cannot be switched off."
+  "litematica-printer-autyism.config.printCrafterSlots.desc": "(On by default) Crafters in the schematic with switched-off slots: the printer opens the crafter (the screen is not shown), switches the same slots off, waits for the server and closes it. A slot with an item in it cannot be switched off.",
+  "litematica-printer-autyism.manual.title": "Printer manual",
+  "litematica-printer-autyism.manual.search": "Search the manual...",
+  "litematica-printer-autyism.manual.button": "Manual"
 }

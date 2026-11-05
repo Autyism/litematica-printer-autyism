@@ -26,6 +26,25 @@ public final class SettingsShotsGameTest implements FabricClientGameTest {
             shot(context, ConfigUi.Tab.PRINT, true, "settings-printing-end");
             shot(context, ConfigUi.Tab.BREAK, false, "settings-breaking");
             shot(context, ConfigUi.Tab.EXCAVATE, false, "settings-mining");
+            // the manual, opened from the settings
+            context.runOnClient(c -> {
+                //? if >=26.2 {
+                /*c.gui.setScreen(new com.autyism.printer.gui.ManualScreen(new ConfigUi(null)));
+                *///?} else
+                c.setScreen(new com.autyism.printer.gui.ManualScreen(new ConfigUi(null)));
+            });
+            context.waitTicks(5);
+            context.takeScreenshot("settings-manual");
+            context.runOnClient(c -> {
+                //? if >=26.2 {
+                /*var screen = c.gui.screen();
+                *///?} else
+                var screen = c.screen;
+                screen.mouseScrolled(100, 100, 0, -60);
+            });
+            context.waitTicks(3);
+            context.takeScreenshot("settings-manual-scrolled");
+            GT.log("[settings] manual");
         } finally {
             //? if >=26.2 {
             /*context.runOnClient(c -> c.gui.setScreen(null));
